@@ -156,8 +156,9 @@
   .modal-overlay.open { opacity: 1; pointer-events: all; }
   .modal {
     background: var(--white); border-radius: 18px;
-    padding: 2rem; width: 100%; max-width: 520px;
+    padding: 2rem; width: 100%; max-width: 580px;
     transform: translateY(20px); transition: transform 0.2s;
+    max-height: 85vh; overflow-y: auto;
   }
   .modal-overlay.open .modal { transform: translateY(0); }
   .modal-title { font-size: 17px; font-weight: 600; color: var(--navy); margin-bottom: 0.25rem; }
@@ -182,15 +183,28 @@
   .score-item .set-name { color: var(--gray-600); font-weight: 500; }
   .score-item .set-score { font-weight: 600; color: var(--navy); }
   .score-item .expand-hint { font-size: 11px; color: var(--gray-400); margin-top: 3px; }
-  .answers-breakdown { display: none; margin-top: 10px; border-top: 1px solid var(--gray-200); padding-top: 10px; }
+  .answers-breakdown { display: none; margin-top: 12px; border-top: 1px solid var(--gray-200); padding-top: 12px; }
   .answers-breakdown.open { display: block; }
-  .answer-row { display: grid; grid-template-columns: 24px 1fr 1fr 1fr; gap: 8px; align-items: start; padding: 6px 0; border-bottom: 1px solid var(--gray-100); font-size: 12px; }
-  .answer-row:last-child { border-bottom: none; }
-  .answer-row .q-num { color: var(--gray-400); font-weight: 600; padding-top: 2px; }
-  .answer-row .q-text { color: var(--gray-700); line-height: 1.4; }
-  .answer-row .correct { color: var(--green); font-weight: 500; }
-  .answer-row .wrong { color: var(--red); font-weight: 500; }
-  .answer-row .skipped { color: var(--gray-400); font-style: italic; }
+  .answer-card {
+    background: var(--white); border: 1px solid var(--gray-200);
+    border-radius: 10px; padding: 12px 14px; margin-bottom: 8px;
+  }
+  .answer-card.correct-card { border-right: 3px solid var(--green); }
+  .answer-card.wrong-card { border-right: 3px solid var(--red); }
+  .answer-card.skipped-card { border-right: 3px solid var(--gray-400); }
+  .answer-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .answer-card-qnum { font-size: 11px; font-weight: 600; color: var(--gray-400); }
+  .answer-card-status { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; }
+  .status-correct { background: rgba(5,150,105,0.1); color: var(--green); }
+  .status-wrong { background: rgba(220,38,38,0.1); color: var(--red); }
+  .status-skipped { background: var(--gray-100); color: var(--gray-400); }
+  .answer-card-question { font-size: 13px; color: var(--navy); font-weight: 500; margin-bottom: 10px; line-height: 1.5; }
+  .answer-options { display: flex; flex-direction: column; gap: 5px; }
+  .answer-option { font-size: 12px; padding: 6px 10px; border-radius: 7px; display: flex; align-items: center; gap: 8px; }
+  .answer-option.opt-correct { background: rgba(5,150,105,0.08); color: var(--green); font-weight: 600; }
+  .answer-option.opt-wrong { background: rgba(220,38,38,0.08); color: var(--red); font-weight: 600; }
+  .answer-option.opt-neutral { background: var(--gray-50); color: var(--gray-600); }
+  .answer-option .opt-icon { font-size: 13px; flex-shrink: 0; }
   .modal-actions { display: flex; gap: 10px; }
   .btn-save {
     flex: 1; padding: 11px; background: var(--blue); border: none;
@@ -421,17 +435,55 @@ function openModal(userId) {
     ? s.scores.map(sc => {
         const setAnswers = studentAnswers.filter(a => a.set_number === sc.set_number);
         const answersHtml = setAnswers.length ? setAnswers.map((a, i) => {
-          const qText = a.question_text ? a.question_text.substring(0, 60) + (a.question_text.length > 60 ? '...' : '') : '';
-          const statusIcon = a.is_correct ? '✓' : (a.student_answer === -1 ? '—' : '✗');
-          const statusClass = a.is_correct ? 'correct' : (a.student_answer === -1 ? 'skipped' : 'wrong');
-          const correctLabel = `תשובה נכונה: ${a.correct_answer + 1}`;
-          const studentLabel = a.student_answer === -1 ? 'דולג' : 
-            (a.is_correct ? `תשובת תלמיד: ${a.student_answer + 1} ✓` : `תשובת תלמיד: ${a.student_answer + 1} ✗`);
-          return `<div class="answer-row">
-            <div class="q-num ${statusClass}">${statusIcon}</div>
-            <div class="q-text">${qText}</div>
-            <div class="${a.is_correct ? 'correct' : 'skipped'}">${correctLabel}</div>
-            <div class="${a.is_correct ? 'correct' : 'wrong'}">${studentLabel}</div>
+          const qText = a.question_text || '';
+          const isCorrect = a.is_correct;
+          const isSkipped = a.student_answer === -1;
+          const cardClass = isCorrect ? 'correct-card' : (isSkipped ? 'skipped-card' : 'wrong-card');
+          const statusClass = isCorrect ? 'status-correct' : (isSkipped ? 'status-skipped' : 'status-wrong');
+          const statusText = isCorrect ? '✓ נכון' : (isSkipped ? '— דולג' : '✗ שגוי');
+          
+          // Build options display - show actual answer text
+          const correctText = a.correct_answer_text || `אפשרות ${a.correct_answer + 1}`;
+          const studentText = a.student_answer_text || (a.student_answer !== -1 ? `אפשרות ${a.student_answer + 1}` : null);
+          
+          let optionsHtml = '';
+          if (!isCorrect && !isSkipped) {
+            optionsHtml = `
+              <div class="answer-options">
+                <div class="answer-option opt-wrong">
+                  <span class="opt-icon">✗</span>
+                  <span><strong>תשובת התלמיד:</strong> ${studentText}</span>
+                </div>
+                <div class="answer-option opt-correct">
+                  <span class="opt-icon">✓</span>
+                  <span><strong>תשובה נכונה:</strong> ${correctText}</span>
+                </div>
+              </div>`;
+          } else if (isCorrect) {
+            optionsHtml = `
+              <div class="answer-options">
+                <div class="answer-option opt-correct">
+                  <span class="opt-icon">✓</span>
+                  <span><strong>תשובה נכונה:</strong> ${correctText}</span>
+                </div>
+              </div>`;
+          } else {
+            optionsHtml = `
+              <div class="answer-options">
+                <div class="answer-option opt-neutral">
+                  <span class="opt-icon">—</span>
+                  <span>השאלה דולגה</span>
+                </div>
+              </div>`;
+          }
+
+          return `<div class="answer-card ${cardClass}">
+            <div class="answer-card-header">
+              <span class="answer-card-qnum">שאלה ${i + 1}</span>
+              <span class="answer-card-status ${statusClass}">${statusText}</span>
+            </div>
+            <div class="answer-card-question">${qText}</div>
+            ${optionsHtml}
           </div>`;
         }).join('') : '<div style="font-size:12px;color:var(--gray-400);padding:6px">אין פירוט זמין לסט זה</div>';
         

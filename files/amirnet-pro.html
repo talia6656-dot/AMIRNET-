@@ -2841,6 +2841,8 @@ async function saveScoreToSupabase(setNumber, correct, total) {
         student_answer: studentAnswer !== undefined ? studentAnswer : -1,
         correct_answer: q.answer,
         is_correct: isCorrect,
+        student_answer_text: (studentAnswer !== undefined && studentAnswer !== -1) ? q.options[studentAnswer] : null,
+        correct_answer_text: q.options[q.answer],
       };
     });
 
