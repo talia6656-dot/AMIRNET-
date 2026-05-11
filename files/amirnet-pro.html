@@ -2806,17 +2806,37 @@ async function initAuth() {
   }
 }
 
-// Save score to Supabase after completing a full set
+// Save score + individual answers to Supabase after completing a full set
 async function saveScoreToSupabase(setNumber, correct, total) {
   if (!currentUser) return;
   try {
+    // Save overall score
     await sb.from('scores').insert({
       user_id: currentUser.id,
       set_number: setNumber,
       score: correct,
       total_questions: total,
     });
-    console.log('Score saved:', setNumber, correct, total);
+
+    // Save individual answers
+    const qs = QUESTION_BANK[currentSet];
+    const answerRows = qs.map((q, idx) => {
+      const globalIdx = idx;
+      const studentAnswer = answers[globalIdx];
+      const isCorrect = studentAnswer === q.answer;
+      return {
+        user_id: currentUser.id,
+        set_number: setNumber,
+        question_index: idx,
+        question_text: q.text,
+        student_answer: studentAnswer !== undefined ? studentAnswer : -1,
+        correct_answer: q.answer,
+        is_correct: isCorrect,
+      };
+    });
+
+    await sb.from('answer_details').insert(answerRows);
+    console.log('Score and answers saved:', setNumber, correct, total);
   } catch(e) {
     console.error('Score save error:', e);
   }

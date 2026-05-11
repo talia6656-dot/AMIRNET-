@@ -173,12 +173,24 @@
   .modal textarea { resize: vertical; min-height: 100px; }
   .modal-scores { margin-bottom: 1.25rem; }
   .score-item {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 8px 12px; background: var(--gray-50); border-radius: 8px;
-    margin-bottom: 6px; font-size: 13px;
+    padding: 10px 12px; background: var(--gray-50); border-radius: 8px;
+    margin-bottom: 6px; font-size: 13px; cursor: pointer;
+    transition: background 0.15s; border: 1px solid var(--gray-200);
   }
-  .score-item .set-name { color: var(--gray-600); }
+  .score-item:hover { background: var(--gray-100); }
+  .score-item-header { display: flex; justify-content: space-between; align-items: center; }
+  .score-item .set-name { color: var(--gray-600); font-weight: 500; }
   .score-item .set-score { font-weight: 600; color: var(--navy); }
+  .score-item .expand-hint { font-size: 11px; color: var(--gray-400); margin-top: 3px; }
+  .answers-breakdown { display: none; margin-top: 10px; border-top: 1px solid var(--gray-200); padding-top: 10px; }
+  .answers-breakdown.open { display: block; }
+  .answer-row { display: grid; grid-template-columns: 24px 1fr 1fr 1fr; gap: 8px; align-items: start; padding: 6px 0; border-bottom: 1px solid var(--gray-100); font-size: 12px; }
+  .answer-row:last-child { border-bottom: none; }
+  .answer-row .q-num { color: var(--gray-400); font-weight: 600; padding-top: 2px; }
+  .answer-row .q-text { color: var(--gray-700); line-height: 1.4; }
+  .answer-row .correct { color: var(--green); font-weight: 500; }
+  .answer-row .wrong { color: var(--red); font-weight: 500; }
+  .answer-row .skipped { color: var(--gray-400); font-style: italic; }
   .modal-actions { display: flex; gap: 10px; }
   .btn-save {
     flex: 1; padding: 11px; background: var(--blue); border: none;
@@ -343,6 +355,9 @@ async function loadDashboard() {
   const { data: scores } = await sb.from('scores').select('*');
   // Load all feedback
   const { data: feedbacks } = await sb.from('feedback').select('*');
+  // Load all answer details
+  const { data: allAnswers } = await sb.from('answer_details').select('*');
+  window._allAnswers = allAnswers || [];
 
   studentsData = (profiles || []).map(p => {
     const studentScores = (scores || []).filter(s => s.user_id === p.id);
@@ -400,11 +415,35 @@ function openModal(userId) {
   document.getElementById('modal-feedback').value = s.feedback?.teacher_note || '';
   document.getElementById('save-success').classList.remove('show');
 
+  const studentAnswers = (window._allAnswers || []).filter(a => a.user_id === userId);
+  
   const scoresHtml = s.scores.length
-    ? s.scores.map(sc => `<div class="score-item">
-        <span class="set-name">סט ${sc.set_number}</span>
-        <span class="set-score">${Math.round(sc.score/sc.total_questions*100)}% (${sc.score}/${sc.total_questions})</span>
-      </div>`).join('')
+    ? s.scores.map(sc => {
+        const setAnswers = studentAnswers.filter(a => a.set_number === sc.set_number);
+        const answersHtml = setAnswers.length ? setAnswers.map((a, i) => {
+          const qText = a.question_text ? a.question_text.substring(0, 60) + (a.question_text.length > 60 ? '...' : '') : '';
+          const statusIcon = a.is_correct ? '✓' : (a.student_answer === -1 ? '—' : '✗');
+          const statusClass = a.is_correct ? 'correct' : (a.student_answer === -1 ? 'skipped' : 'wrong');
+          const correctLabel = `תשובה נכונה: ${a.correct_answer + 1}`;
+          const studentLabel = a.student_answer === -1 ? 'דולג' : 
+            (a.is_correct ? `תשובת תלמיד: ${a.student_answer + 1} ✓` : `תשובת תלמיד: ${a.student_answer + 1} ✗`);
+          return `<div class="answer-row">
+            <div class="q-num ${statusClass}">${statusIcon}</div>
+            <div class="q-text">${qText}</div>
+            <div class="${a.is_correct ? 'correct' : 'skipped'}">${correctLabel}</div>
+            <div class="${a.is_correct ? 'correct' : 'wrong'}">${studentLabel}</div>
+          </div>`;
+        }).join('') : '<div style="font-size:12px;color:var(--gray-400);padding:6px">אין פירוט זמין לסט זה</div>';
+        
+        return `<div class="score-item" onclick="toggleAnswers(this)">
+          <div class="score-item-header">
+            <span class="set-name">סט ${sc.set_number}</span>
+            <span class="set-score">${Math.round(sc.score/sc.total_questions*100)}% (${sc.score}/${sc.total_questions})</span>
+          </div>
+          <div class="expand-hint">לחץ לפירוט תשובות ▼</div>
+          <div class="answers-breakdown">${answersHtml}</div>
+        </div>`;
+      }).join('')
     : '<div style="font-size:13px;color:var(--gray-400);padding:8px">התלמיד טרם השלים סטים.</div>';
   document.getElementById('modal-scores').innerHTML = scoresHtml;
 
@@ -414,6 +453,15 @@ function openModal(userId) {
 function closeModal(e) {
   if (e.target === document.getElementById('modal-overlay'))
     document.getElementById('modal-overlay').classList.remove('open');
+}
+
+function toggleAnswers(el) {
+  const breakdown = el.querySelector('.answers-breakdown');
+  const hint = el.querySelector('.expand-hint');
+  if (breakdown) {
+    breakdown.classList.toggle('open');
+    if (hint) hint.textContent = breakdown.classList.contains('open') ? 'לחץ לסגירה ▲' : 'לחץ לפירוט תשובות ▼';
+  }
 }
 
 async function saveFeedback() {
