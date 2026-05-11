@@ -2808,7 +2808,16 @@ async function initAuth() {
 
 // Save score + individual answers to Supabase after completing a full set
 async function saveScoreToSupabase(setNumber, correct, total) {
-  if (!currentUser) return;
+  // If currentUser not set, try to get session again
+  if (!currentUser) {
+    const { data } = await sb.auth.getSession();
+    if (data.session) {
+      currentUser = data.session.user;
+    } else {
+      console.warn('No user session — score not saved');
+      return;
+    }
+  }
   try {
     // Save overall score
     await sb.from('scores').insert({
