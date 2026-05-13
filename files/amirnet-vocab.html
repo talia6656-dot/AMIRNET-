@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AmirNET Pro — מילון מילים</title>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700&family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --navy: #0a1628; --navy-mid: #112040; --blue: #1a56db; --blue-light: #3b82f6;
+  --accent: #f59e0b; --green: #059669; --red: #dc2626; --white: #ffffff;
+  --gray-50: #f8fafc; --gray-100: #f1f5f9; --gray-200: #e2e8f0;
+  --gray-400: #94a3b8; --gray-600: #475569; --gray-800: #1e293b;
+  --font: "Heebo", sans-serif; --radius: 16px;
+}
+body { font-family: var(--font); background: var(--gray-50); min-height: 100vh; direction: rtl; }
+
+.header { background: var(--navy); padding: 0 1.5rem; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+.header-logo { font-family: "DM Serif Display", serif; font-size: 1.3rem; color: var(--white); }
+.header-logo span { color: var(--accent); }
+.btn-back { display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; color: rgba(255,255,255,0.7); font-family: var(--font); font-size: 13px; padding: 6px 12px; cursor: pointer; transition: all 0.15s; text-decoration: none; }
+.btn-back:hover { background: rgba(255,255,255,0.15); color: var(--white); }
+
+.main { max-width: 960px; margin: 0 auto; padding: 1.5rem; }
+
+.stats-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 1.5rem; }
+.stat-pill { background: var(--white); border: 1px solid var(--gray-200); border-radius: 12px; padding: 12px 16px; text-align: center; }
+.stat-pill .val { font-size: 22px; font-weight: 700; color: var(--navy); }
+.stat-pill .lbl { font-size: 11px; color: var(--gray-400); margin-top: 2px; }
+
+.controls { background: var(--white); border: 1px solid var(--gray-200); border-radius: var(--radius); padding: 1rem 1.25rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.level-tabs { display: flex; gap: 6px; }
+.level-tab { padding: 6px 16px; border-radius: 999px; font-family: var(--font); font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid var(--gray-200); background: var(--gray-50); color: var(--gray-600); transition: all 0.15s; }
+.level-tab.active { background: var(--navy); color: var(--white); border-color: var(--navy); }
+.mode-toggle { display: flex; gap: 6px; margin-right: auto; }
+.mode-btn { padding: 6px 14px; border-radius: 999px; font-family: var(--font); font-size: 13px; cursor: pointer; border: 1px solid var(--gray-200); background: var(--gray-50); color: var(--gray-600); transition: all 0.15s; }
+.mode-btn.active { background: var(--blue); color: var(--white); border-color: var(--blue); }
+.progress-wrap { width: 100%; margin-top: 8px; }
+.progress-bar-bg { height: 6px; background: var(--gray-100); border-radius: 999px; overflow: hidden; }
+.progress-bar-fill { height: 100%; background: linear-gradient(90deg, var(--blue), var(--accent)); border-radius: 999px; transition: width 0.4s ease; }
+.progress-label { font-size: 11px; color: var(--gray-400); margin-top: 4px; text-align: left; direction: ltr; }
+
+.card-area { display: flex; flex-direction: column; align-items: center; gap: 1.25rem; }
+.flashcard-wrap { width: 100%; max-width: 580px; perspective: 1200px; }
+.flashcard { width: 100%; height: 320px; position: relative; transform-style: preserve-3d; transition: transform 0.55s cubic-bezier(0.4,0,0.2,1); cursor: pointer; }
+.flashcard.flipped { transform: rotateY(180deg); }
+.card-face { position: absolute; inset: 0; border-radius: 20px; backface-visibility: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; }
+.card-front { background: var(--navy); border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 20px 60px rgba(10,22,40,0.25); }
+.card-back { background: var(--white); border: 1px solid var(--gray-200); transform: rotateY(180deg); box-shadow: 0 20px 60px rgba(10,22,40,0.1); }
+.card-level-badge { position: absolute; top: 16px; right: 16px; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 999px; }
+.badge-l1 { background: rgba(5,150,105,0.15); color: #34d399; }
+.badge-l2 { background: rgba(245,158,11,0.15); color: var(--accent); }
+.badge-l3 { background: rgba(220,38,38,0.15); color: #f87171; }
+.card-word { font-family: "DM Serif Display", serif; font-size: 3rem; color: var(--white); text-align: center; margin-bottom: 0.75rem; letter-spacing: -0.5px; }
+.card-sentence { font-size: 14px; color: rgba(255,255,255,0.5); text-align: center; line-height: 1.7; max-width: 420px; direction: ltr; }
+.card-sentence em { color: var(--accent); font-style: normal; font-weight: 600; }
+.card-hebrew { font-size: 2rem; font-weight: 700; color: var(--navy); text-align: center; margin-bottom: 0.5rem; }
+.card-flip-hint { font-size: 12px; color: var(--gray-400); margin-top: 0.5rem; }
+.card-listen-btn { position: absolute; bottom: 16px; left: 16px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 999px; color: rgba(255,255,255,0.7); font-family: var(--font); font-size: 12px; padding: 5px 12px; cursor: pointer; transition: all 0.15s; display: flex; align-items: center; gap: 5px; }
+.card-listen-btn:hover { background: rgba(255,255,255,0.2); color: var(--white); }
+.card-counter { position: absolute; top: 16px; left: 16px; font-size: 11px; color: rgba(255,255,255,0.3); font-family: "DM Mono", monospace; }
+
+.action-row { display: flex; gap: 10px; width: 100%; max-width: 580px; }
+.action-btn { flex: 1; padding: 13px; border-radius: 12px; font-family: var(--font); font-size: 14px; font-weight: 600; cursor: pointer; border: none; transition: all 0.15s; display: flex; align-items: center; justify-content: center; gap: 7px; }
+.btn-known { background: rgba(5,150,105,0.1); color: var(--green); border: 1.5px solid rgba(5,150,105,0.3); }
+.btn-known:hover { background: rgba(5,150,105,0.2); }
+.btn-familiar { background: rgba(245,158,11,0.1); color: var(--accent); border: 1.5px solid rgba(245,158,11,0.3); }
+.btn-familiar:hover { background: rgba(245,158,11,0.2); }
+.btn-practice { background: rgba(220,38,38,0.1); color: var(--red); border: 1.5px solid rgba(220,38,38,0.3); }
+.btn-practice:hover { background: rgba(220,38,38,0.2); }
+
+.word-list { background: var(--white); border: 1px solid var(--gray-200); border-radius: var(--radius); overflow: hidden; }
+.word-list-header { display: grid; grid-template-columns: 1fr 1fr 2fr 100px; padding: 10px 16px; background: var(--gray-50); border-bottom: 1px solid var(--gray-200); font-size: 11px; font-weight: 600; color: var(--gray-400); text-transform: uppercase; letter-spacing: 0.5px; direction: ltr; text-align: left; }
+.word-row { display: grid; grid-template-columns: 1fr 1fr 2fr 100px; padding: 12px 16px; border-bottom: 1px solid var(--gray-100); align-items: center; transition: background 0.1s; direction: ltr; text-align: left; }
+.word-row:last-child { border-bottom: none; }
+.word-row:hover { background: var(--gray-50); }
+.word-eng { font-weight: 600; color: var(--navy); font-size: 14px; }
+.word-heb { color: var(--gray-600); font-size: 13px; direction: rtl; }
+.word-ex { font-size: 12px; color: var(--gray-400); line-height: 1.5; }
+.word-status { display: flex; align-items: center; justify-content: center; }
+.status-badge { font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 999px; cursor: pointer; transition: all 0.15s; }
+.status-new { background: var(--gray-100); color: var(--gray-600); }
+.status-unknown { background: rgba(220,38,38,0.1); color: var(--red); }
+.status-familiar { background: rgba(245,158,11,0.1); color: var(--accent); }
+.status-known { background: rgba(5,150,105,0.1); color: var(--green); }
+
+.session-complete { display: none; text-align: center; padding: 3rem 2rem; background: var(--white); border: 1px solid var(--gray-200); border-radius: var(--radius); max-width: 480px; margin: 0 auto; }
+.session-complete.show { display: block; }
+.session-complete .icon { font-size: 3.5rem; margin-bottom: 1rem; }
+.session-complete h2 { font-size: 22px; color: var(--navy); margin-bottom: 0.5rem; }
+.session-complete p { font-size: 14px; color: var(--gray-600); line-height: 1.7; margin-bottom: 1.5rem; }
+.btn-restart { padding: 12px 28px; background: var(--blue); color: var(--white); border: none; border-radius: 10px; font-family: var(--font); font-size: 14px; font-weight: 600; cursor: pointer; }
+.btn-restart:hover { background: #1d4ed8; }
+.loading-overlay { position: fixed; inset: 0; background: var(--gray-50); display: flex; align-items: center; justify-content: center; z-index: 100; font-size: 14px; color: var(--gray-400); }
+.loading-overlay.hidden { display: none; }
+.card-back-sentence-en { font-size: 13px; color: var(--gray-400); text-align: center; line-height: 1.6; max-width: 400px; direction: ltr; margin-top: 10px; font-style: italic; }
+.card-back-sentence-he { font-size: 13px; color: var(--gray-600); text-align: center; line-height: 1.6; max-width: 400px; direction: rtl; margin-top: 6px; }
+</style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loading-overlay">טוען מילים...</div>
+
+<header class="header">
+  <div class="header-logo">Amir<span>NET</span> Pro</div>
+  <a href="amirnet-pro.html" class="btn-back">&#8592; חזרה לתרגול</a>
+</header>
+
+<main class="main">
+  <div class="stats-bar">
+    <div class="stat-pill"><div class="val" id="stat-total">0</div><div class="lbl">סה"כ מילים</div></div>
+    <div class="stat-pill"><div class="val" id="stat-known" style="color:var(--green)">0</div><div class="lbl">שולט</div></div>
+    <div class="stat-pill"><div class="val" id="stat-learning" style="color:var(--accent)">0</div><div class="lbl">מתרגל</div></div>
+    <div class="stat-pill"><div class="val" id="stat-new" style="color:var(--blue)">0</div><div class="lbl">חדשות</div></div>
+  </div>
+
+  <div class="controls">
+    <div class="level-tabs">
+      <button class="level-tab active" onclick="setLevel(0)">כל הרמות</button>
+      <button class="level-tab" onclick="setLevel(1)">רמה 1</button>
+      <button class="level-tab" onclick="setLevel(2)">רמה 2</button>
+      <button class="level-tab" onclick="setLevel(3)">רמה 3</button>
+    </div>
+    <div class="mode-toggle">
+      <button class="mode-btn active" onclick="setMode('flashcard')">כרטיסיות</button>
+      <button class="mode-btn" onclick="setMode('list')">רשימה</button>
+    </div>
+    <div class="progress-wrap">
+      <div class="progress-bar-bg"><div class="progress-bar-fill" id="progress-fill" style="width:0%"></div></div>
+      <div class="progress-label" id="progress-label">0 / 0 מילים נלמדו</div>
+    </div>
+  </div>
+
+  <div id="flashcard-mode" class="card-area">
+    <div class="flashcard-wrap">
+      <div class="flashcard" id="flashcard" onclick="flipCard()">
+        <div class="card-face card-front">
+          <span class="card-level-badge badge-l1" id="card-badge">רמה 1</span>
+          <span class="card-counter" id="card-counter">1 / 100</span>
+          <div class="card-word" id="card-word">—</div>
+          <div class="card-sentence" id="card-sentence">—</div>
+          <button class="card-listen-btn" onclick="event.stopPropagation();speakWord()" style="bottom:16px;left:16px">&#9654; מילה</button>
+          <button class="card-listen-btn" onclick="event.stopPropagation();speakSentence()" style="bottom:16px;left:90px">&#9654; משפט</button>
+        </div>
+        <div class="card-face card-back">
+          <div class="card-hebrew" id="card-hebrew">—</div>
+          <div class="card-back-sentence-en" id="card-back-sentence-en" style="display:none"></div>
+          <div class="card-back-sentence-he" id="card-back-sentence-he" style="display:none"></div>
+          <div class="card-flip-hint" id="card-flip-hint">לחץ להמשך</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="action-row" id="action-row">
+      <button class="action-btn btn-practice" onclick="markWord('unknown')">&#10005; לא יודע</button>
+      <button class="action-btn btn-familiar" onclick="markWord('familiar')">&#128260; מתרגל</button>
+      <button class="action-btn btn-known" onclick="markWord('known')">&#10003; שולט</button>
+    </div>
+
+    <div class="session-complete" id="session-complete">
+      <div class="icon">&#127881;</div>
+      <h2>סיימת את הסשן!</h2>
+      <p id="session-summary">כל הכבוד — עברת על כל המילים.</p>
+      <button class="btn-restart" onclick="restartSession()">תרגול נוסף</button>
+    </div>
+  </div>
+
+  <div id="list-mode" style="display:none">
+    <div class="word-list">
+      <div class="word-list-header">
+        <div>מילה</div><div>תרגום</div><div>משפט לדוגמה</div><div style="text-align:center">סטטוס</div>
+      </div>
+      <div id="word-list-body"></div>
+    </div>
+  </div>
+</main>
+
+<script>
+const SUPABASE_URL = "https://ivauncueyedwlthzylnt.supabase.co";
+const SUPABASE_KEY = "sb_publishable_BbdQ2HYYKcO4uxJbFT0JWw_k5nqO39G";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const VOCAB_BANK = [
+{id:"v001",word:"abundant",hebrew:"שופע, מרובה",sentence:"The region has abundant natural resources, including oil and fresh water.",level:1,sentence_he:"האזור שופע משאבי טבע, כולל נפט ומים מתוקים."},
+{id:"v002",word:"accurate",hebrew:"מדויק",sentence:"The scientist insisted that all measurements must be accurate to three decimal places.",level:1,sentence_he:"המדען התעקש שכל המדידות חייבות להיות מדויקות עד שלוש ספרות עשרוניות."},
+{id:"v003",word:"acquire",hebrew:"לרכוש, להשיג",sentence:"Children acquire language skills naturally through exposure and interaction.",level:1,sentence_he:"ילדים רוכשים מיומנויות שפה באופן טבעי באמצעות חשיפה ואינטראקציה."},
+{id:"v004",word:"adequate",hebrew:"מספיק, נאות",sentence:"The shelter provided adequate protection from the rain.",level:1,sentence_he:"המחסה סיפק הגנה מספקת מפני הגשם."},
+{id:"v005",word:"adjacent",hebrew:"סמוך, גובל",sentence:"The hotel is adjacent to the main train station, making it very convenient.",level:1,sentence_he:"המלון סמוך לתחנת הרכבת הראשית, מה שהופך אותו לנוח מאוד."},
+{id:"v006",word:"allocate",hebrew:"להקצות",sentence:"The government decided to allocate more funds to public education.",level:1,sentence_he:"הממשלה החליטה להקצות יותר כספים לחינוך הציבורי."},
+{id:"v007",word:"alter",hebrew:"לשנות",sentence:"The architect had to alter the original plans after the survey revealed problems.",level:1,sentence_he:"האדריכל נאלץ לשנות את התוכניות המקוריות לאחר שהסקר חשף בעיות."},
+{id:"v008",word:"ambiguous",hebrew:"דו-משמעי, לא ברור",sentence:"The instructions were ambiguous, so several students interpreted them differently.",level:1,sentence_he:"ההוראות היו דו-משמעיות, ולכן כמה תלמידים פירשו אותן בצורה שונה."},
+{id:"v009",word:"amplify",hebrew:"להגביר, להרחיב",sentence:"The microphone was used to amplify the speaker's voice across the large hall.",level:1,sentence_he:"המיקרופון שימש להגברת קולו של הדובר בכל האולם הגדול."},
+{id:"v010",word:"analyze",hebrew:"לנתח",sentence:"Researchers analyze data carefully before drawing any conclusions.",level:1,sentence_he:"חוקרים מנתחים נתונים בקפידה לפני שהם מסיקים מסקנות כלשהן."},
+{id:"v011",word:"anticipate",hebrew:"לצפות מראש",sentence:"The company failed to anticipate the sudden drop in consumer demand.",level:1,sentence_he:"החברה נכשלה בלצפות את הירידה הפתאומית בביקוש הצרכני."},
+{id:"v012",word:"apparent",hebrew:"נראה, ברור",sentence:"It was apparent from his expression that he was deeply troubled.",level:1,sentence_he:"היה ברור מהבעת פניו שהוא היה מוטרד מאוד."},
+{id:"v013",word:"assert",hebrew:"לטעון, להצהיר",sentence:"The lawyer asserted that her client was innocent of all charges.",level:1,sentence_he:"עורכת הדין טענה שמרשה חפה מכל אשמה."},
+{id:"v014",word:"assign",hebrew:"להקצות, למנות",sentence:"The teacher assigned each student a different topic for their research paper.",level:1,sentence_he:"המורה הקצה לכל תלמיד נושא שונה לעבודת המחקר שלו."},
+{id:"v015",word:"assist",hebrew:"לסייע, לעזור",sentence:"Volunteers assist elderly residents with shopping and household tasks.",level:1,sentence_he:"מתנדבים מסייעים לדיירים קשישים בקניות ובמטלות הבית."},
+{id:"v016",word:"assume",hebrew:"להניח, לשער",sentence:"We should not assume that all students learn at the same pace.",level:1,sentence_he:"אל לנו להניח שכל התלמידים לומדים באותו קצב."},
+{id:"v017",word:"attain",hebrew:"להשיג, להגיע אל",sentence:"With hard work, she was able to attain the highest score in her class.",level:1,sentence_he:"בעמל רב היא הצליחה להשיג את הציון הגבוה ביותר בכיתתה."},
+{id:"v018",word:"attribute",hebrew:"לייחס",sentence:"Historians attribute the fall of the empire to a combination of factors.",level:1,sentence_he:"היסטוריונים מייחסים את נפילת האימפריה לשילוב של גורמים."},
+{id:"v019",word:"benefit",hebrew:"להועיל, תועלת",sentence:"Regular exercise benefits both physical and mental health.",level:1,sentence_he:"פעילות גופנית סדירה מועילה הן לבריאות הגופנית והן לבריאות הנפשית."},
+{id:"v020",word:"capable",hebrew:"מסוגל, כשיר",sentence:"The robot is capable of performing complex surgical procedures.",level:1,sentence_he:"הרובוט מסוגל לבצע פרוצדורות כירורגיות מורכבות."},
+{id:"v021",word:"cease",hebrew:"להפסיק",sentence:"The factory was ordered to cease operations until safety issues were resolved.",level:1,sentence_he:"המפעל קיבל צו להפסיק את פעילותו עד שיפתרו בעיות הבטיחות."},
+{id:"v022",word:"challenge",hebrew:"לאתגר, אתגר",sentence:"Climbing the mountain was a physical and mental challenge.",level:1,sentence_he:"טיפוס ההר היה אתגר פיזי ומנטלי כאחד."},
+{id:"v023",word:"characteristic",hebrew:"מאפיין, תכונה",sentence:"Adaptability is a key characteristic of successful entrepreneurs.",level:1,sentence_he:"יכולת הסתגלות היא מאפיין מרכזי של יזמים מצליחים."},
+{id:"v024",word:"circumstances",hebrew:"נסיבות, תנאים",sentence:"The circumstances surrounding the accident are still under investigation.",level:1,sentence_he:"הנסיבות סביב התאונה עדיין נמצאות תחת חקירה."},
+{id:"v025",word:"cite",hebrew:"לצטט, להזכיר",sentence:"The report cites several studies that support this conclusion.",level:1,sentence_he:"הדוח מצטט מספר מחקרים התומכים במסקנה זו."},
+{id:"v026",word:"clarify",hebrew:"להבהיר",sentence:"Could you clarify what you mean by that statement?",level:1,sentence_he:"האם תוכל להבהיר את כוונתך בהצהרה זו?"},
+{id:"v027",word:"commence",hebrew:"להתחיל",sentence:"The ceremony will commence at precisely nine o'clock.",level:1,sentence_he:"הטקס יחל בדיוק בשעה תשע."},
+{id:"v028",word:"complex",hebrew:"מורכב",sentence:"The relationship between diet and health is far more complex than previously thought.",level:1,sentence_he:"הקשר בין תזונה לבריאות מורכב הרבה יותר ממה שחשבו בעבר."},
+{id:"v029",word:"component",hebrew:"מרכיב, חלק",sentence:"Trust is an essential component of any successful relationship.",level:1,sentence_he:"אמון הוא מרכיב חיוני בכל מערכת יחסים מוצלחת."},
+{id:"v030",word:"concentrate",hebrew:"להתרכז",sentence:"It is difficult to concentrate when there is a lot of background noise.",level:1,sentence_he:"קשה להתרכז כאשר יש הרבה רעשי רקע."},
+{id:"v031",word:"conclude",hebrew:"להסיק, לסכם",sentence:"After reviewing the evidence, the jury concluded that the defendant was guilty.",level:1,sentence_he:"לאחר בחינת הראיות, חבר המושבעים הסיק שהנאשם אשם."},
+{id:"v032",word:"confirm",hebrew:"לאשר",sentence:"Please confirm your appointment at least 24 hours in advance.",level:1,sentence_he:"אנא אשר את פגישתך לפחות 24 שעות מראש."},
+{id:"v033",word:"confront",hebrew:"להתמודד עם, לעמת",sentence:"The mayor was forced to confront the growing problem of homelessness.",level:1,sentence_he:"ראש העיר נאלץ להתמודד עם בעיית חסרי הבית הגוברת."},
+{id:"v034",word:"consequently",hebrew:"כתוצאה מכך",sentence:"The bridge was damaged in the storm and consequently closed to traffic.",level:1,sentence_he:"הגשר ניזוק בסערה וכתוצאה מכך נסגר לתנועה."},
+{id:"v035",word:"consider",hebrew:"לשקול, לראות",sentence:"You should consider all your options before making a final decision.",level:1,sentence_he:"עליך לשקול את כל האפשרויות לפני קבלת החלטה סופית."},
+{id:"v036",word:"consist",hebrew:"להכיל, להיות מורכב מ",sentence:"The committee consists of twelve elected members.",level:1,sentence_he:"הוועדה מורכבת משנים עשר חברים נבחרים."},
+{id:"v037",word:"constant",hebrew:"קבוע, מתמיד",sentence:"The patient required constant medical supervision.",level:1,sentence_he:"המטופל זקוק לפיקוח רפואי מתמיד."},
+{id:"v038",word:"construct",hebrew:"לבנות",sentence:"Workers began to construct the new bridge last spring.",level:1,sentence_he:"הפועלים החלו לבנות את הגשר החדש באביב האחרון."},
+{id:"v039",word:"contribute",hebrew:"לתרום",sentence:"Each member of the team was expected to contribute their best ideas.",level:1,sentence_he:"מכל חבר בצוות צפוי שיתרום את הרעיונות הטובים ביותר שלו."},
+{id:"v040",word:"controversial",hebrew:"שנוי במחלוקת",sentence:"The new policy proved highly controversial among residents.",level:1,sentence_he:"המדיניות החדשה התבררה כשנויה במחלוקת רבה בקרב התושבים."},
+{id:"v041",word:"convert",hebrew:"להמיר, לשנות",sentence:"The old factory was converted into luxury apartments.",level:1,sentence_he:"המפעל הישן הומר לדירות יוקרה."},
+{id:"v042",word:"convey",hebrew:"להעביר, לתקשר",sentence:"The painting conveys a deep sense of loneliness.",level:1,sentence_he:"הציור מעביר תחושה עמוקה של בדידות."},
+{id:"v043",word:"cooperate",hebrew:"לשתף פעולה",sentence:"Both countries agreed to cooperate on environmental issues.",level:1,sentence_he:"שתי המדינות הסכימו לשתף פעולה בנושאים סביבתיים."},
+{id:"v044",word:"crucial",hebrew:"חיוני, קריטי",sentence:"Sleep is crucial for memory consolidation and overall health.",level:1,sentence_he:"שינה חיונית לגיבוש זיכרון ולבריאות הכללית."},
+{id:"v045",word:"decline",hebrew:"לדחות, לרדת",sentence:"The company's profits began to decline after the new competitor entered the market.",level:1,sentence_he:"רווחי החברה החלו לרדת לאחר שמתחרה חדש נכנס לשוק."},
+{id:"v046",word:"define",hebrew:"להגדיר",sentence:"It is important to clearly define the goals of the project from the outset.",level:1,sentence_he:"חשוב להגדיר בבירור את יעדי הפרויקט מההתחלה."},
+{id:"v047",word:"demonstrate",hebrew:"להדגים, להוכיח",sentence:"The experiment demonstrated that the hypothesis was correct.",level:1,sentence_he:"הניסוי הדגים שההשערה הייתה נכונה."},
+{id:"v048",word:"derive",hebrew:"לגזור, להפיק",sentence:"Many English words derive from Latin or Greek roots.",level:1,sentence_he:"מילים רבות באנגלית נגזרות משורשים לטיניים או יווניים."},
+{id:"v049",word:"detect",hebrew:"לזהות, לגלות",sentence:"Modern instruments can detect even tiny changes in temperature.",level:1,sentence_he:"מכשירים מודרניים יכולים לזהות אפילו שינויים קטנים מאוד בטמפרטורה."},
+{id:"v050",word:"determine",hebrew:"לקבוע, להחליט",sentence:"Scientists are trying to determine the cause of the mysterious illness.",level:1,sentence_he:"מדענים מנסים לקבוע את הסיבה למחלה המסתורית."},
+{id:"v051",word:"develop",hebrew:"לפתח",sentence:"The company invested heavily to develop new technology.",level:1,sentence_he:"החברה השקיעה רבות כדי לפתח טכנולוגיה חדשה."},
+{id:"v052",word:"devote",hebrew:"להקדיש",sentence:"She devoted her entire career to improving literacy rates.",level:1,sentence_he:"היא הקדישה את כל הקריירה שלה לשיפור שיעורי האוריינות."},
+{id:"v053",word:"diminish",hebrew:"להפחית, לקטון",sentence:"The medicine helped to diminish the patient's pain significantly.",level:1,sentence_he:"התרופה עזרה להפחית משמעותית את כאב המטופל."},
+{id:"v054",word:"discover",hebrew:"לגלות",sentence:"Researchers discovered a new species of insect in the rainforest.",level:1,sentence_he:"חוקרים גילו מין חדש של חרק ביער הגשם."},
+{id:"v055",word:"dispute",hebrew:"מחלוקת, לערער",sentence:"The two countries have a long-standing dispute over the border.",level:1,sentence_he:"לשתי המדינות יש מחלוקת ממושכת על הגבול."},
+{id:"v056",word:"distinct",hebrew:"נבדל, ייחודי",sentence:"The two dialects are so distinct that speakers can barely understand each other.",level:1,sentence_he:"שני הניבים שונים כל כך עד שדוברים בקושי מבינים זה את זה."},
+{id:"v057",word:"distribute",hebrew:"לחלק",sentence:"The aid organization distributed food and medicine to the refugees.",level:1,sentence_he:"ארגון הסיוע חילק מזון ותרופות לפליטים."},
+{id:"v058",word:"diverse",hebrew:"מגוון",sentence:"The city is home to a diverse population from many different countries.",level:1,sentence_he:"העיר היא בית לאוכלוסייה מגוונת ממדינות רבות ושונות."},
+{id:"v059",word:"dominate",hebrew:"לשלוט, לדומינציה",sentence:"One company has come to dominate the entire smartphone market.",level:1,sentence_he:"חברה אחת הגיעה לשלוט בכל שוק הסמארטפונים."},
+{id:"v060",word:"dramatic",hebrew:"דרמטי, קיצוני",sentence:"There has been a dramatic increase in the use of electric vehicles.",level:1,sentence_he:"חלה עלייה דרמטית בשימוש ברכבים חשמליים."},
+{id:"v061",word:"duration",hebrew:"משך זמן",sentence:"The duration of the flight from Tel Aviv to London is approximately five hours.",level:1,sentence_he:"משך הטיסה מתל אביב ללונדון הוא כחמש שעות."},
+{id:"v062",word:"elaborate",hebrew:"מפורט, להרחיב",sentence:"Could you elaborate on your second point? I didn't quite follow.",level:1,sentence_he:"האם תוכל להרחיב על הנקודה השנייה שלך? לא ממש הבנתי."},
+{id:"v063",word:"eliminate",hebrew:"לבטל, להסיר",sentence:"The new drug could eliminate the need for surgery in many cases.",level:1,sentence_he:"התרופה החדשה יכולה לבטל את הצורך בניתוח במקרים רבים."},
+{id:"v064",word:"emerge",hebrew:"לצוץ, להתגלות",sentence:"A clear picture began to emerge as more witnesses came forward.",level:1,sentence_he:"תמונה ברורה החלה להתגלות כשיותר עדים פנו אל הרשויות."},
+{id:"v065",word:"emphasize",hebrew:"להדגיש",sentence:"The teacher emphasized the importance of reviewing notes after each class.",level:1,sentence_he:"המורה הדגישה את חשיבות חזרה על הערות לאחר כל שיעור."},
+{id:"v066",word:"enable",hebrew:"לאפשר",sentence:"The new software enables users to edit documents from any device.",level:1,sentence_he:"התוכנה החדשה מאפשרת למשתמשים לערוך מסמכים מכל מכשיר."},
+{id:"v067",word:"enhance",hebrew:"לשפר, לחזק",sentence:"Adding herbs and spices can greatly enhance the flavor of a dish.",level:1,sentence_he:"הוספת עשבי תיבול ותבלינים יכולה לשפר מאוד את טעם המנה."},
+{id:"v068",word:"enormous",hebrew:"עצום, ענק",sentence:"The project required an enormous amount of time and resources.",level:1,sentence_he:"הפרויקט דרש כמות עצומה של זמן ומשאבים."},
+{id:"v069",word:"ensure",hebrew:"להבטיח",sentence:"Please ensure that all windows are closed before leaving.",level:1,sentence_he:"אנא ודא שכל החלונות סגורים לפני עזיבה."},
+{id:"v070",word:"establish",hebrew:"להקים, לבסס",sentence:"The organization was established in 1948 to promote international cooperation.",level:1,sentence_he:"הארגון הוקם בשנת 1948 לקידום שיתוף פעולה בינלאומי."},
+{id:"v071",word:"evaluate",hebrew:"להעריך",sentence:"Students are evaluated on both their written work and class participation.",level:1,sentence_he:"תלמידים מוערכים הן על עבודות כתובות והן על השתתפות בכיתה."},
+{id:"v072",word:"evident",hebrew:"ברור, מוכח",sentence:"It was evident that the team had worked hard on their presentation.",level:1,sentence_he:"היה ברור שהצוות עמל קשה על המצגת שלו."},
+{id:"v073",word:"evolve",hebrew:"להתפתח",sentence:"Languages evolve over time, absorbing new words and dropping old ones.",level:1,sentence_he:"שפות מתפתחות עם הזמן, קולטות מילים חדשות ומשחררות ישנות."},
+{id:"v074",word:"examine",hebrew:"לבחון, לחקור",sentence:"The doctor carefully examined the patient before making a diagnosis.",level:1,sentence_he:"הרופא בחן את המטופל בקפידה לפני שהציע אבחנה."},
+{id:"v075",word:"exceed",hebrew:"לעלות על, לחרוג",sentence:"The final cost of the project exceeded the original budget by thirty percent.",level:1,sentence_he:"העלות הסופית של הפרויקט חרגה מהתקציב המקורי בשלושים אחוז."},
+{id:"v076",word:"expand",hebrew:"להרחיב",sentence:"The company plans to expand its operations into three new markets.",level:1,sentence_he:"החברה מתכננת להרחיב את פעילותה לשלושה שווקים חדשים."},
+{id:"v077",word:"exploit",hebrew:"לנצל",sentence:"Some companies exploit cheap labor in developing countries.",level:1,sentence_he:"חלק מהחברות מנצלות עבודה זולה במדינות מתפתחות."},
+{id:"v078",word:"expose",hebrew:"לחשוף",sentence:"The investigation exposed widespread corruption within the organization.",level:1,sentence_he:"החקירה חשפה שחיתות נרחבת בתוך הארגון."},
+{id:"v079",word:"extensive",hebrew:"נרחב, מקיף",sentence:"The flood caused extensive damage to the town's infrastructure.",level:1,sentence_he:"השיטפון גרם לנזק נרחב לתשתיות העיר."},
+{id:"v080",word:"facilitate",hebrew:"להקל, לסייע",sentence:"Technology has greatly facilitated communication across long distances.",level:1,sentence_he:"הטכנולוגיה הקלה מאוד על התקשורת על פני מרחקים גדולים."},
+{id:"v081",word:"factor",hebrew:"גורם, גורם משפיע",sentence:"Stress is a major factor in the development of heart disease.",level:1,sentence_he:"מתח הוא גורם מרכזי בהתפתחות מחלות לב."},
+{id:"v082",word:"feature",hebrew:"מאפיין, לכלול",sentence:"The new model features an improved battery life.",level:1,sentence_he:"הדגם החדש כולל חיי סוללה משופרים."},
+{id:"v083",word:"focus",hebrew:"להתמקד, מוקד",sentence:"The report focuses on the economic impact of climate change.",level:1,sentence_he:"הדוח מתמקד בהשפעה הכלכלית של שינויי האקלים."},
+{id:"v084",word:"found",hebrew:"להקים, לייסד",sentence:"The university was founded in 1209 and is one of the oldest in the world.",level:1,sentence_he:"האוניברסיטה נוסדה בשנת 1209 והיא אחת הוותיקות בעולם."},
+{id:"v085",word:"generate",hebrew:"לייצר, לגרום",sentence:"Wind turbines generate electricity without producing harmful emissions.",level:1,sentence_he:"טורבינות רוח מייצרות חשמל מבלי לפלוט פליטות מזיקות."},
+{id:"v086",word:"global",hebrew:"עולמי, גלובלי",sentence:"Climate change is a global problem that requires international cooperation.",level:1,sentence_he:"שינוי האקלים הוא בעיה גלובלית הדורשת שיתוף פעולה בינלאומי."},
+{id:"v087",word:"gradual",hebrew:"הדרגתי",sentence:"There has been a gradual improvement in air quality over the past decade.",level:1,sentence_he:"חלה שיפור הדרגתי באיכות האוויר במהלך העשור האחרון."},
+{id:"v088",word:"halt",hebrew:"לעצור, עצירה",sentence:"The construction was brought to a halt by the discovery of ancient ruins.",level:1,sentence_he:"הבנייה הופסקה עם גילוי ממצאים עתיקים."},
+{id:"v089",word:"identify",hebrew:"לזהות",sentence:"Scientists have identified a new gene linked to the disease.",level:1,sentence_he:"מדענים זיהו גן חדש הקשור למחלה."},
+{id:"v090",word:"illustrate",hebrew:"להמחיש, להדגים",sentence:"The graph illustrates the rapid growth of internet usage over the past decade.",level:1,sentence_he:"הגרף ממחיש את הצמיחה המהירה בשימוש באינטרנט בעשור האחרון."},
+{id:"v091",word:"impact",hebrew:"השפעה, השפעה",sentence:"The new regulation had a significant impact on small businesses.",level:1,sentence_he:"התקנה החדשה השפיעה משמעותית על עסקים קטנים."},
+{id:"v092",word:"implement",hebrew:"ליישם",sentence:"The school will implement a new curriculum starting next year.",level:1,sentence_he:"בית הספר יישם תכנית לימודים חדשה החל מהשנה הבאה."},
+{id:"v093",word:"imply",hebrew:"לרמוז",sentence:"His silence seemed to imply that he disagreed with the proposal.",level:1,sentence_he:"שתיקתו נראתה כאילו היא מרמזת שהוא לא מסכים עם ההצעה."},
+{id:"v094",word:"indicate",hebrew:"לציין, להצביע על",sentence:"Research indicates that regular reading improves vocabulary significantly.",level:1,sentence_he:"מחקרים מצביעים על כך שקריאה סדירה משפרת את אוצר המילים משמעותית."},
+{id:"v095",word:"influence",hebrew:"להשפיע, השפעה",sentence:"Parents have a strong influence on their children's values and behavior.",level:1,sentence_he:"להורים יש השפעה חזקה על ערכי ילדיהם והתנהגותם."},
+{id:"v096",word:"initial",hebrew:"ראשוני, התחלתי",sentence:"The initial results of the experiment were very promising.",level:1,sentence_he:"התוצאות הראשוניות של הניסוי היו מבטיחות מאוד."},
+{id:"v097",word:"integrate",hebrew:"לשלב, לאחד",sentence:"The new system integrates data from multiple sources into one platform.",level:1,sentence_he:"המערכת החדשה משלבת נתוניםממקורות מרובים לפלטפורמה אחת."},
+{id:"v098",word:"interpret",hebrew:"לפרש",sentence:"Different people may interpret the same poem in very different ways.",level:1,sentence_he:"אנשים שונים עשויים לפרש את אותו שיר בצורות שונות מאוד."},
+{id:"v099",word:"involve",hebrew:"לכלול, לערב",sentence:"The project involves cooperation between three different departments.",level:1,sentence_he:"הפרויקט כולל שיתוף פעולה בין שלושה מחלקות שונות."},
+{id:"v100",word:"isolate",hebrew:"לבודד",sentence:"Scientists isolated the virus in order to study its properties.",level:1,sentence_he:"מדענים בודדו את הנגיף כדי לחקור את תכונותיו."},
+{id:"v101",word:"abolish",hebrew:"לבטל, לחסל",sentence:"Several countries have moved to abolish the death penalty entirely.",level:2,sentence_he:"מדינות רבות פעלו לביטול עונש המוות לחלוטין."},
+{id:"v102",word:"accelerate",hebrew:"להאיץ",sentence:"New technology has accelerated the pace of scientific discovery.",level:2,sentence_he:"טכנולוגיה חדשה האיצה את קצב הגילויים המדעיים."},
+{id:"v103",word:"accumulate",hebrew:"להצטבר, לצבור",sentence:"Dust tends to accumulate on surfaces that are rarely cleaned.",level:2,sentence_he:"אבק נוטה להצטבר על משטחים שנקיים לעיתים נדירות."},
+{id:"v104",word:"acknowledge",hebrew:"להכיר, להודות",sentence:"The report acknowledges that more research is needed on this topic.",level:2,sentence_he:"הדוח מכיר בכך שנדרש מחקר נוסף בנושא זה."},
+{id:"v105",word:"adapt",hebrew:"להתאים, להסתגל",sentence:"Animals that cannot adapt to changing environments risk extinction.",level:2,sentence_he:"בעלי חיים שאינם מסוגלים להסתגל לסביבות משתנות מסתכנים בהכחדה."},
+{id:"v106",word:"advocate",hebrew:"לתמוך, תומך",sentence:"She has long been an advocate for equal rights in the workplace.",level:2,sentence_he:"היא תמכה זמן רב בזכויות שוות במקום העבודה."},
+{id:"v107",word:"aggravate",hebrew:"להחמיר, לגרות",sentence:"Stress can significantly aggravate existing health conditions.",level:2,sentence_he:"מתח יכול להחמיר משמעותית מצבים בריאותיים קיימים."},
+{id:"v108",word:"alleviate",hebrew:"להקל",sentence:"The new medication helped alleviate the patient's chronic pain.",level:2,sentence_he:"התרופה החדשה עזרה להקל על כאב כרוני של המטופל."},
+{id:"v109",word:"ambivalent",hebrew:"דו-ערכי, מעורב",sentence:"Many voters feel ambivalent about both candidates in the election.",level:2,sentence_he:"מצביעים רבים מרגישים דו-ערכיים כלפי שני המועמדים בבחירות."},
+{id:"v110",word:"analogous",hebrew:"דומה, מקביל",sentence:"The process is analogous to how a computer stores and retrieves information.",level:2,sentence_he:"התהליך דומה לאופן שבו מחשב מאחסן ומאחזר מידע."},
+{id:"v111",word:"apprehensive",hebrew:"חרד, מודאג",sentence:"She felt apprehensive about her first day at the new job.",level:2,sentence_he:"היא הרגישה חרדה לפני יום עבודתה הראשון במקום החדש."},
+{id:"v112",word:"arbitrary",hebrew:"שרירותי, אקראי",sentence:"The decision seemed arbitrary, with no clear logic behind it.",level:2,sentence_he:"ההחלטה נראתה שרירותית, ללא הגיון ברור מאחוריה."},
+{id:"v113",word:"arduous",hebrew:"מאומץ, קשה",sentence:"The arduous climb to the summit took nearly eight hours.",level:2,sentence_he:"הטיפוס המאומץ לפסגה ארך כמעט שמונה שעות."},
+{id:"v114",word:"articulate",hebrew:"לבטא בבהירות, רהוט",sentence:"She is highly articulate and always expresses her ideas with precision.",level:2,sentence_he:"היא רהוטה מאוד ותמיד מביעה את רעיונותיה בדיוק."},
+{id:"v115",word:"aspire",hebrew:"לשאוף",sentence:"Many young athletes aspire to compete in the Olympic Games.",level:2,sentence_he:"ספורטאים צעירים רבים שואפים להתחרות במשחקים האולימפיים."},
+{id:"v116",word:"astute",hebrew:"חריף, ממולח",sentence:"The astute investor recognized the opportunity before anyone else.",level:2,sentence_he:"המשקיע החריף זיהה את ההזדמנות לפני כולם."},
+{id:"v117",word:"authentic",hebrew:"אמיתי, מקורי",sentence:"The museum only displays authentic artifacts, never reproductions.",level:2,sentence_he:"המוזיאון מציג רק חפצים אותנטיים, לעולם לא העתקים."},
+{id:"v118",word:"autonomy",hebrew:"אוטונומיה, עצמאות",sentence:"The region was granted greater autonomy in managing its own affairs.",level:2,sentence_he:"האזור קיבל אוטונומיה רבה יותר בניהול ענייניו."},
+{id:"v119",word:"benchmark",hebrew:"אמת מידה, נקודת ייחוס",sentence:"The test score serves as a benchmark for measuring academic progress.",level:2,sentence_he:"ציון הבחינה משמש כאמת מידה למדידת ההתקדמות האקדמית."},
+{id:"v120",word:"bolster",hebrew:"לחזק, לתמוך",sentence:"The government introduced new measures to bolster the struggling economy.",level:2,sentence_he:"הממשלה הציגה אמצעים חדשים לחיזוק הכלכלה המדשדשת."},
+{id:"v121",word:"chronic",hebrew:"כרוני, מתמשך",sentence:"Chronic sleep deprivation can have serious long-term health consequences.",level:2,sentence_he:"חסך שינה כרוני עלול להיות בעל השלכות בריאותיות חמורות לטווח ארוך."},
+{id:"v122",word:"coherent",hebrew:"קוהרנטי, עקבי",sentence:"The essay lacked a coherent argument, jumping between unrelated points.",level:2,sentence_he:"לחיבור חסרה טיעון עקבי, והוא קפץ בין נקודות לא קשורות."},
+{id:"v123",word:"coincide",hebrew:"להתאים, לחפוף",sentence:"The festival coincides with the summer solstice every year.",level:2,sentence_he:"הפסטיבל חופף לפגישה עם השמש בכל שנה."},
+{id:"v124",word:"collaborate",hebrew:"לשתף פעולה",sentence:"Scientists from twenty countries collaborated on the research project.",level:2,sentence_he:"מדענים מעשרים מדינות שיתפו פעולה בפרויקט המחקר."},
+{id:"v125",word:"compelling",hebrew:"משכנע, מרתק",sentence:"The documentary presents a compelling case for reforming the prison system.",level:2,sentence_he:"הסרט התיעודי מציג טיעון משכנע לרפורמה במערכת הכליאה."},
+{id:"v126",word:"comprehensive",hebrew:"מקיף, יסודי",sentence:"The review provided a comprehensive overview of existing research.",level:2,sentence_he:"הסקירה סיפקה סקירה מקיפה של המחקרים הקיימים."},
+{id:"v127",word:"concede",hebrew:"להודות, לוותר",sentence:"After hours of debate, he finally conceded that his opponent had a point.",level:2,sentence_he:"לאחר שעות של ויכוח, הוא לבסוף הודה שלמתנגדו יש נקודה."},
+{id:"v128",word:"confine",hebrew:"להגביל, לכלוא",sentence:"The study was confined to participants between the ages of eighteen and thirty.",level:2,sentence_he:"המחקר הוגבל למשתתפים בגילאי שמונה עשרה עד שלושים."},
+{id:"v129",word:"consolidate",hebrew:"לאחד, לגבש",sentence:"The two companies decided to consolidate their operations to reduce costs.",level:2,sentence_he:"שתי החברות החליטו לאחד את פעילותן כדי להפחית עלויות."},
+{id:"v130",word:"contemplate",hebrew:"לשקול, להתבונן",sentence:"She sat quietly, contemplating her next move.",level:2,sentence_he:"היא ישבה בשקט, שוקלת את צעדה הבא."},
+{id:"v131",word:"contend",hebrew:"לטעון, להתמודד",sentence:"Some historians contend that the war could have been avoided.",level:2,sentence_he:"חלק מההיסטוריונים טוענים שניתן היה למנוע את המלחמה."},
+{id:"v132",word:"contradict",hebrew:"לסתור",sentence:"The witness's statement contradicted the evidence presented in court.",level:2,sentence_he:"עדותו של העד סתרה את הראיות שהוצגו בבית המשפט."},
+{id:"v133",word:"conviction",hebrew:"אמונה חזקה, הרשעה",sentence:"She spoke with great conviction about the need for social change.",level:2,sentence_he:"היא דיברה באמונה רבה על הצורך בשינוי חברתי."},
+{id:"v134",word:"correlate",hebrew:"להתאם, לקשר",sentence:"Researchers found that income levels correlate strongly with health outcomes.",level:2,sentence_he:"חוקרים מצאו כי רמות הכנסה קשורות קשר חזק לתוצאות בריאות."},
+{id:"v135",word:"credible",hebrew:"אמין, מהימן",sentence:"The witness was considered a credible source by the jury.",level:2,sentence_he:"העד נחשב כמקור אמין על ידי חבר המושבעים."},
+{id:"v136",word:"culminate",hebrew:"להגיע לשיאו",sentence:"Years of research culminated in the publication of a groundbreaking paper.",level:2,sentence_he:"שנים של מחקר הגיעו לשיאן עם פרסום מאמר פורץ דרך."},
+{id:"v137",word:"curb",hebrew:"לרסן, להגביל",sentence:"New laws were introduced to curb excessive spending by political campaigns.",level:2,sentence_he:"חוקים חדשים הוצגו כדי לרסן הוצאות מופרזות של מסעות בחירות."},
+{id:"v138",word:"cynical",hebrew:"ציני, פסימי",sentence:"After years of broken promises, voters had become deeply cynical.",level:2,sentence_he:"לאחר שנים של הבטחות שבורות, הבוחרים הפכו לציניים עמוקים."},
+{id:"v139",word:"deficient",hebrew:"חסר, לקוי",sentence:"A diet deficient in vitamin D can lead to serious bone problems.",level:2,sentence_he:"תזונה הדלה בוויטמין D עלולה להוביל לבעיות עצם חמורות."},
+{id:"v140",word:"deliberate",hebrew:"מכוון, מודע",sentence:"The choice of words in the speech was clearly deliberate.",level:2,sentence_he:"בחירת המילים בנאום הייתה ברור מכוונת."},
+{id:"v141",word:"depict",hebrew:"לתאר, לצייר",sentence:"The novel depicts life in a small Russian village in the nineteenth century.",level:2,sentence_he:"הרומן מתאר את החיים בכפר רוסי קטן במאה התשע עשרה."},
+{id:"v142",word:"deplete",hebrew:"לדלדל",sentence:"Overfishing has depleted fish stocks in many parts of the ocean.",level:2,sentence_he:"דיג יתר דלדל את מלאי הדגים בחלקים רבים של האוקיינוס."},
+{id:"v143",word:"derive",hebrew:"להפיק, לגזור",sentence:"We derive great satisfaction from helping others.",level:2,sentence_he:"אנו מפיקים סיפוק רב מעזרה לאחרים."},
+{id:"v144",word:"detrimental",hebrew:"מזיק, מסוכן",sentence:"Excessive screen time can be detrimental to children's development.",level:2,sentence_he:"זמן מסך מופרז עלול להיות מזיק להתפתחות הילדים."},
+{id:"v145",word:"deviate",hebrew:"לסטות",sentence:"The plane was forced to deviate from its original route due to bad weather.",level:2,sentence_he:"המטוס נאלץ לסטות ממסלולו המקורי בגלל מזג אוויר רע."},
+{id:"v146",word:"diligent",hebrew:"חרוץ, מתמיד",sentence:"A diligent student reviews their notes regularly rather than cramming before exams.",level:2,sentence_he:"תלמיד חרוץ חוזר על הערותיו באופן קבוע במקום לגרוס לפני בחינות."},
+{id:"v147",word:"discrepancy",hebrew:"פערים, אי-התאמה",sentence:"There was a significant discrepancy between the two sets of figures.",level:2,sentence_he:"היה פער משמעותי בין שתי הסדרות של הנתונים."},
+{id:"v148",word:"dismiss",hebrew:"לדחות, לפטר",sentence:"The judge dismissed the case due to lack of evidence.",level:2,sentence_he:"השופט דחה את התיק בשל חוסר ראיות."},
+{id:"v149",word:"disperse",hebrew:"לפזר, להתפזר",sentence:"Police used water cannons to disperse the crowd.",level:2,sentence_he:"המשטרה השתמשה בתותחי מים כדי לפזר את ההמון."},
+{id:"v150",word:"disrupt",hebrew:"לשבש",sentence:"The storm disrupted flights at the airport for several hours.",level:2,sentence_he:"הסערה שיבשה טיסות בשדה התעופה במשך מספר שעות."},
+{id:"v151",word:"distort",hebrew:"לעוות",sentence:"The media was accused of distorting the facts to sell more newspapers.",level:2,sentence_he:"התקשורת הואשמה בעיוות העובדות למכירת עוד עיתונים."},
+{id:"v152",word:"diverge",hebrew:"להתפצל, לסטות",sentence:"The two paths diverge at the edge of the forest.",level:2,sentence_he:"שני השבילים מתפצלים בקצה היער."},
+{id:"v153",word:"durable",hebrew:"עמיד, בר-קיימא",sentence:"The bridge was built from durable materials designed to last a century.",level:2,sentence_he:"הגשר נבנה מחומרים עמידים שנועדו להחזיק מאה שנה."},
+{id:"v154",word:"dynamic",hebrew:"דינמי, פעיל",sentence:"The technology sector is a highly dynamic environment that changes rapidly.",level:2,sentence_he:"ענף הטכנולוגיה הוא סביבה דינמית ביותר המשתנה במהירות."},
+{id:"v155",word:"eccentric",hebrew:"אקסצנטרי, מוזר",sentence:"The professor was known for his eccentric habits and unconventional teaching methods.",level:2,sentence_he:"הפרופסור היה ידוע בהרגליו האקסצנטריים ובשיטות הוראתו הלא שגרתיות."},
+{id:"v156",word:"encompass",hebrew:"לכלול, להקיף",sentence:"The report encompasses all aspects of the environmental impact.",level:2,sentence_he:"הדוח כולל את כל היבטי ההשפעה הסביבתית."},
+{id:"v157",word:"endorse",hebrew:"לתמוך, לאשר",sentence:"Several celebrities endorsed the product, boosting its sales dramatically.",level:2,sentence_he:"כמה ידוענים תמכו במוצר, מה שהגביר את מכירותיו בצורה דרמטית."},
+{id:"v158",word:"endure",hebrew:"לסבול, להתמיד",sentence:"The soldiers had to endure extreme cold and difficult conditions.",level:2,sentence_he:"החיילים נאלצו לסבול קור קיצוני ותנאים קשים."},
+{id:"v159",word:"enforce",hebrew:"לאכוף",sentence:"The police are responsible for enforcing traffic laws.",level:2,sentence_he:"המשטרה אחראית לאכיפת חוקי התנועה."},
+{id:"v160",word:"erode",hebrew:"לשחוק, לסחוף",sentence:"Years of corruption had eroded public trust in the government.",level:2,sentence_he:"שנים של שחיתות שחקו את אמון הציבור בממשלה."},
+{id:"v161",word:"ethical",hebrew:"אתי, מוסרי",sentence:"The scientist faced an ethical dilemma about publishing the controversial findings.",level:2,sentence_he:"המדען עמד בפני דילמה אתית לגבי פרסום הממצאים השנויים במחלוקת."},
+{id:"v162",word:"evident",hebrew:"ברור, מובן מאליו",sentence:"The damage to the building was evident from a considerable distance.",level:2,sentence_he:"הנזק לבניין היה ברור ממרחק ניכר."},
+{id:"v163",word:"exacerbate",hebrew:"להחמיר",sentence:"The drought exacerbated the existing food shortage in the region.",level:2,sentence_he:"הבצורת החמירה את מחסור המזון הקיים באזור."},
+{id:"v164",word:"exemplify",hebrew:"לדגים, להמחיש",sentence:"Her career exemplifies the power of persistence and hard work.",level:2,sentence_he:"הקריירה שלה מדגימה את כוחה של התמדה ועבודה קשה."},
+{id:"v165",word:"exhaustive",hebrew:"ממצה, מקיף",sentence:"The police conducted an exhaustive search of the building.",level:2,sentence_he:"המשטרה ערכה חיפוש ממצה בכל הבניין."},
+{id:"v166",word:"explicit",hebrew:"מפורש, ברור",sentence:"The contract contains explicit terms about payment deadlines.",level:2,sentence_he:"החוזה מכיל תנאים מפורשים לגבי מועדי תשלום."},
+{id:"v167",word:"exploit",hebrew:"לנצל לרעה",sentence:"Unscrupulous employers sometimes exploit workers who are unaware of their rights.",level:2,sentence_he:"מעסיקים חסרי מצפון לפעמים מנצלים עובדים שאינם מודעים לזכויותיהם."},
+{id:"v168",word:"fluctuate",hebrew:"להשתנות, לנוע",sentence:"Oil prices tend to fluctuate in response to global events.",level:2,sentence_he:"מחירי הנפט נוטים להשתנות בתגובה לאירועים גלובליים."},
+{id:"v169",word:"formidable",hebrew:"מרשים, מאיים",sentence:"The opposing team presented a formidable challenge for the champions.",level:2,sentence_he:"הקבוצה היריבה הציבה אתגר מרשים עבור האלופים."},
+{id:"v170",word:"foster",hebrew:"לטפח, לעודד",sentence:"The program aims to foster creativity and critical thinking in young students.",level:2,sentence_he:"התוכנית מטרתה לטפח יצירתיות וחשיבה ביקורתית בקרב תלמידים צעירים."},
+{id:"v171",word:"fragile",hebrew:"שביר, עדין",sentence:"The peace agreement was fragile and could collapse at any moment.",level:2,sentence_he:"הסכם השלום היה שביר ויכול היה לקרוס בכל רגע."},
+{id:"v172",word:"fundamental",hebrew:"יסודי, בסיסי",sentence:"Clean water is a fundamental human right.",level:2,sentence_he:"מים נקיים הם זכות אנושית בסיסית."},
+{id:"v173",word:"grasp",hebrew:"לתפוס, להבין",sentence:"It took her several hours to fully grasp the complexity of the problem.",level:2,sentence_he:"לקח לה מספר שעות לתפוס לחלוטין את מורכבות הבעיה."},
+{id:"v174",word:"hamper",hebrew:"לעכב, להפריע",sentence:"Bad weather hampered rescue efforts after the earthquake.",level:2,sentence_he:"מזג אוויר רע עיכב את מאמצי ההצלה לאחר רעש האדמה."},
+{id:"v175",word:"harbinger",hebrew:"מבשר",sentence:"The first crocuses of spring are a harbinger of warmer days ahead.",level:2,sentence_he:"הקרוקוסים הראשונים של האביב הם מבשרים של ימים חמים יותר."},
+{id:"v176",word:"harsh",hebrew:"קשה, נוקשה",sentence:"The prisoners were kept in harsh conditions with little food or light.",level:2,sentence_he:"האסירים הוחזקו בתנאים קשים עם מעט מזון ואור."},
+{id:"v177",word:"hence",hebrew:"לכן, מכאן",sentence:"The evidence was inconclusive and hence the case was dismissed.",level:2,sentence_he:"הראיות לא היו חד משמעיות ולכן התיק נסגר."},
+{id:"v178",word:"hierarchy",hebrew:"היררכיה",sentence:"The military operates according to a strict hierarchy of command.",level:2,sentence_he:"הצבא פועל לפי היררכיה קפדנית של פיקוד."},
+{id:"v179",word:"homogeneous",hebrew:"הומוגני, אחיד",sentence:"The population of the island is relatively homogeneous in terms of culture.",level:2,sentence_he:"האוכלוסייה של האי הומוגנית יחסית מבחינה תרבותית."},
+{id:"v180",word:"hypothesis",hebrew:"השערה, היפותזה",sentence:"The scientist proposed a hypothesis that was later confirmed by experiments.",level:2,sentence_he:"המדען הציע השערה שאושרה מאוחר יותר בניסויים."},
+{id:"v181",word:"immense",hebrew:"עצום, אדיר",sentence:"The construction of the railway required an immense amount of labor.",level:2,sentence_he:"בניית מסילת הרכבת דרשה כמות עצומה של עבודה."},
+{id:"v182",word:"impede",hebrew:"לעכב, למנוע",sentence:"Bureaucratic obstacles impeded the progress of the relief effort.",level:2,sentence_he:"מכשולים בירוקרטיים עיכבו את התקדמות מאמץ ההקלה."},
+{id:"v183",word:"implicit",hebrew:"משתמע, לא מפורש",sentence:"There was an implicit understanding that the meeting would remain confidential.",level:2,sentence_he:"הייתה הבנה משתמעת שהפגישה תישאר חסויה."},
+{id:"v184",word:"impose",hebrew:"להטיל, לכפות",sentence:"The court imposed a heavy fine on the company for the pollution.",level:2,sentence_he:"בית המשפט הטיל קנס כבד על החברה בגין הזיהום."},
+{id:"v185",word:"incentive",hebrew:"תמריץ, עידוד",sentence:"Tax breaks provide an incentive for companies to invest in renewable energy.",level:2,sentence_he:"הטבות מס מספקות תמריץ לחברות להשקיע באנרגיה מתחדשת."},
+{id:"v186",word:"inevitable",hebrew:"בלתי נמנע",sentence:"Given the evidence, his resignation seemed inevitable.",level:2,sentence_he:"בהתחשב בראיות, התפטרותו נראתה בלתי נמנעת."},
+{id:"v187",word:"inhibit",hebrew:"לעכב, למנוע",sentence:"Fear of failure can inhibit creativity and risk-taking.",level:2,sentence_he:"פחד מכישלון יכול לעכב יצירתיות ולקיחת סיכונים."},
+{id:"v188",word:"innovate",hebrew:"לחדש",sentence:"Companies that fail to innovate risk being left behind by their competitors.",level:2,sentence_he:"חברות שלא מחדשות מסתכנות בהישארות מאחור ביחס למתחרות."},
+{id:"v189",word:"insight",hebrew:"תובנה, הבנה",sentence:"The study provided valuable insight into the causes of the disease.",level:2,sentence_he:"המחקר סיפק תובנה יקרת ערך לגבי גורמי המחלה."},
+{id:"v190",word:"integral",hebrew:"אינטגרלי, חיוני",sentence:"Exercise is an integral part of a healthy lifestyle.",level:2,sentence_he:"פעילות גופנית היא חלק אינטגרלי מאורח חיים בריא."},
+{id:"v191",word:"intricate",hebrew:"מורכב, סבוך",sentence:"The watch mechanism is incredibly intricate, with hundreds of tiny parts.",level:2,sentence_he:"מנגנון השעון מורכב להפליא, עם מאות חלקים זעירים."},
+{id:"v192",word:"invariably",hebrew:"תמיד, ללא יוצא מן הכלל",sentence:"He invariably arrived late to every meeting.",level:2,sentence_he:"הוא הגיע באיחור לכל פגישה ללא יוצא מן הכלל."},
+{id:"v193",word:"ironic",hebrew:"אירוני",sentence:"It is ironic that the fire station burned down.",level:2,sentence_he:"אירוני שתחנת הכיבוי נשרפה."},
+{id:"v194",word:"justify",hebrew:"להצדיק",sentence:"The ends do not always justify the means.",level:2,sentence_he:"התוצאה לא תמיד מצדיקה את האמצעים."},
+{id:"v195",word:"landmark",hebrew:"ציון דרך, מבנה מפורסם",sentence:"The agreement was a landmark in the history of international diplomacy.",level:2,sentence_he:"ההסכם היה ציון דרך בהיסטוריה של הדיפלומטיה הבינלאומית."},
+{id:"v196",word:"lenient",hebrew:"מקל, סלחני",sentence:"Critics argued that the judge had been too lenient in sentencing.",level:2,sentence_he:"המבקרים טענו שהשופט היה מקל מדי בגזר הדין."},
+{id:"v197",word:"lucid",hebrew:"צלול, ברור",sentence:"Despite his age, the professor remained lucid and sharp-minded.",level:2,sentence_he:"למרות גילו, הפרופסור נשאר צלול וחד-מחשבתי."},
+{id:"v198",word:"magnitude",hebrew:"גודל, עצמה",sentence:"The magnitude of the disaster was not fully understood for several days.",level:2,sentence_he:"עצמת האסון לא הובנה במלואה במשך מספר ימים."},
+{id:"v199",word:"marginal",hebrew:"שולי, זניח",sentence:"The improvement in test scores was marginal and not statistically significant.",level:2,sentence_he:"השיפור בציוני הבחינות היה שולי ולא מובהק סטטיסטית."},
+{id:"v200",word:"meticulous",hebrew:"קפדני, מדוקדק",sentence:"The surgeon was meticulous in every step of the procedure.",level:2,sentence_he:"הכירורג היה קפדן בכל שלב של הפרוצדורה."},
+{id:"v201",word:"aberrant",hebrew:"חריג, סוטה מהנורמה",sentence:"The scientist noted several aberrant results that did not fit the expected pattern.",level:3,sentence_he:"המדענית ציינה כמה תוצאות חריגות שלא התאימו לדפוס הצפוי."},
+{id:"v202",word:"abhor",hebrew:"לשנוא, לגעול",sentence:"She abhorred any form of cruelty to animals.",level:3,sentence_he:"היא שנאה כל סוג של אכזריות כלפי בעלי חיים."},
+{id:"v203",word:"acrimony",hebrew:"מרירות, עוינות",sentence:"The divorce proceedings were marked by considerable acrimony between the two parties.",level:3,sentence_he:"הליך הגירושים היה מסומן במרירות רבה בין הצדדים."},
+{id:"v204",word:"admonish",hebrew:"להזהיר, לנזוף",sentence:"The judge admonished the lawyer for making irrelevant arguments.",level:3,sentence_he:"השופט נזף בעורך הדין על הצגת טיעונים לא רלוונטיים."},
+{id:"v205",word:"adroit",hebrew:"מיומן, זריז",sentence:"The politician was adroit at avoiding direct answers to difficult questions.",level:3,sentence_he:"הפוליטיקאי היה מיומן בהימנעות ממתן תשובות ישירות לשאלות קשות."},
+{id:"v206",word:"aesthetic",hebrew:"אסתטי, יפהפה",sentence:"The building was praised for its aesthetic appeal as well as its functionality.",level:3,sentence_he:"הבניין זכה לשבחים על ערעורו האסתטי לצד פונקציונליותו."},
+{id:"v207",word:"affable",hebrew:"ידידותי, נעים הליכות",sentence:"Despite his fame, the actor was remarkably affable and approachable.",level:3,sentence_he:"למרות פרסומו, השחקן נשאר ידידותי ונגיש."},
+{id:"v208",word:"alacrity",hebrew:"זריזות, נכונות",sentence:"The volunteers responded to the emergency call with remarkable alacrity.",level:3,sentence_he:"המתנדבים הגיבו לקריאת החירום בזריזות מרשימה."},
+{id:"v209",word:"ameliorate",hebrew:"לשפר, להיטיב",sentence:"New policies were introduced to ameliorate the living conditions of prisoners.",level:3,sentence_he:"מדיניות חדשה הוצגה לשיפור תנאי המחייה של האסירים."},
+{id:"v210",word:"anachronism",hebrew:"אנכרוניזם, דבר שאינו שייך לתקופתו",sentence:"The horse-drawn carriage seemed like an anachronism on the busy city street.",level:3,sentence_he:"הכרכרה הרתומה לסוסים נראתה כאנכרוניזם ברחוב העירוני הסואן."},
+{id:"v211",word:"ancillary",hebrew:"עזר, משני",sentence:"The ancillary staff, including cleaners and security guards, are essential to the hospital.",level:3,sentence_he:"הצוות העוזר, כולל מנקים ושומרי ביטחון, חיוני לבית החולים."},
+{id:"v212",word:"anomalous",hebrew:"חריג, לא תקין",sentence:"The anomalous weather patterns puzzled meteorologists.",level:3,sentence_he:"דפוסי מזג האוויר החריגים הבלבלו את חוקרי מטאורולוגיה."},
+{id:"v213",word:"antipathy",hebrew:"אנטיפתיה, שנאה",sentence:"There was a deep antipathy between the two rival factions.",level:3,sentence_he:"הייתה אנטיפתיה עמוקה בין שתי הסיעות היריבות."},
+{id:"v214",word:"apathy",hebrew:"אדישות",sentence:"Voter apathy was cited as a major concern ahead of the election.",level:3,sentence_he:"אדישות מצביעים צוינה כדאגה מרכזית לקראת הבחירות."},
+{id:"v215",word:"arcane",hebrew:"נסתר, סודי",sentence:"The professor specialized in the arcane details of medieval tax law.",level:3,sentence_he:"הפרופסור התמחה בפרטים הנסתרים של דיני המס מימי הביניים."},
+{id:"v216",word:"ardent",hebrew:"נלהב, נלהב",sentence:"She was an ardent supporter of environmental causes throughout her career.",level:3,sentence_he:"היא הייתה תומכת נלהבת של מטרות סביבתיות לאורך כל הקריירה שלה."},
+{id:"v217",word:"arid",hebrew:"צחיח, יבש",sentence:"The Atacama Desert is one of the most arid regions on Earth.",level:3,sentence_he:"מדבר אטקמה הוא אחד האזורים הצחיחים ביותר עלי אדמות."},
+{id:"v218",word:"articulate",hebrew:"לבטא בבהירות",sentence:"The diplomat articulated the country's position with great clarity and precision.",level:3,sentence_he:"הדיפלומט ביטא את עמדת המדינה בבהירות ובדיוק רב."},
+{id:"v219",word:"ascertain",hebrew:"לוודא, לברר",sentence:"Investigators are working to ascertain the cause of the explosion.",level:3,sentence_he:"חוקרים עובדים כדי לוודא את גורם הפיצוץ."},
+{id:"v220",word:"assiduous",hebrew:"שקדן, עמל",sentence:"Her assiduous attention to detail made her an invaluable member of the team.",level:3,sentence_he:"תשומת לב קפדנית לפרטים הפכה אותה לחברת צוות יקרת ערך."},
+{id:"v221",word:"atrophy",hebrew:"ניוון, קמילה",sentence:"Muscles that are not used regularly will begin to atrophy.",level:3,sentence_he:"שרירים שאינם בשימוש קבוע יתחילו להתנוון."},
+{id:"v222",word:"audacious",hebrew:"נועז, חצוף",sentence:"The audacious plan to tunnel under the border surprised everyone.",level:3,sentence_he:"התוכנית הנועזת למחילה מתחת לגבול הפתיעה את כולם."},
+{id:"v223",word:"augment",hebrew:"להגדיל, להוסיף",sentence:"The company sought to augment its income by launching a new product line.",level:3,sentence_he:"החברה ביקשה להגדיל את הכנסותיה על ידי השקת קו מוצרים חדש."},
+{id:"v224",word:"auspicious",hebrew:"מבשר טוב, מזל טוב",sentence:"The sunny weather seemed like an auspicious sign for the opening of the new business.",level:3,sentence_he:"מזג האוויר השמשי נראה כסימן מבשר טוב לפתיחת העסק החדש."},
+{id:"v225",word:"austere",hebrew:"קפדני, פשוט",sentence:"The monk lived an austere life, owning almost nothing.",level:3,sentence_he:"הנזיר חי חיים קפדניים, כמעט ללא כל רכוש."},
+{id:"v226",word:"banal",hebrew:"בנאלי, שגרתי",sentence:"The speech was full of banal observations that told the audience nothing new.",level:3,sentence_he:"הנאום היה מלא תצפיות בנאליות שלא אמרו לקהל דבר חדש."},
+{id:"v227",word:"belligerent",hebrew:"תוקפני, לוחמני",sentence:"The belligerent tone of the negotiations made a peaceful resolution unlikely.",level:3,sentence_he:"הטון התוקפני של המשא ומתן הפך פתרון שלום לא סביר."},
+{id:"v228",word:"benevolent",hebrew:"נדיב, טוב לב",sentence:"The benevolent donor gave millions to establish a new hospital.",level:3,sentence_he:"התורם הנדיב נתן מיליונים להקמת בית חולים חדש."},
+{id:"v229",word:"brevity",hebrew:"קצרנות, תמציתיות",sentence:"The speech was admired for its brevity — it lasted less than five minutes.",level:3,sentence_he:"הנאום זכה להערכה בזכות קצרנותו — הוא ארך פחות מחמש דקות."},
+{id:"v230",word:"callous",hebrew:"קשוח, חסר לב",sentence:"The callous disregard for safety regulations led directly to the accident.",level:3,sentence_he:"אי-התחשבות קשוחה בתקנות הבטיחות הובילה ישירות לתאונה."},
+{id:"v231",word:"candor",hebrew:"כנות, גלויות לב",sentence:"She was known for her candor, always saying exactly what she thought.",level:3,sentence_he:"היא הייתה ידועה בכנותה, תמיד אמרה בדיוק מה שחשבה."},
+{id:"v232",word:"capricious",hebrew:"קפריזי, גחמני",sentence:"The weather in the mountains is capricious — sunny one hour and stormy the next.",level:3,sentence_he:"מזג האוויר בהרים גחמני — שמשי שעה אחת וסוער בשעה הבאה."},
+{id:"v233",word:"censure",hebrew:"גינוי, לגנות",sentence:"The senator faced censure from colleagues for his controversial remarks.",level:3,sentence_he:"הסנאטור ספג גינוי מעמיתיו בגלל הערותיו השנויות במחלוקת."},
+{id:"v234",word:"circumspect",hebrew:"זהיר, מחושב",sentence:"A circumspect investor considers all risks before committing to a decision.",level:3,sentence_he:"משקיע זהיר שוקל את כל הסיכונים לפני שמתחייב להחלטה."},
+{id:"v235",word:"clandestine",hebrew:"חשאי, סמוי",sentence:"The two spies arranged a clandestine meeting in a quiet café.",level:3,sentence_he:"שני הסוכנים קבעו פגישה חשאית בבית קפה שקט."},
+{id:"v236",word:"coerce",hebrew:"לאלץ, לכפות",sentence:"Witnesses claimed they had been coerced into signing false statements.",level:3,sentence_he:"עדים טענו שנאלצו לחתום על הצהרות שקריות."},
+{id:"v237",word:"cogent",hebrew:"משכנע, הגיוני",sentence:"The lawyer presented a cogent argument that swayed the jury.",level:3,sentence_he:"עורכת הדין הציגה טיעון משכנע שהשפיע על חבר המושבעים."},
+{id:"v238",word:"complacent",hebrew:"שאנן, מרוצה מעצמו",sentence:"The champion became complacent and failed to prepare adequately for the next match.",level:3,sentence_he:"האלוף הפך שאנן ולא הכין את עצמו כראוי למשחק הבא."},
+{id:"v239",word:"conciliatory",hebrew:"מפייס, מכפר",sentence:"The leader made a conciliatory gesture by releasing political prisoners.",level:3,sentence_he:"המנהיג עשה מחווה מפייסת על ידי שחרור אסירים פוליטיים."},
+{id:"v240",word:"condone",hebrew:"להתיר, לסלוח על",sentence:"The school does not condone bullying in any form.",level:3,sentence_he:"בית הספר אינו מתיר כל צורה של בריונות."},
+{id:"v241",word:"conjecture",hebrew:"השערה, ספקולציה",sentence:"Without more evidence, any explanation remains pure conjecture.",level:3,sentence_he:"ללא ראיות נוספות, כל הסבר נשאר ספקולציה גרידא."},
+{id:"v242",word:"contentious",hebrew:"שנוי במחלוקת, פולמוסי",sentence:"The proposed law proved highly contentious, dividing public opinion.",level:3,sentence_he:"החוק המוצע התגלה כשנוי מאוד במחלוקת, מפצל את דעת הקהל."},
+{id:"v243",word:"contrite",hebrew:"מתחרט, נחרט",sentence:"The defendant appeared genuinely contrite when apologizing to the victims.",level:3,sentence_he:"הנאשם נראה מתחרט באמת כשהתנצל בפני הקורבנות."},
+{id:"v244",word:"convoluted",hebrew:"מסובך, מפותל",sentence:"The instructions were so convoluted that nobody could understand them.",level:3,sentence_he:"ההוראות היו כל כך מסובכות שאיש לא הצליח להבין אותן."},
+{id:"v245",word:"copious",hebrew:"רב, שופע",sentence:"She took copious notes during the lecture.",level:3,sentence_he:"היא רשמה הערות שופעות במהלך ההרצאה."},
+{id:"v246",word:"corroborate",hebrew:"לאשר, לחזק",sentence:"Several witnesses corroborated the defendant's alibi.",level:3,sentence_he:"מספר עדים אישרו את האליבי של הנאשם."},
+{id:"v247",word:"credulous",hebrew:"קל אמונה, תמים",sentence:"A credulous person is easily deceived by false advertising.",level:3,sentence_he:"אדם קל-אמונה מתפתה בקלות על ידי פרסומות שקריות."},
+{id:"v248",word:"cryptic",hebrew:"סתום, מסתורי",sentence:"The professor left a cryptic message on the board that puzzled his students.",level:3,sentence_he:"הפרופסור השאיר הודעה סתומה על הלוח שהביכה את תלמידיו."},
+{id:"v249",word:"curtail",hebrew:"לקצץ, לצמצם",sentence:"The budget cuts forced the charity to curtail its overseas programs.",level:3,sentence_he:"קיצוצי התקציב אילצו את הארגון הצדקתי לקצץ בתוכניותיו בחו\"ל."},
+{id:"v250",word:"debilitate",hebrew:"להחליש, לנצל",sentence:"The illness debilitated him to the point where he could barely walk.",level:3,sentence_he:"המחלה החלישה אותו עד לנקודה שבה בקושי יכול היה ללכת."},
+{id:"v251",word:"decry",hebrew:"לגנות, לבקר בחריפות",sentence:"Human rights groups decried the new law as a violation of civil liberties.",level:3,sentence_he:"קבוצות זכויות אדם גינו את החוק החדש כהפרה של חירויות אזרחיות."},
+{id:"v252",word:"deference",hebrew:"כבוד, הכנעה",sentence:"Out of deference to local customs, visitors are asked to dress modestly.",level:3,sentence_he:"מתוך כבוד למנהגים מקומיים, מבקרים מתבקשים להתלבש בצניעות."},
+{id:"v253",word:"deft",hebrew:"מיומן, זריז",sentence:"With a few deft strokes of the brush, she transformed the canvas.",level:3,sentence_he:"במספר מכחולים זריזים, היא שינתה את הקנבס."},
+{id:"v254",word:"delineate",hebrew:"לתאר, לשרטט",sentence:"The report clearly delineates the responsibilities of each department.",level:3,sentence_he:"הדוח מתאר בבירור את האחריות של כל מחלקה."},
+{id:"v255",word:"demagogue",hebrew:"דמגוג, מסית",sentence:"The demagogue appealed to fear rather than reason in his speeches.",level:3,sentence_he:"הדמגוג פנה לפחד ולא לשכל בנאומיו."},
+{id:"v256",word:"denounce",hebrew:"לגנות, לחשוף",sentence:"Several world leaders denounced the attack as an act of terrorism.",level:3,sentence_he:"מספר מנהיגי עולם גינו את המתקפה כמעשה טרור."},
+{id:"v257",word:"deplorable",hebrew:"מצער, נוראי",sentence:"The living conditions in the refugee camp were deplorable.",level:3,sentence_he:"תנאי המחייה במחנה הפליטים היו מצערים."},
+{id:"v258",word:"deride",hebrew:"ללעוג, להלעיג",sentence:"Critics derided the film as shallow and predictable.",level:3,sentence_he:"המבקרים לעגו לסרט כשטחי וצפוי."},
+{id:"v259",word:"desiccate",hebrew:"לייבש, להוביש",sentence:"The extreme heat desiccated the soil, making farming impossible.",level:3,sentence_he:"החום הקיצוני ייבש את הקרקע, מה שהפך חקלאות לבלתי אפשרית."},
+{id:"v260",word:"despondent",hebrew:"מדוכא, יאוש",sentence:"After failing the exam twice, he felt completely despondent.",level:3,sentence_he:"לאחר שנכשל בבחינה פעמיים, הרגיש מדוכא לחלוטין."},
+{id:"v261",word:"diffident",hebrew:"ביישן, חסר ביטחון",sentence:"The diffident student rarely raised his hand in class.",level:3,sentence_he:"התלמיד הביישן כמעט ולא הרים יד בכיתה."},
+{id:"v262",word:"digress",hebrew:"לסטות מהנושא",sentence:"I'm sorry to digress, but this point seems important.",level:3,sentence_he:"אני מצטער על הסטייה מהנושא, אך נקודה זו נראית חשובה."},
+{id:"v263",word:"diligence",hebrew:"חריצות, שקדנות",sentence:"Her diligence and attention to detail set her apart from her colleagues.",level:3,sentence_he:"חריצותה ותשומת לבה לפרטים הבדילו אותה מעמיתיה."},
+{id:"v264",word:"discern",hebrew:"להבחין, לזהות",sentence:"Even an untrained eye can discern the difference between the two paintings.",level:3,sentence_he:"אפילו עין לא מאומנת יכולה להבחין בהבדל בין שני הציורים."},
+{id:"v265",word:"disdain",hebrew:"בוז, זלזול",sentence:"She looked at the cheap imitation with undisguised disdain.",level:3,sentence_he:"היא הביטה בחיקוי הזול בבוז גלוי."},
+{id:"v266",word:"dismantle",hebrew:"לפרק, להרוס",sentence:"The government announced plans to dismantle the state-owned energy company.",level:3,sentence_he:"הממשלה הכריזה על תוכניות לפרק את חברת האנרגיה הממשלתית."},
+{id:"v267",word:"disparate",hebrew:"שונה מאוד, לא קשור",sentence:"The survey brought together people from disparate backgrounds and beliefs.",level:3,sentence_he:"הסקר הביא יחד אנשים מרקעים ואמונות שונים מאוד."},
+{id:"v268",word:"disseminate",hebrew:"להפיץ",sentence:"Social media has made it easier than ever to disseminate information rapidly.",level:3,sentence_he:"המדיה החברתית הקלה יותר מתמיד על הפצת מידע במהירות."},
+{id:"v269",word:"dogmatic",hebrew:"דוגמטי, קנאי",sentence:"His dogmatic refusal to consider other opinions alienated many colleagues.",level:3,sentence_he:"סירובו הדוגמטי לשקול דעות אחרות ניכר רבים מעמיתיו."},
+{id:"v270",word:"dubious",hebrew:"מפוקפק, מוטל בספק",sentence:"The manager was dubious about the consultant's optimistic projections.",level:3,sentence_he:"המנהל היה מפוקפק לגבי התחזיות האופטימיסטיות של הייעוץ."},
+{id:"v271",word:"ebullient",hebrew:"עליז, מתלהב",sentence:"The ebullient host made every guest feel immediately welcome.",level:3,sentence_he:"המארח הנלהב גרם לכל אורח להרגיש מיד בבית."},
+{id:"v272",word:"efficacious",hebrew:"יעיל, אפקטיבי",sentence:"The new treatment proved highly efficacious in clinical trials.",level:3,sentence_he:"הטיפול החדש הוכיח יעילות גבוהה בניסויים קליניים."},
+{id:"v273",word:"elusive",hebrew:"חמקמק, קשה לתפיסה",sentence:"The Kermode bear is an elusive animal, rarely seen even in its natural habitat.",level:3,sentence_he:"הדוב הקרמוד הוא בעל חיים חמקמק, נדיר לראייה אפילו בבית גידולו הטבעי."},
+{id:"v274",word:"emulate",hebrew:"לחקות, לנסות להשיג",sentence:"Young athletes often emulate the style and technique of professional champions.",level:3,sentence_he:"ספורטאים צעירים מחקים לעתים קרובות את סגנון האלופים המקצועיים."},
+{id:"v275",word:"enigmatic",hebrew:"מסתורי, חידתי",sentence:"The Mona Lisa's enigmatic smile has fascinated viewers for centuries.",level:3,sentence_he:"חיוכה המסתורי של מונה ליזה ריתק צופים במשך מאות שנים."},
+{id:"v276",word:"equivocate",hebrew:"להתחמק, לדבר בפה כפול",sentence:"When asked directly, the politician equivocated rather than giving a clear answer.",level:3,sentence_he:"כשנשאל ישירות, הפוליטיקאי התחמק במקום לתת תשובה ברורה."},
+{id:"v277",word:"erudite",hebrew:"בקיא, מלומד",sentence:"The erudite professor could speak with authority on almost any subject.",level:3,sentence_he:"הפרופסור הבקיא יכול היה לדבר בסמכות כמעט על כל נושא."},
+{id:"v278",word:"esoteric",hebrew:"אזוטרי, נסתר",sentence:"The journal published articles on highly esoteric topics in theoretical physics.",level:3,sentence_he:"כתב העת פרסם מאמרים בנושאים אזוטריים ביותר בפיזיקה תיאורטית."},
+{id:"v279",word:"estrange",hebrew:"לנכר, להרחיק",sentence:"Years of conflict had estranged the two brothers.",level:3,sentence_he:"שנים של סכסוך ניכרו את שני האחים."},
+{id:"v280",word:"exacerbate",hebrew:"להחמיר, לגרש",sentence:"Cutting social services will only exacerbate the problem of poverty.",level:3,sentence_he:"קיצוץ בשירותים חברתיים רק יחמיר את בעיית העוני."},
+{id:"v281",word:"exonerate",hebrew:"לפטור, לנקות משם",sentence:"New DNA evidence exonerated the man who had spent fifteen years in prison.",level:3,sentence_he:"ראיות DNA חדשות פטרו את האיש שבילה חמש עשרה שנה בכלא."},
+{id:"v282",word:"expedient",hebrew:"נוח, מעשי",sentence:"The decision was expedient but not necessarily the most ethical choice.",level:3,sentence_he:"ההחלטה הייתה נוחה אך לא בהכרח הבחירה האתית ביותר."},
+{id:"v283",word:"explicit",hebrew:"מפורש",sentence:"The contract contains explicit clauses about intellectual property rights.",level:3,sentence_he:"החוזה מכיל סעיפים מפורשים בנוגע לזכויות קניין רוחני."},
+{id:"v284",word:"fallacious",hebrew:"מוטעה, שגוי",sentence:"The argument was based on a fallacious assumption about human nature.",level:3,sentence_he:"הטיעון התבסס על הנחה מוטעית לגבי טבע האדם."},
+{id:"v285",word:"fastidious",hebrew:"דקדקן, קפדן",sentence:"The fastidious editor checked every sentence three times before approving.",level:3,sentence_he:"העורך הדקדקני בדק כל משפט שלוש פעמים לפני אישורו."},
+{id:"v286",word:"flagrant",hebrew:"בוטה, צועק",sentence:"The decision was a flagrant violation of international law.",level:3,sentence_he:"ההחלטה הייתה הפרה בוטה של החוק הבינלאומי."},
+{id:"v287",word:"flounder",hebrew:"להיאבק, להסתבך",sentence:"Without proper guidance, new employees often flounder in their first weeks.",level:3,sentence_he:"ללא הדרכה מתאימה, עובדים חדשים מתקשים לעיתים קרובות בשבועות הראשונים."},
+{id:"v288",word:"fortuitous",hebrew:"מזדמן, מקרי",sentence:"Their meeting was entirely fortuitous — neither had planned to be there.",level:3,sentence_he:"פגישתם הייתה מזדמנת לחלוטין — אף אחד לא תכנן להיות שם."},
+{id:"v289",word:"frugal",hebrew:"חסכני, קמצן",sentence:"Despite his enormous wealth, he remained frugal in his personal spending.",level:3,sentence_he:"למרות עושרו הגדול, נשאר חסכני בהוצאותיו האישיות."},
+{id:"v290",word:"garrulous",hebrew:"פטפטן, דברן",sentence:"The garrulous taxi driver talked non-stop for the entire journey.",level:3,sentence_he:"נהג המונית הפטפטן דיבר ללא הפסקה לאורך כל הנסיעה."},
+{id:"v291",word:"gregarious",hebrew:"חברותי, חובב חברה",sentence:"She was naturally gregarious and thrived in social situations.",level:3,sentence_he:"היא הייתה חברותית מטבעה ושגשגה במצבים חברתיים."},
+{id:"v292",word:"guile",hebrew:"ערמה, ערמומיות",sentence:"He used guile rather than force to get what he wanted.",level:3,sentence_he:"הוא השתמש בערמה ולא בכוח כדי להשיג את מה שרצה."},
+{id:"v293",word:"hackneyed",hebrew:"שחוק, נדוש",sentence:"The speech was full of hackneyed phrases that the audience had heard many times before.",level:3,sentence_he:"הנאום היה מלא ביטויים שחוקים שהקהל שמע פעמים רבות."},
+{id:"v294",word:"hasten",hebrew:"למהר, להאיץ",sentence:"The new evidence hastened the end of the trial.",level:3,sentence_he:"הראיות החדשות האיצו את סיום המשפט."},
+{id:"v295",word:"haughty",hebrew:"יהיר, גאוותן",sentence:"The haughty aristocrat refused to acknowledge people he considered below his station.",level:3,sentence_he:"האריסטוקרט היהיר סירב להכיר באנשים שראה כנחותים ממנו."},
+{id:"v296",word:"hegemony",hebrew:"הגמוניה, שליטה",sentence:"The country sought to maintain its cultural and economic hegemony in the region.",level:3,sentence_he:"המדינה ביקשה לשמור על הגמוניה תרבותית וכלכלית באזור."},
+{id:"v297",word:"heretical",hebrew:"כופר, הרטיקלי",sentence:"In the sixteenth century, such ideas would have been considered heretical.",level:3,sentence_he:"במאה השש עשרה, רעיונות כאלה היו נחשבים לכפירה."},
+{id:"v298",word:"hubris",hebrew:"יהירות מופרזת",sentence:"His hubris led him to underestimate his opponents, which proved to be his downfall.",level:3,sentence_he:"יהירותו הובילה אותו לזלזל במתנגדיו, מה שהתגלה כמפלתו."},
+{id:"v299",word:"hypocritical",hebrew:"צבוע, חנפן",sentence:"It seemed hypocritical to preach about conservation while flying a private jet.",level:3,sentence_he:"נראה צבוע לדרוש חיסכון בסביבה תוך טיסה במטוס פרטי."},
+{id:"v300",word:"iconoclast",hebrew:"אייקונוקלסט, מי שמאתגר מסורות",sentence:"The artist was an iconoclast who rejected every convention of the genre.",level:3,sentence_he:"האמן היה אייקונוקלסט שדחה כל מוסכמה של הז'אנר."},
+{id:"v301",word:"maintain",hebrew:"לשמר, לתחזק",sentence:"It is difficult to maintain concentration for long periods without breaks.",level:1,sentence_he:"קשה לשמר ריכוז לתקופות ממושכות ללא הפסקות."},
+{id:"v302",word:"majority",hebrew:"רוב",sentence:"The majority of students passed the exam on their first attempt.",level:1,sentence_he:"רוב התלמידים עברו את הבחינה בניסיון הראשון."},
+{id:"v303",word:"manipulate",hebrew:"לתמרן, לשלוט",sentence:"Advertisers often manipulate emotions to encourage people to buy products.",level:1,sentence_he:"מפרסמים לעיתים קרובות מתמרנים רגשות כדי לעודד אנשים לקנות מוצרים."},
+{id:"v304",word:"mechanism",hebrew:"מנגנון",sentence:"Scientists are still studying the mechanism by which the drug reduces inflammation.",level:1,sentence_he:"מדענים עדיין חוקרים את המנגנון שבו התרופה מפחיתה דלקת."},
+{id:"v305",word:"migrate",hebrew:"לנדוד, להגר",sentence:"Millions of birds migrate south each autumn to escape the cold.",level:1,sentence_he:"מיליוני ציפורים נודדות דרומה בכל סתיו כדי להימלט מהקור."},
+{id:"v306",word:"minimize",hebrew:"למזער",sentence:"The company took steps to minimize the environmental impact of its operations.",level:1,sentence_he:"החברה נקטה צעדים למזעור ההשפעה הסביבתית של פעילותה."},
+{id:"v307",word:"modify",hebrew:"לשנות, להתאים",sentence:"The engineer modified the design after testing revealed several weaknesses.",level:1,sentence_he:"המהנדס שינה את התכנון לאחר שבדיקות חשפו מספר חולשות."},
+{id:"v308",word:"monitor",hebrew:"לנטר, לעקוב",sentence:"Doctors monitor the patient's condition closely after the operation.",level:1,sentence_he:"רופאים עוקבים מקרוב אחר מצבו של המטופל לאחר הניתוח."},
+{id:"v309",word:"motivate",hebrew:"להניע, לעורר מוטיבציה",sentence:"Good teachers know how to motivate students who have lost interest in learning.",level:1,sentence_he:"מורים טובים יודעים כיצד להניע תלמידים שאיבדו עניין בלמידה."},
+{id:"v310",word:"negative",hebrew:"שלילי",sentence:"The drought had a negative impact on agricultural production across the region.",level:1,sentence_he:"לבצורת הייתה השפעה שלילית על הייצור החקלאי ברחבי האזור."},
+{id:"v311",word:"neglect",hebrew:"להזניח",sentence:"If you neglect regular maintenance, small problems can become serious ones.",level:1,sentence_he:"אם תזניח תחזוקה סדירה, בעיות קטנות יכולות להפוך לחמורות."},
+{id:"v312",word:"neutral",hebrew:"ניטרלי, אובייקטיבי",sentence:"The mediator tried to remain neutral throughout the negotiations.",level:1,sentence_he:"המגשר ניסה להישאר ניטרלי לאורך כל המשא ומתן."},
+{id:"v313",word:"numerous",hebrew:"רבים, רבות",sentence:"There are numerous factors that contribute to academic success.",level:1,sentence_he:"ישנם גורמים רבים התורמים להצלחה אקדמית."},
+{id:"v314",word:"obtain",hebrew:"להשיג, לקבל",sentence:"You must obtain permission before reproducing any part of this publication.",level:1,sentence_he:"עליך לקבל אישור לפני שתשכפל כל חלק מפרסום זה."},
+{id:"v315",word:"occur",hebrew:"להתרחש",sentence:"Major earthquakes rarely occur without some warning signs.",level:1,sentence_he:"רעידות אדמה גדולות מתרחשות לעיתים נדירות ללא אזהרות מוקדמות."},
+{id:"v316",word:"oppose",hebrew:"להתנגד",sentence:"Many residents oppose the construction of a new highway through their neighborhood.",level:1,sentence_he:"תושבים רבים מתנגדים להקמת כביש מהיר חדש דרך שכונתם."},
+{id:"v317",word:"outcome",hebrew:"תוצאה, פלט",sentence:"The outcome of the experiment surprised even the researchers who designed it.",level:1,sentence_he:"תוצאת הניסוי הפתיעה אפילו את החוקרים שתכננו אותו."},
+{id:"v318",word:"overcome",hebrew:"להתגבר על",sentence:"She worked hard to overcome her fear of public speaking.",level:1,sentence_he:"היא עמלה קשה להתגבר על פחדה מדיבור בפני קהל."},
+{id:"v319",word:"perceive",hebrew:"לתפוס, להבין",sentence:"How we perceive a problem often determines how effectively we can solve it.",level:1,sentence_he:"כיצד אנחנו תופסים בעיה קובע לרוב עד כמה נוכל לפתור אותה."},
+{id:"v320",word:"persist",hebrew:"להתמיד, להמשיך",sentence:"Despite numerous setbacks, she persisted and eventually achieved her goal.",level:1,sentence_he:"למרות כישלונות רבים, היא התמידה ולבסוף השיגה את מטרתה."},
+{id:"v321",word:"predict",hebrew:"לנבא, לחזות",sentence:"It is difficult to predict exactly how the climate will change in the next century.",level:1,sentence_he:"קשה לנבא בדיוק כיצד ישתנה האקלים במאה הבאה."},
+{id:"v322",word:"predominant",hebrew:"דומיננטי, שולט",sentence:"English has become the predominant language of international business.",level:1,sentence_he:"האנגלית הפכה לשפה הדומיננטית של עסקים בינלאומיים."},
+{id:"v323",word:"preserve",hebrew:"לשמר",sentence:"The government launched a program to preserve the country's endangered languages.",level:1,sentence_he:"הממשלה השיקה תוכנית לשמירת השפות המוגרות של המדינה."},
+{id:"v324",word:"primary",hebrew:"ראשוני, עיקרי",sentence:"The primary goal of the project is to reduce carbon emissions by fifty percent.",level:1,sentence_he:"המטרה העיקרית של הפרויקט היא הפחתת פליטות פחמן בחמישים אחוז."},
+{id:"v325",word:"principle",hebrew:"עיקרון, עקרון",sentence:"The entire legal system is based on the principle that a person is innocent until proven guilty.",level:1,sentence_he:"כל המערכת המשפטית מבוססת על העיקרון שאדם חף מפשע עד שהוכח אחרת."},
+{id:"v326",word:"proceed",hebrew:"להמשיך",sentence:"Once all the paperwork is signed, we can proceed with the construction.",level:1,sentence_he:"ברגע שכל הניירת תחתם, נוכל להמשיך בבנייה."},
+{id:"v327",word:"prohibit",hebrew:"לאסור",sentence:"The law prohibits the sale of alcohol to anyone under the age of eighteen.",level:1,sentence_he:"החוק אוסר על מכירת אלכוהול לכל מי שמתחת לגיל שמונה עשרה."},
+{id:"v328",word:"promote",hebrew:"לקדם, לפרסם",sentence:"The campaign was designed to promote awareness of mental health issues.",level:1,sentence_he:"הקמפיין תוכנן לקדם מודעות לבעיות בריאות הנפש."},
+{id:"v329",word:"proportion",hebrew:"פרופורציה, יחס",sentence:"A large proportion of the population lives in urban areas.",level:1,sentence_he:"חלק גדול מהאוכלוסייה חי באזורים עירוניים."},
+{id:"v330",word:"pursue",hebrew:"לרדוף, לשאוף",sentence:"She decided to pursue a career in medicine despite the long years of study involved.",level:1,sentence_he:"היא החליטה לשאוף לקריירה ברפואה למרות שנות הלימוד הארוכות הכרוכות בכך."},
+{id:"v331",word:"reject",hebrew:"לדחות",sentence:"The committee rejected the proposal on the grounds that it was too costly.",level:1,sentence_he:"הוועדה דחתה את ההצעה בנימוק שהיא יקרה מדי."},
+{id:"v332",word:"relevant",hebrew:"רלוונטי, קשור",sentence:"Only include information that is directly relevant to the question being asked.",level:1,sentence_he:"כלול רק מידע הרלוונטי ישירות לשאלה הנשאלת."},
+{id:"v333",word:"reluctant",hebrew:"מהסס, לא רוצה",sentence:"Many patients are reluctant to discuss their mental health with a doctor.",level:1,sentence_he:"חולים רבים מהססים לדון בבריאות הנפשית שלהם עם רופא."},
+{id:"v334",word:"require",hebrew:"לדרוש, להצריך",sentence:"The position requires at least five years of relevant experience.",level:1,sentence_he:"התפקיד דורש לפחות חמש שנות ניסיון רלוונטי."},
+{id:"v335",word:"resolve",hebrew:"לפתור, להחליט",sentence:"The two countries agreed to resolve their disputes through peaceful negotiation.",level:1,sentence_he:"שתי המדינות הסכימו לפתור את סכסוכיהן דרך משא ומתן שלום."},
+{id:"v336",word:"restrict",hebrew:"להגביל",sentence:"New regulations restrict the amount of sugar that can be added to processed foods.",level:1,sentence_he:"תקנות חדשות מגבילות את כמות הסוכר שניתן להוסיף למזון מעובד."},
+{id:"v337",word:"retain",hebrew:"לשמר, לזכור",sentence:"Students are more likely to retain information if they review it regularly.",level:1,sentence_he:"תלמידים סיכוי גבוה יותר לזכור מידע אם הם חוזרים עליו באופן קבוע."},
+{id:"v338",word:"reveal",hebrew:"לחשוף, לגלות",sentence:"The investigation revealed serious flaws in the company's financial reporting.",level:1,sentence_he:"החקירה חשפה ליקויים חמורים בדיווח הפיננסי של החברה."},
+{id:"v339",word:"significant",hebrew:"משמעותי, חשוב",sentence:"There has been a significant improvement in air quality since the new regulations.",level:1,sentence_he:"חלה שיפור משמעותי באיכות האוויר מאז הכנסת התקנות החדשות."},
+{id:"v340",word:"simulate",hebrew:"לדמות, לחקות",sentence:"The training program uses computer software to simulate real emergency scenarios.",level:1,sentence_he:"התוכנית האימונית משתמשת בתוכנת מחשב לדמות תרחישי חירום אמיתיים."},
+{id:"v341",word:"stability",hebrew:"יציבות",sentence:"Political stability is essential for attracting foreign investment.",level:1,sentence_he:"יציבות פוליטית חיונית למשיכת השקעות זרות."},
+{id:"v342",word:"substitute",hebrew:"תחליף, להחליף",sentence:"Honey can be used as a substitute for sugar in many recipes.",level:1,sentence_he:"דבש יכול לשמש כתחליף לסוכר במתכונים רבים."},
+{id:"v343",word:"sufficient",hebrew:"מספיק",sentence:"Is there sufficient evidence to support this claim?",level:1,sentence_he:"האם יש ראיות מספיקות לתמוך בטענה זו?"},
+{id:"v344",word:"sustain",hebrew:"לקיים, להחזיק",sentence:"It is difficult to sustain high levels of concentration for more than a few hours.",level:1,sentence_he:"קשה לקיים רמות גבוהות של ריכוז יותר מכמה שעות."},
+{id:"v345",word:"tradition",hebrew:"מסורת",sentence:"The festival is part of a long tradition that dates back several centuries.",level:1,sentence_he:"הפסטיבל הוא חלק ממסורת ארוכה המתחקה שורשים לפני מאות שנים."},
+{id:"v346",word:"transform",hebrew:"לשנות, להפוך",sentence:"The invention of the internet transformed almost every aspect of modern life.",level:1,sentence_he:"המצאת האינטרנט שינתה כמעט כל היבט של החיים המודרניים."},
+{id:"v347",word:"transmit",hebrew:"להעביר, לשדר",sentence:"The disease is transmitted through contact with infected water sources.",level:1,sentence_he:"המחלה מועברת דרך מגע עם מקורות מים נגועים."},
+{id:"v348",word:"undermine",hebrew:"לחתור תחת, להחליש",sentence:"Repeated failures can undermine a student's confidence.",level:1,sentence_he:"כישלונות חוזרים יכולים לחתור תחת הביטחון של תלמיד."},
+{id:"v349",word:"uniform",hebrew:"אחיד, מדים",sentence:"The results were remarkably uniform across all three groups.",level:1,sentence_he:"התוצאות היו אחידות באופן מרשים בכל שלוש הקבוצות."},
+{id:"v350",word:"utilize",hebrew:"להשתמש ב, לנצל",sentence:"Modern farmers utilize technology to maximize crop yields.",level:1,sentence_he:"חקלאים מודרניים מנצלים טכנולוגיה למיקסום תנובת היבולים."},
+{id:"v351",word:"valid",hebrew:"תקף, חוקי",sentence:"You need a valid passport to travel abroad.",level:1,sentence_he:"אתה צריך דרכון תקף כדי לנסוע לחו\"ל."},
+{id:"v352",word:"vary",hebrew:"להשתנות, לגוון",sentence:"Opinions on this subject vary widely among experts.",level:1,sentence_he:"דעות בנושא זה משתנות מאוד בקרב מומחים."},
+{id:"v353",word:"verify",hebrew:"לאמת, לבדוק",sentence:"Always verify information from multiple sources before drawing conclusions.",level:1,sentence_he:"תמיד אמת מידע ממקורות מרובים לפני הסקת מסקנות."},
+{id:"v354",word:"widespread",hebrew:"נפוץ, רחב יריעה",sentence:"There is widespread agreement that more needs to be done to address climate change.",level:1,sentence_he:"יש הסכמה נרחבת כי יש לעשות יותר להתמודדות עם שינוי האקלים."},
+{id:"v355",word:"yield",hebrew:"להניב, לוותר",sentence:"The new farming techniques yield significantly higher crop output.",level:1,sentence_he:"טכניקות החקלאות החדשות מניבות תנובת יבולים גבוהה משמעותית."},
+{id:"v356",word:"mitigate",hebrew:"להפחית, למתן",sentence:"Planting trees near buildings can help mitigate the effects of urban heat.",level:2,sentence_he:"נטיעת עצים ליד בניינים יכולה לסייע בהפחתת השפעות חום עירוני."},
+{id:"v357",word:"mundane",hebrew:"יומיומי, שגרתי",sentence:"Even mundane tasks become meaningful when done with care and attention.",level:2,sentence_he:"אפילו משימות יומיומיות הופכות משמעותיות כשמבצעים אותן בטיפול ובתשומת לב."},
+{id:"v358",word:"negligible",hebrew:"זניח, מינימלי",sentence:"The difference in cost between the two options is negligible.",level:2,sentence_he:"ההפרש בעלות בין שתי האפשרויות הוא זניח."},
+{id:"v359",word:"notorious",hebrew:"ידוע לשמצה",sentence:"The company became notorious for its poor treatment of workers.",level:2,sentence_he:"החברה הפכה ידועה לשמצה בשל היחס הגרוע שלה לעובדים."},
+{id:"v360",word:"novel",hebrew:"חדשני, מקורי",sentence:"The researcher proposed a novel approach to solving the energy crisis.",level:2,sentence_he:"החוקר הציע גישה חדשנית לפתרון משבר האנרגיה."},
+{id:"v361",word:"nuance",hebrew:"ניואנס, גוון עדין",sentence:"The translator struggled to capture every nuance of the original text.",level:2,sentence_he:"המתרגם התקשה ללכוד כל ניואנס של הטקסט המקורי."},
+{id:"v362",word:"obsolete",hebrew:"מיושן, לא בשימוש",sentence:"Many skills that were once essential have become obsolete due to automation.",level:2,sentence_he:"מיומנויות רבות שהיו חיוניות פעם הפכו למיושנות עקב אוטומציה."},
+{id:"v363",word:"omit",hebrew:"להשמיט",sentence:"The editor omitted several chapters from the final version of the book.",level:2,sentence_he:"העורך השמיט מספר פרקים מהגרסה הסופית של הספר."},
+{id:"v364",word:"ominous",hebrew:"מאיים, מבשר רעות",sentence:"Dark clouds on the horizon were an ominous sign for the outdoor concert.",level:2,sentence_he:"עננים כהים באופק היו סימן מאיים לקונצרט בחוץ."},
+{id:"v365",word:"ongoing",hebrew:"מתמשך, שוטף",sentence:"The ongoing drought has forced farmers to abandon thousands of acres of farmland.",level:2,sentence_he:"הבצורת המתמשכת אילצה חקלאים לנטוש אלפי דונמים של קרקע חקלאית."},
+{id:"v366",word:"optimistic",hebrew:"אופטימי",sentence:"Despite the challenges, the team remained optimistic about the project's success.",level:2,sentence_he:"למרות האתגרים, הצוות נשאר אופטימי לגבי הצלחת הפרויקט."},
+{id:"v367",word:"oscillate",hebrew:"להתנדנד, להתנועע",sentence:"Public opinion on the issue tends to oscillate between support and opposition.",level:2,sentence_he:"דעת הקהל בנושא נוטה להתנדנד בין תמיכה להתנגדות."},
+{id:"v368",word:"paradox",hebrew:"פרדוקס, סתירה",sentence:"It is one of the paradoxes of modern life that we have more ways to communicate but feel more isolated.",level:2,sentence_he:"זהו אחד הפרדוקסים של החיים המודרניים שיש לנו יותר דרכי תקשורת אך מרגישים יותר מבודדים."},
+{id:"v369",word:"paramount",hebrew:"עליון, חשוב מעל הכל",sentence:"The safety of passengers is of paramount importance to the airline.",level:2,sentence_he:"בטיחות הנוסעים היא בעלת חשיבות עליונה עבור חברת התעופה."},
+{id:"v370",word:"partisan",hebrew:"מפלגתי, חד-צדדי",sentence:"The report was criticized for being too partisan to be taken seriously.",level:2,sentence_he:"הדוח זכה לביקורת על היותו מפלגתי מדי להילקח ברצינות."},
+{id:"v371",word:"passive",hebrew:"פסיבי, סביל",sentence:"A passive approach to problem-solving rarely produces good results.",level:2,sentence_he:"גישה פסיבית לפתרון בעיות לעיתים נדירות מניבה תוצאות טובות."},
+{id:"v372",word:"perceive",hebrew:"לתפוס, להבחין",sentence:"Different cultures perceive the concept of personal space very differently.",level:2,sentence_he:"תרבויות שונות תופסות את מושג המרחב האישי בצורות שונות מאוד."},
+{id:"v373",word:"peripheral",hebrew:"שולי, היקפי",sentence:"The issue was considered peripheral to the main debate.",level:2,sentence_he:"הנושא נחשב לשולי בדיון המרכזי."},
+{id:"v374",word:"plausible",hebrew:"סביר, אמין",sentence:"The scientist presented a plausible explanation for the unexpected results.",level:2,sentence_he:"המדען הציג הסבר סביר לתוצאות הבלתי צפויות."},
+{id:"v375",word:"polarize",hebrew:"לקטב",sentence:"The controversial policy has polarized public opinion.",level:2,sentence_he:"המדיניות השנויה במחלוקת קיטבה את דעת הקהל."},
+{id:"v376",word:"postulate",hebrew:"להניח, לקבוע כהנחה",sentence:"Darwin postulated that species evolve through a process of natural selection.",level:2,sentence_he:"דארווין הניח שמינים מתפתחים באמצעות תהליך של ברירה טבעית."},
+{id:"v377",word:"pragmatic",hebrew:"פרגמטי, מעשי",sentence:"A pragmatic approach focuses on what works in practice rather than on theory.",level:2,sentence_he:"גישה פרגמטית מתמקדת במה שעובד בפועל ולא בתיאוריה."},
+{id:"v378",word:"precede",hebrew:"לקדום, לבוא לפני",sentence:"A period of economic instability often precedes a major political crisis.",level:2,sentence_he:"תקופה של חוסר יציבות כלכלית לעיתים קרובות קודמת למשבר פוליטי גדול."},
+{id:"v379",word:"precipitate",hebrew:"לזרז, לגרום",sentence:"The assassination of the archduke helped precipitate the First World War.",level:2,sentence_he:"ההתנקשות בארכידוק סייעה לזרז את פרוץ מלחמת העולם הראשונה."},
+{id:"v380",word:"precise",hebrew:"מדויק, מפורש",sentence:"The instructions must be precise so that there is no room for misinterpretation.",level:2,sentence_he:"ההוראות חייבות להיות מדויקות כדי שלא יהיה מקום לפרשנות שגויה."},
+{id:"v381",word:"premise",hebrew:"הנחת יסוד",sentence:"The entire argument rests on the premise that economic growth benefits everyone.",level:2,sentence_he:"כל הטיעון נשען על ההנחה שצמיחה כלכלית מועילה לכולם."},
+{id:"v382",word:"prescribe",hebrew:"לרשום, לקבוע",sentence:"The doctor prescribed a course of antibiotics for the infection.",level:2,sentence_he:"הרופא רשם קורס של אנטיביוטיקה לטיפול בזיהום."},
+{id:"v383",word:"prevalent",hebrew:"נפוץ, שכיח",sentence:"Obesity has become increasingly prevalent in many developed countries.",level:2,sentence_he:"השמנת יתר הפכה לנפוצה יותר ויותר במדינות מפותחות רבות."},
+{id:"v384",word:"profound",hebrew:"עמוק, מעמיק",sentence:"The experience had a profound effect on her outlook on life.",level:2,sentence_he:"לחוויה הייתה השפעה עמוקה על השקפת עולמה."},
+{id:"v385",word:"proliferate",hebrew:"להתרבות, להתפשט",sentence:"Misinformation tends to proliferate rapidly on social media platforms.",level:2,sentence_he:"מידע כוזב נוטה להתפשט במהירות בפלטפורמות המדיה החברתית."},
+{id:"v386",word:"pronounced",hebrew:"בולט, מודגש",sentence:"There was a pronounced difference in performance between the two groups.",level:2,sentence_he:"היה הבדל בולט בביצועים בין שתי הקבוצות."},
+{id:"v387",word:"propriety",hebrew:"הגינות, נאותות",sentence:"She always behaved with great propriety in professional settings.",level:2,sentence_he:"היא תמיד נהגה בהגינות רבה בסביבות מקצועיות."},
+{id:"v388",word:"provoke",hebrew:"לעורר, לגרות",sentence:"The controversial speech provoked an angry response from the audience.",level:2,sentence_he:"הנאום השנוי במחלוקת עורר תגובה כועסת מהקהל."},
+{id:"v389",word:"proximity",hebrew:"קרבה, סמיכות",sentence:"The proximity of the school to the main road raises safety concerns.",level:2,sentence_he:"קרבת בית הספר לכביש הראשי מעוררת חשש לבטיחות."},
+{id:"v390",word:"prudent",hebrew:"זהיר, נבון",sentence:"It would be prudent to save some money before making such a large investment.",level:2,sentence_he:"יהיה נבון לחסוך כסף לפני ביצוע השקעה כה גדולה."},
+{id:"v391",word:"rationale",hebrew:"הצדקה, נימוק",sentence:"The committee was asked to explain the rationale behind its decision.",level:2,sentence_he:"הוועדה נתבקשה להסביר את ההצדקה שמאחורי החלטתה."},
+{id:"v392",word:"reconcile",hebrew:"להשלים, ליישב",sentence:"It is difficult to reconcile the two conflicting accounts of what happened.",level:2,sentence_he:"קשה לישב את שני הדיווחים הסותרים של מה שקרה."},
+{id:"v393",word:"redundant",hebrew:"מיותר, כפול",sentence:"With the introduction of new technology, many manual jobs became redundant.",level:2,sentence_he:"עם הכנסת טכנולוגיה חדשה, משרות ידניות רבות הפכו למיותרות."},
+{id:"v394",word:"reinforce",hebrew:"לחזק, לתגבר",sentence:"Positive feedback helps reinforce good behavior in children.",level:2,sentence_he:"משוב חיובי עוזר לחזק התנהגות טובה אצל ילדים."},
+{id:"v395",word:"relentless",hebrew:"בלתי פוסק, עקבי",sentence:"The relentless pressure of deadlines took a toll on his health.",level:2,sentence_he:"הלחץ הבלתי פוסק של מועדי הגשה פגע בבריאותו."},
+{id:"v396",word:"resilient",hebrew:"עמיד, גמיש",sentence:"Communities that are more resilient tend to recover faster from natural disasters.",level:2,sentence_he:"קהילות עמידות יותר נוטות להתאושש מהר יותר מאסונות טבע."},
+{id:"v397",word:"resonate",hebrew:"להדהד, לעורר תגובה",sentence:"The speech resonated deeply with audiences across the country.",level:2,sentence_he:"הנאום הדהד בעומק ברחבי המדינה."},
+{id:"v398",word:"restrain",hebrew:"לרסן, לעצור",sentence:"The officer had to physically restrain the angry protester.",level:2,sentence_he:"השוטר נאלץ לרסן פיזית את המפגין הזועם."},
+{id:"v399",word:"revert",hebrew:"לחזור, לשוב",sentence:"Without regular practice, students tend to revert to old habits.",level:2,sentence_he:"ללא תרגול קבוע, תלמידים נוטים לחזור להרגלים ישנים."},
+{id:"v400",word:"rigorous",hebrew:"קפדני, מחמיר",sentence:"The new safety standards are more rigorous than those previously in place.",level:2,sentence_he:"תקני הבטיחות החדשים מחמירים יותר מאלה שהיו בתוקף בעבר."},
+{id:"v401",word:"robust",hebrew:"חסון, איתן",sentence:"A robust economy can withstand external shocks more effectively.",level:2,sentence_he:"כלכלה חסונה יכולה לעמוד בזעזועים חיצוניים בצורה יעילה יותר."},
+{id:"v402",word:"rudimentary",hebrew:"ראשוני, בסיסי",sentence:"He had only a rudimentary knowledge of French when he moved to Paris.",level:2,sentence_he:"הייתה לו ידיעה ראשונית בלבד של צרפתית כשעבר לפריז."},
+{id:"v403",word:"scrutinize",hebrew:"לבחון בדקדקנות",sentence:"The committee will scrutinize every line of the proposed budget.",level:2,sentence_he:"הוועדה תבחן בדקדקנות כל שורה בתקציב המוצע."},
+{id:"v404",word:"skeptical",hebrew:"סקפטי, מפקפק",sentence:"Many scientists were initially skeptical about the new theory.",level:2,sentence_he:"מדענים רבים היו בתחילה סקפטיים לגבי התיאוריה החדשה."},
+{id:"v405",word:"sparse",hebrew:"דליל, מועט",sentence:"The sparse vegetation of the desert provides little shelter from the sun.",level:2,sentence_he:"הצמחייה הדלילה של המדבר מספקת מעט מסתור מהשמש."},
+{id:"v406",word:"specify",hebrew:"לפרט, לציין",sentence:"The contract does not specify a deadline for completion of the work.",level:2,sentence_he:"החוזה אינו מפרט מועד אחרון להשלמת העבודה."},
+{id:"v407",word:"spontaneous",hebrew:"ספונטני, מיידי",sentence:"The crowd broke into spontaneous applause at the end of the performance.",level:2,sentence_he:"הקהל פרץ במחיאות כפיים ספונטניות בסוף המופע."},
+{id:"v408",word:"stagnant",hebrew:"קפוא, עומד",sentence:"Without new investment, the local economy had become stagnant.",level:2,sentence_he:"ללא השקעות חדשות, הכלכלה המקומית הפכה לקפואה."},
+{id:"v409",word:"stimulus",hebrew:"גירוי, תמריץ",sentence:"The government introduced an economic stimulus package to boost growth.",level:2,sentence_he:"הממשלה הכניסה חבילת תמריצים כלכלית לעידוד צמיחה."},
+{id:"v410",word:"straightforward",hebrew:"ישיר, פשוט",sentence:"The instructions were clear and straightforward, easy to follow.",level:2,sentence_he:"ההוראות היו ברורות ופשוטות, קלות למעקב."},
+{id:"v411",word:"stringent",hebrew:"מחמיר, קפדני",sentence:"The new environmental regulations are among the most stringent in the world.",level:2,sentence_he:"התקנות הסביבתיות החדשות הן בין המחמירות ביותר בעולם."},
+{id:"v412",word:"subsequent",hebrew:"עוקב, לאחר מכן",sentence:"The initial explosion and the subsequent fire caused enormous damage.",level:2,sentence_he:"הפיצוץ הראשוני והשריפה שבאה אחריו גרמו לנזק עצום."},
+{id:"v413",word:"subtle",hebrew:"עדין, עקיף",sentence:"There was a subtle change in his tone that suggested he was not being entirely honest.",level:2,sentence_he:"היה שינוי עדין בטונו שרמז שאינו גלוי לחלוטין."},
+{id:"v414",word:"supplement",hebrew:"להשלים, תוסף",sentence:"The book includes a supplement with additional exercises.",level:2,sentence_he:"הספר כולל נספח עם תרגילים נוספים."},
+{id:"v415",word:"suppress",hebrew:"לדכא, להדחיק",sentence:"The government attempted to suppress all news coverage of the protests.",level:2,sentence_he:"הממשלה ניסתה לדכא את כל הסיקור התקשורתי של ההפגנות."},
+{id:"v416",word:"surge",hebrew:"גל, עלייה חדה",sentence:"There was a surge in demand for face masks at the start of the pandemic.",level:2,sentence_he:"היה גל בביקוש למסכות פנים בתחילת המגפה."},
+{id:"v417",word:"susceptible",hebrew:"רגיש, פגיע",sentence:"Young children are particularly susceptible to respiratory infections.",level:2,sentence_he:"ילדים צעירים פגיעים במיוחד לזיהומים בדרכי הנשימה."},
+{id:"v418",word:"tangible",hebrew:"מוחשי, ממשי",sentence:"The new policy has produced tangible improvements in air quality.",level:2,sentence_he:"המדיניות החדשה הניבה שיפורים מוחשיים באיכות האוויר."},
+{id:"v419",word:"tedious",hebrew:"מייגע, משעמם",sentence:"The process of manually entering data is extremely tedious.",level:2,sentence_he:"תהליך הזנת הנתונים ידנית מייגע ביותר."},
+{id:"v420",word:"thrive",hebrew:"לשגשג, לפרוח",sentence:"Some plants thrive in poor soil where others cannot survive.",level:2,sentence_he:"צמחים מסוימים משגשגים בקרקע עניה שבה אחרים אינם יכולים לשרוד."},
+{id:"v421",word:"trigger",hebrew:"לגרום, לעורר",sentence:"Loud noises can trigger anxiety in people who have experienced trauma.",level:2,sentence_he:"רעשים חזקים יכולים לעורר חרדה אצל אנשים שעברו טראומה."},
+{id:"v422",word:"underestimate",hebrew:"להמעיט בערך",sentence:"Never underestimate the power of a well-told story to change minds.",level:2,sentence_he:"לעולם אל תמעיט בכוחה של סיפור מסופר היטב לשנות מחשבות."},
+{id:"v423",word:"unprecedented",hebrew:"חסר תקדים",sentence:"The speed of technological change in the past decade has been unprecedented.",level:2,sentence_he:"קצב השינוי הטכנולוגי בעשור האחרון היה חסר תקדים."},
+{id:"v424",word:"unravel",hebrew:"להתפרק, לחשוף",sentence:"Investigators slowly began to unravel the complex web of corruption.",level:2,sentence_he:"החוקרים החלו לאט לאט לחשוף את רשת השחיתות המורכבת."},
+{id:"v425",word:"vague",hebrew:"עמום, לא ברור",sentence:"The instructions were so vague that nobody knew what was expected of them.",level:2,sentence_he:"ההוראות היו כה עמומות עד שאיש לא ידע מה מצפים ממנו."},
+{id:"v426",word:"validate",hebrew:"לאמת, לאשר",sentence:"The experiment was designed to validate or disprove the existing theory.",level:2,sentence_he:"הניסוי תוכנן לאמת או להפריך את התיאוריה הקיימת."},
+{id:"v427",word:"vanish",hebrew:"להיעלם",sentence:"The last traces of snow vanished as the temperature rose.",level:2,sentence_he:"שרידי השלג האחרונים נעלמו עם עליית הטמפרטורה."},
+{id:"v428",word:"viable",hebrew:"ישים, בר-קיימא",sentence:"Solar energy is now a viable alternative to fossil fuels for many households.",level:2,sentence_he:"אנרגיה סולארית היא כיום חלופה ישימה לדלקים מאובנים לבתים רבים."},
+{id:"v429",word:"vigorous",hebrew:"נמרץ, חזק",sentence:"Regular vigorous exercise can reduce the risk of heart disease.",level:2,sentence_he:"פעילות גופנית נמרצת סדירה יכולה להפחית את הסיכון למחלות לב."},
+{id:"v430",word:"volatile",hebrew:"נדיף, חד-גוני",sentence:"The volatile political situation made foreign investment risky.",level:2,sentence_he:"המצב הפוליטי הנפיץ הפך השקעות זרות למסוכנות."},
+{id:"v431",word:"vulnerable",hebrew:"פגיע, חשוף",sentence:"Elderly people are particularly vulnerable to the effects of extreme heat.",level:2,sentence_he:"קשישים פגיעים במיוחד להשפעות חום קיצוני."},
+{id:"v432",word:"wane",hebrew:"לדעוך, לפחות",sentence:"His enthusiasm for the project began to wane after the third setback.",level:2,sentence_he:"ההתלהבות שלו מהפרויקט החלה לדעוך לאחר הכישלון השלישי."},
+{id:"v433",word:"widespread",hebrew:"נפוץ, רחב",sentence:"There is widespread support for the proposed reforms.",level:2,sentence_he:"יש תמיכה נרחבת לרפורמות המוצעות."},
+{id:"v434",word:"impetuous",hebrew:"פזיז, נמהר",sentence:"His impetuous decision to resign without another job lined up shocked his colleagues.",level:3,sentence_he:"החלטתו הפזיזה להתפטר ללא עבודה אחרת בצנרת הדהימה את עמיתיו."},
+{id:"v435",word:"impugn",hebrew:"לפקפק, לערער",sentence:"The defense lawyer sought to impugn the credibility of the key witness.",level:3,sentence_he:"עורך הדין של ההגנה ביקש לפקפק באמינות העד המרכזי."},
+{id:"v436",word:"incisive",hebrew:"חד, חריף",sentence:"The critic offered an incisive analysis of the film's structural weaknesses.",level:3,sentence_he:"המבקר הציע ניתוח חד של החולשות המבניות של הסרט."},
+{id:"v437",word:"indifferent",hebrew:"אדיש",sentence:"He seemed completely indifferent to the suffering of those around him.",level:3,sentence_he:"הוא נראה אדיש לחלוטין לסבלם של הסובבים אותו."},
+{id:"v438",word:"indignant",hebrew:"זועם, נעלב",sentence:"She was indignant at the suggestion that she had been dishonest.",level:3,sentence_he:"היא הייתה נעלבת מהרמיזה שהיא לא הייתה ישרה."},
+{id:"v439",word:"indolent",hebrew:"עצלן, אדיש",sentence:"Years of success had made the company indolent and resistant to change.",level:3,sentence_he:"שנים של הצלחה הפכו את החברה לעצלנית ועמידה לשינוי."},
+{id:"v440",word:"inept",hebrew:"חסר יכולת,서툰",sentence:"The inept handling of the crisis cost the minister his job.",level:3,sentence_he:"הטיפול חסר-הכישורים במשבר עלה למשר את מקומו."},
+{id:"v441",word:"inexorable",hebrew:"בלתי נמנע, אכזרי",sentence:"The inexorable advance of technology has made many traditional skills obsolete.",level:3,sentence_he:"ההתקדמות הבלתי נמנעת של הטכנולוגיה הפכה מיומנויות מסורתיות רבות למיושנות."},
+{id:"v442",word:"ingenious",hebrew:"גאוני, ממציא",sentence:"The ingenious solution used simple materials to solve a complex problem.",level:3,sentence_he:"הפתרון הגאוני השתמש בחומרים פשוטים לפתרון בעיה מורכבת."},
+{id:"v443",word:"inimical",hebrew:"עוין, מזיק",sentence:"The harsh climate is inimical to the growth of most crops.",level:3,sentence_he:"האקלים הקשה עוין לגידול רוב היבולים."},
+{id:"v444",word:"innocuous",hebrew:"בלתי מזיק, תמים",sentence:"What seemed like an innocuous remark sparked a major controversy.",level:3,sentence_he:"מה שנראה כהערה בלתי מזיקה עורר מחלוקת גדולה."},
+{id:"v445",word:"insidious",hebrew:"חתרני, מסוכן בשקט",sentence:"The insidious effects of poverty on health are often overlooked.",level:3,sentence_he:"ההשפעות החתרניות של העוני על הבריאות לעיתים קרובות מוזנחות."},
+{id:"v446",word:"insipid",hebrew:"חסר טעם, משעמם",sentence:"The critics dismissed the film as insipid and forgettable.",level:3,sentence_he:"המבקרים דחו את הסרט כחסר טעם ונשכח."},
+{id:"v447",word:"intransigent",hebrew:"נוקשה, לא מוכן לפשרה",sentence:"The intransigent negotiating position of both sides made an agreement unlikely.",level:3,sentence_he:"עמדת המשא ומתן הנוקשה של שני הצדדים הפכה הסכם לא סביר."},
+{id:"v448",word:"inveterate",hebrew:"מושרש, כרוני",sentence:"He was an inveterate gambler who could not resist placing a bet.",level:3,sentence_he:"הוא היה מוכר מושרש שלא יכול היה לעמוד בפיתוי של הימור."},
+{id:"v449",word:"irascible",hebrew:"כעסן, נוח להתרגז",sentence:"The irascible professor was known for losing his temper with students.",level:3,sentence_he:"הפרופסור הכעסן היה ידוע על כך שהתפרץ כלפי תלמידים."},
+{id:"v450",word:"laconic",hebrew:"קצר ותמציתי",sentence:"His laconic reply told her nothing about how he was really feeling.",level:3,sentence_he:"תגובתו הקצרה אמרה לה דבר על איך הוא מרגיש באמת."},
+{id:"v451",word:"languid",hebrew:"רפוי, חסר אנרגיה",sentence:"The languid pace of life in the village was a welcome change from the city.",level:3,sentence_he:"קצב החיים הרפוי בכפר היה שינוי מבורך מהעיר."},
+{id:"v452",word:"laud",hebrew:"לשבח, להלל",sentence:"Critics lauded the novel as one of the finest works of the decade.",level:3,sentence_he:"המבקרים שיבחו את הרומן כאחד היצירות המשובחות של העשור."},
+{id:"v453",word:"lethargic",hebrew:"עייף, אדיש",sentence:"The hot weather made everyone feel lethargic and unmotivated.",level:3,sentence_he:"מזג האוויר החם גרם לכולם להרגיש עייפים וחסרי מוטיבציה."},
+{id:"v454",word:"levity",hebrew:"קלות ראש, שנינות",sentence:"A moment of levity helped ease the tension in the difficult meeting.",level:3,sentence_he:"רגע של קלות ראש עזר להקל על המתח בפגישה הקשה."},
+{id:"v455",word:"loquacious",hebrew:"פטפטן, דברן",sentence:"The loquacious politician rarely gave a direct answer.",level:3,sentence_he:"הפוליטיקאי הפטפטן כמעט ולא נתן תשובה ישירה."},
+{id:"v456",word:"lucrative",hebrew:"רווחי, משתלם",sentence:"The lucrative contract attracted several major international firms.",level:3,sentence_he:"החוזה הרווחי משך מספר חברות בינלאומיות גדולות."},
+{id:"v457",word:"malevolent",hebrew:"זדוני, רשע",sentence:"The villain was portrayed as a malevolent force with no redeeming qualities.",level:3,sentence_he:"הנבל תואר ככוח זדוני ללא תכונות גאולה."},
+{id:"v458",word:"malleable",hebrew:"גמיש, ניתן לעיצוב",sentence:"Young minds are malleable and easily shaped by their environment.",level:3,sentence_he:"מוחות צעירים גמישים ומעוצבים בקלות על ידי סביבתם."},
+{id:"v459",word:"mendacious",hebrew:"שקרן, כוזב",sentence:"The mendacious politician was finally exposed by investigative journalists.",level:3,sentence_he:"הפוליטיקאי השקרן נחשף לבסוף על ידי עיתונאים חוקרים."},
+{id:"v460",word:"mercurial",hebrew:"הפכפך, לא יציב",sentence:"His mercurial temperament made him an unpredictable business partner.",level:3,sentence_he:"מזגו ההפכפך הפך אותו לשותף עסקי בלתי צפוי."},
+{id:"v461",word:"meticulous",hebrew:"קפדן, מדוקדק",sentence:"The forensic team conducted a meticulous search of the crime scene.",level:3,sentence_he:"הצוות הפורנזי ערך חיפוש קפדן בזירת הפשע."},
+{id:"v462",word:"misanthrope",hebrew:"שונא אדם",sentence:"Years of disappointment had turned him into a misanthrope who avoided all company.",level:3,sentence_he:"שנים של אכזבות הפכו אותו לשונא אדם שנמנע מכל חברה."},
+{id:"v463",word:"mitigate",hebrew:"למתן, להפחית",sentence:"There are several measures that can mitigate the risks associated with this procedure.",level:3,sentence_he:"ישנם מספר אמצעים שיכולים למתן את הסיכונים הקשורים לנוהל זה."},
+{id:"v464",word:"mollify",hebrew:"להרגיע, לפייס",sentence:"The manager tried to mollify the angry customer with a full refund.",level:3,sentence_he:"המנהל ניסה לפייס את הלקוח הזועם באמצעות החזר מלא."},
+{id:"v465",word:"morose",hebrew:"עצוב, קודר",sentence:"He became increasingly morose after losing his job.",level:3,sentence_he:"הוא הפך לקודר יותר ויותר לאחר שאיבד את עבודתו."},
+{id:"v466",word:"munificent",hebrew:"נדיב מאוד",sentence:"The munificent donor gave ten million dollars to build a new library.",level:3,sentence_he:"התורם הנדיב מאוד נתן עשרה מיליון דולר לבניית ספרייה חדשה."},
+{id:"v467",word:"nefarious",hebrew:"רשע, מושחת",sentence:"The investigation uncovered the nefarious activities of the criminal network.",level:3,sentence_he:"החקירה חשפה את פעילויותיה הרשעות של הרשת הפלילית."},
+{id:"v468",word:"nonchalant",hebrew:"אדיש, שווה נפש",sentence:"He seemed nonchalant about the danger, as if nothing could frighten him.",level:3,sentence_he:"הוא נראה אדיש לסכנה, כאילו דבר לא יכול להפחיד אותו."},
+{id:"v469",word:"obdurate",hebrew:"עקשן, לא מתפשר",sentence:"Despite all arguments, the committee remained obdurate in its refusal.",level:3,sentence_he:"למרות כל הטיעונים, הוועדה נשארה עקשנית בסירובה."},
+{id:"v470",word:"obfuscate",hebrew:"לטשטש, להסתיר",sentence:"The report seemed designed to obfuscate rather than clarify the situation.",level:3,sentence_he:"הדוח נראה מתוכנן לטשטש ולא להבהיר את המצב."},
+{id:"v471",word:"oblique",hebrew:"עקיף, נסתר",sentence:"His oblique references to the scandal confused most of the audience.",level:3,sentence_he:"הרמיזות העקיפות שלו לפרשה הבלבלו את רוב הקהל."},
+{id:"v472",word:"obsequious",hebrew:"חנפן, נחות",sentence:"The obsequious assistant agreed with everything the boss said.",level:3,sentence_he:"העוזר החנפן הסכים עם כל מה שהבוס אמר."},
+{id:"v473",word:"obstinate",hebrew:"עקשן, סרבן",sentence:"The obstinate child refused to eat anything on his plate.",level:3,sentence_he:"הילד העקשן סירב לאכול כל דבר שהיה בצלחתו."},
+{id:"v474",word:"obtuse",hebrew:"קהה, מוגבל הבנה",sentence:"He was being obtuse, pretending not to understand what everyone else found obvious.",level:3,sentence_he:"הוא התנהג כאילו לא הבין את מה שכולם מצאו ברור."},
+{id:"v475",word:"onerous",hebrew:"מכביד, קשה לנשיאה",sentence:"The onerous reporting requirements placed a heavy burden on small businesses.",level:3,sentence_he:"דרישות הדיווח המכבידות הכבידו על עסקים קטנים."},
+{id:"v476",word:"opaque",hebrew:"אטום, לא שקוף",sentence:"The government's decision-making process is frustratingly opaque.",level:3,sentence_he:"תהליך קבלת ההחלטות של הממשלה אטום לתסכול."},
+{id:"v477",word:"ostracize",hebrew:"לנדות, להדיר",sentence:"Anyone who dared to disagree was ostracized from the group.",level:3,sentence_he:"כל מי שהעז לחלוק דעה נודה מהקבוצה."},
+{id:"v478",word:"outmoded",hebrew:"מיושן",sentence:"Many outmoded industrial practices were replaced by more efficient methods.",level:3,sentence_he:"שיטות תעשייתיות מיושנות רבות הוחלפו בשיטות יעילות יותר."},
+{id:"v479",word:"overwrought",hebrew:"מתוח, נסער",sentence:"The overwrought mother could barely speak when she heard the news.",level:3,sentence_he:"האם המתוח בקושי יכלה לדבר כשנשמעה הידיעה."},
+{id:"v480",word:"painstaking",hebrew:"קפדני, מדוקדק",sentence:"The restoration of the painting required painstaking attention to detail.",level:3,sentence_he:"שחזור הציור דרש תשומת לב קפדנית לפרטים."},
+{id:"v481",word:"palpable",hebrew:"מוחשי, ניכר",sentence:"The tension in the room was palpable as the results were announced.",level:3,sentence_he:"המתח בחדר היה מוחשי בעת הכרזת התוצאות."},
+{id:"v482",word:"parochial",hebrew:"מוגבל, צר אופקים",sentence:"A parochial outlook makes it difficult to understand global issues.",level:3,sentence_he:"השקפה מצומצמת מקשה להבין בעיות גלובליות."},
+{id:"v483",word:"partisan",hebrew:"מפלגתי, חד-צדדי",sentence:"The debate was so partisan that no genuine exchange of ideas took place.",level:3,sentence_he:"הדיון היה כל כך מפלגתי עד שלא התקיים חילופי רעיונות אמיתיים."},
+{id:"v484",word:"pedantic",hebrew:"פדנטי, קפדן מדי",sentence:"His pedantic insistence on minor details slowed the whole project down.",level:3,sentence_he:"דגישתו הפדנטית על פרטים שוליים האט את כל הפרויקט."},
+{id:"v485",word:"penchant",hebrew:"נטייה, חיבה",sentence:"She had a penchant for dramatic gestures that sometimes backfired.",level:3,sentence_he:"הייתה לה נטייה לתנועות דרמטיות שלפעמים נפלו עליה."},
+{id:"v486",word:"penurious",hebrew:"עני מרוד, קמצן",sentence:"Despite his penurious upbringing, he became one of the wealthiest men in the country.",level:3,sentence_he:"למרות גידולו העני, הפך לאחד האנשים העשירים במדינה."},
+{id:"v487",word:"perfidious",hebrew:"בוגדני, חסר אמונה",sentence:"History remembers him as a perfidious ally who betrayed his partners.",level:3,sentence_he:"ההיסטוריה זוכרת אותו כבעל ברית בוגדני שבגד בשותפיו."},
+{id:"v488",word:"perfunctory",hebrew:"שטחי, ללא מאמץ",sentence:"The review was so perfunctory that it missed several serious errors.",level:3,sentence_he:"הסקירה הייתה כה שטחית עד שפספסה מספר שגיאות חמורות."},
+{id:"v489",word:"pernicious",hebrew:"מזיק, קטלני",sentence:"The pernicious effects of misinformation on public health cannot be overstated.",level:3,sentence_he:"לא ניתן להגזים בהשפעות המזיקות של מידע כוזב על בריאות הציבור."},
+{id:"v490",word:"pertinacious",hebrew:"עקשן, עיקש",sentence:"The pertinacious journalist refused to drop the story despite official pressure.",level:3,sentence_he:"העיתונאי העקשן סירב לזנוח את הסיפור למרות לחצים רשמיים."},
+{id:"v491",word:"pervasive",hebrew:"חדרני, נרחב",sentence:"The pervasive influence of social media on young people is a growing concern.",level:3,sentence_he:"ההשפעה החדרנית של המדיה החברתית על צעירים היא דאגה גוברת."},
+{id:"v492",word:"petulant",hebrew:"מרגיז, עצבני",sentence:"The petulant star refused to appear unless all his demands were met.",level:3,sentence_he:"הכוכב הקפריזי סירב להופיע אלא אם כל דרישותיו נענו."},
+{id:"v493",word:"placate",hebrew:"לפייס, להרגיע",sentence:"Management offered a pay rise to placate the striking workers.",level:3,sentence_he:"ההנהלה הציעה העלאת שכר כדי לפייס את העובדים השובתים."},
+{id:"v494",word:"platitude",hebrew:"קלישאה, דברים שחוקים",sentence:"The speech was full of platitudes that offered no real insight.",level:3,sentence_he:"הנאום היה מלא בקלישאות שלא הציעו כל תובנה אמיתית."},
+{id:"v495",word:"plethora",hebrew:"שפע, עודף",sentence:"There is a plethora of information available online, but much of it is unreliable.",level:3,sentence_he:"ישנו שפע של מידע זמין באינטרנט, אך רבים ממנו אינם אמינים."},
+{id:"v496",word:"polemical",hebrew:"פולמוסי, מעורר מחלוקת",sentence:"The professor was known for his polemical style of writing.",level:3,sentence_he:"הפרופסור היה ידוע בסגנון הכתיבה הפולמוסי שלו."},
+{id:"v497",word:"pompous",hebrew:"יהיר, נפוח גאווה",sentence:"The pompous official spoke at length without saying anything of substance.",level:3,sentence_he:"הפקיד היהיר דיבר ארוכות מבלי לומר דבר ממשי."},
+{id:"v498",word:"ponderous",hebrew:"כבד, איטי",sentence:"The ponderous bureaucratic process frustrated everyone involved.",level:3,sentence_he:"התהליך הבירוקרטי הכבד הכה תסכל את כל המעורבים."},
+{id:"v499",word:"precipitous",hebrew:"תלול, פזיז",sentence:"The precipitous drop in share prices alarmed investors.",level:3,sentence_he:"הירידה התלולה במחירי המניות הדאיגה את המשקיעים."},
+{id:"v500",word:"presumptuous",hebrew:"חצוף, יהיר",sentence:"It was presumptuous of him to assume he would get the job without an interview.",level:3,sentence_he:"היה חצוף מצידו להניח שיקבל את המשרה ללא ראיון."},
+{id:"v501",word:"prevaricate",hebrew:"להתחמק, לדבר בעקמומיות",sentence:"When asked directly, the witness began to prevaricate.",level:3,sentence_he:"כשנשאל ישירות, העד החל להתחמק."},
+{id:"v502",word:"pristine",hebrew:"טהור, בתולי",sentence:"The beach was pristine, untouched by the development that had affected nearby areas.",level:3,sentence_he:"החוף היה בתולי, ללא פגע מהפיתוח שפגע באזורים הסמוכים."},
+{id:"v503",word:"probity",hebrew:"יושר, הגינות",sentence:"A judge must be a person of unquestionable probity.",level:3,sentence_he:"שופט חייב להיות אדם ביושר שאין עליו עוררין."},
+{id:"v504",word:"prodigal",hebrew:"בזבזן, פזרן",sentence:"The prodigal son spent his entire inheritance within a year.",level:3,sentence_he:"הבן הפזרן בזבז את כל ירושתו תוך שנה."},
+{id:"v505",word:"prodigious",hebrew:"עצום, יוצא דופן",sentence:"Mozart showed prodigious musical talent from a very early age.",level:3,sentence_he:"מוצרט הפגין כישרון מוסיקלי יוצא דופן מגיל צעיר מאוד."},
+{id:"v506",word:"profligate",hebrew:"פזרן, בזבזני",sentence:"The profligate spending of public funds led to a major scandal.",level:3,sentence_he:"ההוצאה הפזרנית של כספי ציבור הובילה לשערורייה גדולה."},
+{id:"v507",word:"propitious",hebrew:"מתאים, נוח",sentence:"The calm weather provided propitious conditions for the ocean crossing.",level:3,sentence_he:"מזג האוויר השלו סיפק תנאים נוחים למעבר האוקיינוס."},
+{id:"v508",word:"proscribe",hebrew:"לאסור, לגנות",sentence:"The use of torture is proscribed under international law.",level:3,sentence_he:"שימוש בעינויים אסור על פי החוק הבינלאומי."},
+{id:"v509",word:"provincial",hebrew:"מחוזי, מצומצם",sentence:"His provincial attitudes made it difficult for him to adapt to city life.",level:3,sentence_he:"גישותיו המחוזיות הקשו עליו להתאים לחיי העיר."},
+{id:"v510",word:"prudish",hebrew:"פריטני, מחמיר במוסר",sentence:"The prudish censor removed any scene that contained even mild romantic content.",level:3,sentence_he:"הצנזור הפריטני הסיר כל סצנה שהכילה אפילו תוכן רומנטי עדין."},
+{id:"v511",word:"pugnacious",hebrew:"תוקפני, קנטרן",sentence:"His pugnacious personality made him many enemies throughout his career.",level:3,sentence_he:"אישיותו התוקפנית עשתה לו אויבים רבים לאורך הקריירה שלו."},
+{id:"v512",word:"pusillanimous",hebrew:"פחדן, חסר אומץ",sentence:"The pusillanimous response of the government disappointed many citizens.",level:3,sentence_he:"התגובה הפחדנית של הממשלה אכזבה אזרחים רבים."},
+{id:"v513",word:"quandary",hebrew:"דילמה, מבוכה",sentence:"She found herself in a quandary about whether to report her colleague's behavior.",level:3,sentence_he:"היא מצאה את עצמה בדילמה אם לדווח על התנהגות עמיתה."},
+{id:"v514",word:"querulous",hebrew:"מתלונן, קפדני",sentence:"The querulous customer complained about every aspect of the service.",level:3,sentence_he:"הלקוח המתלונן התלונן על כל היבט של השירות."},
+{id:"v515",word:"quixotic",hebrew:"חולמני, לא מציאותי",sentence:"The quixotic plan to build a city in the desert attracted few investors.",level:3,sentence_he:"התוכנית החולמנית לבנות עיר במדבר משכה מעט משקיעים."},
+{id:"v516",word:"rancor",hebrew:"מרירות, טינה",sentence:"Years of rancor between the two families made any reconciliation impossible.",level:3,sentence_he:"שנים של מרירות בין שתי המשפחות הפכו כל פיוס לבלתי אפשרי."},
+{id:"v517",word:"recalcitrant",hebrew:"סרבן, עקשן",sentence:"The recalcitrant prisoner refused to cooperate with the authorities.",level:3,sentence_he:"האסיר הסרבן סירב לשתף פעולה עם הרשויות."},
+{id:"v518",word:"reclusive",hebrew:"מתבודד, מסתגר",sentence:"The reclusive author had not given an interview in over twenty years.",level:3,sentence_he:"הסופר המסתגר לא נתן ראיון במשך למעלה מעשרים שנה."},
+{id:"v519",word:"redoubtable",hebrew:"מרשים, מאיים",sentence:"She was a redoubtable opponent who had never lost a major case.",level:3,sentence_he:"היא הייתה יריבה מרשימה שמעולם לא הפסידה תיק גדול."},
+{id:"v520",word:"refractory",hebrew:"עקשן, עמיד",sentence:"The refractory material could withstand temperatures of over two thousand degrees.",level:3,sentence_he:"החומר העמיד עמד בטמפרטורות של למעלה משני אלפים מעלות."},
+{id:"v521",word:"reprehensible",hebrew:"ראוי לגינוי",sentence:"The judge described the defendant's behavior as reprehensible.",level:3,sentence_he:"השופט תיאר את התנהגות הנאשם כראויה לגינוי."},
+{id:"v522",word:"repudiate",hebrew:"לדחות, להתנכר",sentence:"The organization repudiated any connection with the extremist group.",level:3,sentence_he:"הארגון דחה כל קשר עם הקבוצה הקיצונית."},
+{id:"v523",word:"reticent",hebrew:"שתקן, מופנם",sentence:"He was reticent about discussing his personal life in public.",level:3,sentence_he:"הוא היה שתקן לגבי דיון בחייו האישיים בפומבי."},
+{id:"v524",word:"reverent",hebrew:"יראת כבוד, מכבד",sentence:"The crowd fell silent in reverent attention as the ceremony began.",level:3,sentence_he:"הקהל שתק בהערצה כשהטקס החל."},
+{id:"v525",word:"ribald",hebrew:"גס, מגונה",sentence:"The comedian's ribald humor was not to everyone's taste.",level:3,sentence_he:"הומור הגס של הסטנדאפיסט לא היה לטעמו של כולם."},
+{id:"v526",word:"sagacious",hebrew:"חכם, בעל תבונה",sentence:"The sagacious investor predicted the market crash years before it happened.",level:3,sentence_he:"המשקיע החכם חזה את קריסת השוק שנים לפני שקרתה."},
+{id:"v527",word:"salient",hebrew:"בולט, עיקרי",sentence:"The report highlights the most salient points of the investigation.",level:3,sentence_he:"הדוח מדגיש את הנקודות הבולטות ביותר של החקירה."},
+{id:"v528",word:"sanctimonious",hebrew:"צדקני, חנפן",sentence:"His sanctimonious lectures about honesty infuriated those who knew the truth.",level:3,sentence_he:"הרצאותיו הצדקניות על יושר הרגיזו את אלה שידעו את האמת."},
+{id:"v529",word:"sardonic",hebrew:"ציני, לועג",sentence:"She offered a sardonic smile when he claimed he had nothing to do with it.",level:3,sentence_he:"היא הציעה חיוך ציני כשטען שאין לו שום קשר לפרשה."},
+{id:"v530",word:"scrupulous",hebrew:"הגון, קפדן במוסר",sentence:"A scrupulous journalist verifies every fact before publishing.",level:3,sentence_he:"עיתונאי הגון מאמת כל עובדה לפני פרסום."},
+{id:"v531",word:"sedulous",hebrew:"שקדן, חרוץ",sentence:"The sedulous student spent every evening reviewing the day's notes.",level:3,sentence_he:"התלמיד השקדן בילה כל ערב בחזרה על הערות היום."},
+{id:"v532",word:"sordid",hebrew:"מושחת, נלוז",sentence:"The investigation revealed the sordid details of the corruption scheme.",level:3,sentence_he:"החקירה חשפה את הפרטים המושחתים של תוכנית השחיתות."},
+{id:"v533",word:"specious",hebrew:"מטעה, שטחי",sentence:"The argument sounded convincing at first but was ultimately specious.",level:3,sentence_he:"הטיעון נשמע משכנע בהתחלה אך היה מטעה בסופו של דבר."},
+{id:"v534",word:"spurious",hebrew:"מזויף, שקרי",sentence:"The company made spurious claims about the effectiveness of its product.",level:3,sentence_he:"החברה הציגה טענות מזויפות לגבי יעילות מוצרה."},
+{id:"v535",word:"stolid",hebrew:"אדיש, חסר רגש",sentence:"His stolid expression gave nothing away about what he was thinking.",level:3,sentence_he:"הבעת פניו הקהה לא גילתה דבר על מה שחשב."},
+{id:"v536",word:"strident",hebrew:"חריף, נוקב",sentence:"The strident tone of her criticism alienated potential allies.",level:3,sentence_he:"הטון החריף של ביקורתה ניכר בעלי ברית פוטנציאליים."},
+{id:"v537",word:"subjugate",hebrew:"לכבוש, להכניע",sentence:"The empire sought to subjugate all neighboring territories.",level:3,sentence_he:"האימפריה ביקשה לכבוש את כל הטריטוריות השכנות."},
+{id:"v538",word:"sycophant",hebrew:"חנפן, מחמיא",sentence:"The leader was surrounded by sycophants who told him only what he wanted to hear.",level:3,sentence_he:"המנהיג היה מוקף בחנפנים שאמרו לו רק את מה שרצה לשמוע."},
+{id:"v539",word:"taciturn",hebrew:"שתקן, לקצר בדברים",sentence:"The taciturn detective revealed nothing about the progress of the investigation.",level:3,sentence_he:"הבלש השתקן לא גילה דבר על התקדמות החקירה."},
+{id:"v540",word:"temerity",hebrew:"חוצפה, נועזות",sentence:"He had the temerity to demand a pay rise after being late every day for a month.",level:3,sentence_he:"הייתה לו חוצפה לדרוש העלאת שכר לאחר שאיחר כל יום במשך חודש."},
+{id:"v541",word:"tenuous",hebrew:"דק, רופף",sentence:"The connection between the two events is tenuous at best.",level:3,sentence_he:"הקשר בין שני האירועים רופף במקרה הטוב."},
+{id:"v542",word:"terse",hebrew:"קצר, תמציתי",sentence:"His terse reply made it clear that the conversation was over.",level:3,sentence_he:"תגובתו הקצרה הבהירה שהשיחה הסתיימה."},
+{id:"v543",word:"timorous",hebrew:"פחדן, ביישן",sentence:"The timorous witness spoke so quietly that the judge had to ask him to repeat himself.",level:3,sentence_he:"העד הפחדן דיבר בשקט כל כך שהשופט נאלץ לבקש ממנו לחזור."},
+{id:"v544",word:"torpid",hebrew:"רדום, עייף",sentence:"The torpid economy showed no signs of recovery.",level:3,sentence_he:"הכלכלה הרדומה לא הראתה סימני התאוששות."},
+{id:"v545",word:"tractable",hebrew:"ניתן לטיפול, ציתני",sentence:"The tractable material could be easily molded into any shape.",level:3,sentence_he:"החומר הניתן לטיפול יכול לעצב בקלות לכל צורה."},
+{id:"v546",word:"transient",hebrew:"זמני, חולף",sentence:"The pain was transient, lasting only a few seconds.",level:3,sentence_he:"הכאב היה זמני, נמשך רק כמה שניות."},
+{id:"v547",word:"truculent",hebrew:"תוקפני, ריבני",sentence:"The truculent teenager challenged every rule the school tried to enforce.",level:3,sentence_he:"המתבגר הריבני ערער על כל כלל שבית הספר ניסה לאכוף."},
+{id:"v548",word:"turbulent",hebrew:"סוער, טלטולי",sentence:"It was a turbulent period in the country's history, marked by political unrest.",level:3,sentence_he:"זו הייתה תקופה סוערת בהיסטוריה של המדינה, המסומנת באי-שקט פוליטי."},
+{id:"v549",word:"ubiquitous",hebrew:"נמצא בכל מקום",sentence:"Smartphones have become ubiquitous in modern society.",level:3,sentence_he:"סמארטפונים הפכו לנמצאים בכל מקום בחברה המודרנית."},
+{id:"v550",word:"vacillate",hebrew:"להתלבט, להסס",sentence:"He vacillated for weeks before finally making a decision.",level:3,sentence_he:"הוא היסס שבועות לפני שסוף סוף קיבל החלטה."},
+{id:"v551",word:"vapid",hebrew:"ריק, חסר תוכן",sentence:"The interview was vapid, producing nothing of interest or value.",level:3,sentence_he:"הקשר בין שני האירועים רופף במקרה הטוב."},
+{id:"v552",word:"vehement",hebrew:"נלהב, עז",sentence:"She was vehement in her opposition to the proposed changes.",level:3,sentence_he:"היא הייתה נחרצת בהתנגדותה לשינויים המוצעים."},
+{id:"v553",word:"venerate",hebrew:"לכבד, להעריץ",sentence:"In many cultures, elderly people are venerated for their wisdom.",level:3,sentence_he:"בתרבויות רבות, קשישים מכובדים בשל חוכמתם."},
+{id:"v554",word:"verbose",hebrew:"מלל, פטפטן",sentence:"The verbose report could easily have been half the length without losing any meaning.",level:3,sentence_he:"הדוח המלל יכול היה להיות קצר בחצי ללא אובדן משמעות."},
+{id:"v555",word:"vicarious",hebrew:"עקיף, בדרך של אחרים",sentence:"Many readers enjoy the vicarious thrill of adventure novels.",level:3,sentence_he:"קוראים רבים נהנים מהריגוש העקיף של רומנים של הרפתקאות."},
+{id:"v556",word:"vindictive",hebrew:"נקמני",sentence:"The vindictive review seemed motivated by personal animosity rather than honest criticism.",level:3,sentence_he:"הביקורת הנקמנית נראתה מונעת על ידי עוינות אישית ולא ביקורת כנה."},
+{id:"v557",word:"virulent",hebrew:"קטלני, עז",sentence:"The virulent strain of the virus spread rapidly through the population.",level:3,sentence_he:"הזן הקטלני של הנגיף התפשט במהירות באוכלוסייה."},
+{id:"v558",word:"volatile",hebrew:"נפיץ, הפכפך",sentence:"The volatile situation required careful and sensitive handling.",level:3,sentence_he:"המצב הנפיץ דרש טיפול זהיר ורגיש."},
+{id:"v559",word:"voracious",hebrew:"להוט, גרגרן",sentence:"She was a voracious reader who finished two or three books a week.",level:3,sentence_he:"היא הייתה קוראת להוטה שסיימה שניים או שלושה ספרים בשבוע."},
+{id:"v560",word:"wary",hebrew:"זהיר, חשדן",sentence:"Experienced investors are always wary of promises of guaranteed returns.",level:3,sentence_he:"משקיעים מנוסים תמיד זהירים מהבטחות לתשואות מובטחות."},
+{id:"v561",word:"whimsical",hebrew:"גחמני, משעשע",sentence:"The architect was known for his whimsical designs that surprised and delighted.",level:3,sentence_he:"האדריכל היה ידוע בעיצוביו הגחמניים שהפתיעו ושמחו."},
+{id:"v562",word:"wistful",hebrew:"עצוב-נוסטלגי, כמהה",sentence:"She gave a wistful smile as she looked at the old photographs.",level:3,sentence_he:"היא הציגה חיוך נוסטלגי-עצוב כשהביטה בתצלומים הישנים."},
+{id:"v563",word:"zealous",hebrew:"נלהב, קנאי",sentence:"The zealous reformer pushed for change even when others had given up.",level:3,sentence_he:"הרפורמטור הנלהב דחף לשינוי גם כשאחרים ויתרו."},
+{id:"v564",word:"zenith",hebrew:"שיא, נקודת הגג",sentence:"The Renaissance represented the zenith of artistic achievement in Florence.",level:3,sentence_he:"הרנסנס ייצג את שיא ההישגים האמנותיים בפירנצה."},
+{id:"v565",word:"zeal",hebrew:"להט, קנאות",sentence:"The volunteers worked with great zeal to complete the project on time.",level:3,sentence_he:"המתנדבים עבדו בלהט רב להשלמת הפרויקט בזמן."},
+{id:"v566",word:"allegiance",hebrew:"נאמנות, אמונים",sentence:"Soldiers swear an oath of allegiance to their country when they enlist.",level:2,sentence_he:"כל אחד אמור לציית לחוק, ללא יוצא מן הכלל."},
+{id:"v567",word:"amiable",hebrew:"ידידותי, נעים הליכות",sentence:"Despite his fame, the actor remained amiable and easy to approach.",level:2,sentence_he:"תאמה ממוזגת מסייעת לסטודנטים חדשים להתרגל לדרישות."},
+{id:"v568",word:"aptitude",hebrew:"כישרון טבעי, נטייה",sentence:"She showed a natural aptitude for mathematics from an early age.",level:2,sentence_he:"היא הפגינה כישרון טבעי למתמטיקה מגיל צעיר מאוד."},
+{id:"v569",word:"barren",hebrew:"עקר, שומם",sentence:"The barren landscape stretched for miles without a single tree.",level:2,sentence_he:"הנוף השומם השתרע במשך קילומטרים רבים ללא עץ אחד."},
+{id:"v570",word:"biased",hebrew:"מוטה, משוחד",sentence:"A biased report presents only one side of the story.",level:2,sentence_he:"דוח מוטה מציג רק צד אחד של הסיפור."},
+{id:"v571",word:"campaign",hebrew:"קמפיין, מסע",sentence:"The government launched a nationwide campaign to promote road safety.",level:1,sentence_he:"הממשלה השיקה קמפיין ארצי לקידום בטיחות בדרכים."},
+{id:"v572",word:"catastrophic",hebrew:"קטסטרופלי, הרסני",sentence:"A failure of the dam would have catastrophic consequences for the entire valley.",level:2,sentence_he:"כשל של הסכר היה בעל השלכות קטסטרופליות על כל העמק."},
+{id:"v573",word:"cautious",hebrew:"זהיר, נזהר",sentence:"Investors became increasingly cautious as economic uncertainty grew.",level:1,sentence_he:"משקיעים הפכו זהירים יותר ויותר עם גידול אי-הוודאות הכלכלית."},
+{id:"v574",word:"cemented",hebrew:"ביסס, חיזק",sentence:"The victory cemented her reputation as the finest player of her generation.",level:2,sentence_he:"הניצחון ביסס את מוניטינה כשחקנית המשובחת של דורה."},
+{id:"v575",word:"chronicling",hebrew:"מתעד, כותב כרוניקה",sentence:"The journalist spent a decade chronicling the lives of refugees.",level:3,sentence_he:"העיתונאי בילה עשור בתיעוד חיי פליטים."},
+{id:"v576",word:"coincidence",hebrew:"צירוף מקרים",sentence:"Their meeting was pure coincidence — neither had planned to be there.",level:1,sentence_he:"פגישתם הייתה צירוף מקרים גרידא — אף אחד לא תכנן להיות שם."},
+{id:"v577",word:"competence",hebrew:"כשירות, יכולת",sentence:"The new manager quickly demonstrated her competence under pressure.",level:2,sentence_he:"המנהלת הפגינה במהירות את כשירותה תחת לחץ."},
+{id:"v578",word:"compliant",hebrew:"ציתני, מציית",sentence:"The compliant student followed every instruction without question.",level:2,sentence_he:"התלמיד הציתן מילא כל הוראה ללא שאלה."},
+{id:"v579",word:"concealed",hebrew:"מוסתר, נסתר",sentence:"The treasure had been concealed beneath the floorboards for over a century.",level:2,sentence_he:"האוצר הוסתר מתחת ללוחות הרצפה במשך למעלה ממאה שנה."},
+{id:"v580",word:"contingent",hebrew:"מותנה, תלוי",sentence:"The deal is contingent on both parties agreeing to the final terms.",level:3,sentence_he:"העסקה מותנית בהסכמת שני הצדדים לתנאים הסופיים."},
+{id:"v581",word:"controversy",hebrew:"מחלוקת, פולמוס",sentence:"The decision sparked considerable controversy among local residents.",level:2,sentence_he:"ההחלטה עוררה מחלוקת ניכרת בקרב התושבים המקומיים."},
+{id:"v582",word:"correspondence",hebrew:"התכתבות, קשר",sentence:"The two scientists maintained a lively correspondence for over thirty years.",level:2,sentence_he:"שני המדענים שמרו על התכתבות ערה למשך למעלה משלושים שנה."},
+{id:"v583",word:"defiance",hebrew:"התרסה, מרי",sentence:"She wore the banned symbol in open defiance of the new regulations.",level:2,sentence_he:"היא עטתה את הסמל האסור בהתרסה גלויה לתקנות החדשות."},
+{id:"v584",word:"dejected",hebrew:"מדוכא, עצוב",sentence:"He looked utterly dejected after learning he had failed the exam again.",level:2,sentence_he:"הוא נראה מדוכא לחלוטין לאחר שנכשל בבחינה פעם נוספת."},
+{id:"v585",word:"demolished",hebrew:"נהרס, נהרס",sentence:"The old factory was demolished to make way for a new housing development.",level:1,sentence_he:"המפעל הישן נהרס כדי לפנות מקום לפיתוח דיור חדש."},
+{id:"v586",word:"deprived",hebrew:"נשלל, נחסך ממנו",sentence:"Children deprived of adequate nutrition often struggle at school.",level:2,sentence_he:"ילדים שנחסך מהם תזונה מספקת מתקשים לעיתים קרובות בבית הספר."},
+{id:"v587",word:"deterioration",hebrew:"התדרדרות, ירידה",sentence:"The deterioration of the patient's condition alarmed the medical team.",level:2,sentence_he:"התדרדרות מצבו של המטופל הדאיגה את הצוות הרפואי."},
+{id:"v588",word:"devious",hebrew:"ערמומי, עקלתון",sentence:"His devious scheme eventually unraveled when a colleague exposed him.",level:2,sentence_he:"תוכניתו הערמומית התפרקה בסופו של דבר כשעמית חשף אותו."},
+{id:"v589",word:"dismantled",hebrew:"פורק, נפרק",sentence:"The old nuclear plant was carefully dismantled over several years.",level:2,sentence_he:"תחנת הכוח הגרעינית הישנה פורקה בקפידה במשך מספר שנים."},
+{id:"v590",word:"dormant",hebrew:"רדום, לא פעיל",sentence:"The volcano had been dormant for two centuries before its sudden eruption.",level:2,sentence_he:"הארגון זכה לשבחים על שקיפות דיווח הכספים שלו."},
+{id:"v591",word:"embroiled",hebrew:"מעורב בסכסוך, שקוע בבעיות",sentence:"The company became embroiled in a lengthy legal dispute.",level:3,sentence_he:"החברה נסחפה לסכסוך משפטי ממושך."},
+{id:"v592",word:"endorsing",hebrew:"תומך, מאשר",sentence:"Several major celebrities were paid for endorsing the new product.",level:2,sentence_he:"ידוענים רבים שולמו עבור תמיכתם במוצר החדש."},
+{id:"v593",word:"enduring",hebrew:"מתמשך, בר קיימא",sentence:"The enduring popularity of the novel has led to numerous adaptations.",level:2,sentence_he:"הפופולריות המתמשכת של הרומן הובילה לעיבודים רבים."},
+{id:"v594",word:"excavation",hebrew:"חפירה, עבודות עפר",sentence:"The excavation of the ancient city took more than a decade to complete.",level:2,sentence_he:"חפירת העיר העתיקה נמשכה יותר מעשור."},
+{id:"v595",word:"exacerbated",hebrew:"הוחמר, החריף",sentence:"The crisis was exacerbated by the government's slow response.",level:3,sentence_he:"המשבר הוחמר על ידי התגובה האיטית של הממשלה."},
+{id:"v596",word:"extinct",hebrew:"נכחד",sentence:"The dodo became extinct within a century of Europeans discovering it.",level:1,sentence_he:"הדודו נכחד תוך מאה שנה מגילוי האירופאים אותו."},
+{id:"v597",word:"extravagance",hebrew:"בזבזנות, פאר מופרז",sentence:"The extravagance of the royal wedding drew criticism from the public.",level:2,sentence_he:"פאר חתונת המלוכה עורר ביקורת מהציבור."},
+{id:"v598",word:"fabrication",hebrew:"בדיה, המצאה",sentence:"The entire story turned out to be a complete fabrication.",level:2,sentence_he:"כל הסיפור התגלה כבדיה מוחלטת."},
+{id:"v599",word:"forbid",hebrew:"לאסור",sentence:"School rules forbid the use of mobile phones during lessons.",level:1,sentence_he:"כללי בית הספר אוסרים על שימוש בטלפונים ניידים בשיעורים."},
+{id:"v600",word:"frigid",hebrew:"קפוא, קר מאוד",sentence:"The frigid temperatures made outdoor work almost impossible.",level:2,sentence_he:"הטמפרטורות הקפואות הפכו עבודה בחוץ לכמעט בלתי אפשרית."},
+{id:"v601",word:"frivolous",hebrew:"קל דעת, טפשי",sentence:"The judge dismissed the claim as frivolous and without merit.",level:2,sentence_he:"השופט דחה את התביעה כקלת דעת וחסרת ערך."},
+{id:"v602",word:"fulfill",hebrew:"למלא, לממש",sentence:"She worked hard to fulfill her ambition of becoming a doctor.",level:1,sentence_he:"היא עמלה קשה למימוש שאיפתה להיות רופאה."},
+{id:"v603",word:"galvanized",hebrew:"הניע לפעולה, גירה",sentence:"The shocking documentary galvanized the public to demand change.",level:3,sentence_he:"הסרט התיעודי המזעזע הניע את הציבור לדרוש שינוי."},
+{id:"v604",word:"guarantee",hebrew:"להבטיח, ערובה",sentence:"The company offers a money-back guarantee on all its products.",level:1,sentence_he:"החברה מציעה ערובה להחזר כספי על כל מוצריה."},
+{id:"v605",word:"hastened",hebrew:"האיץ, מיהר",sentence:"New evidence hastened the end of the trial.",level:2,sentence_he:"ראיות חדשות האיצו את סיום המשפט."},
+{id:"v606",word:"heralding",hebrew:"מבשר, מסמן",sentence:"The first warm days of spring herald the arrival of longer evenings.",level:3,sentence_he:"ימי הקיץ החמים הראשונים מבשרים ערבים ארוכים יותר."},
+{id:"v607",word:"hostile",hebrew:"עוין, תוקפני",sentence:"The audience was hostile, booing the speaker from the moment he walked on stage.",level:2,sentence_he:"הקהל היה עוין, ויסוד את הדובר מרגע כניסתו לבמה."},
+{id:"v608",word:"implications",hebrew:"השלכות, משמעויות",sentence:"The implications of the new research for public health policy are enormous.",level:2,sentence_he:"ההשלכות של המחקר החדש על מדיניות בריאות הציבור הן עצומות."},
+{id:"v609",word:"indulging",hebrew:"מפנק, נכנע לתאוות",sentence:"She allowed herself the luxury of indulging in a long holiday.",level:2,sentence_he:"היא איפשרה לעצמה את המותרות של חופשה ארוכה."},
+{id:"v610",word:"inhibited",hebrew:"מעוכב, מוגבל",sentence:"Fear of making mistakes inhibited the students from speaking freely.",level:2,sentence_he:"פחד מטעויות עיכב את התלמידים מלדבר בחופשיות."},
+{id:"v611",word:"interrupted",hebrew:"הופסק, נקטע",sentence:"The speech was interrupted by a fire alarm.",level:1,sentence_he:"הנאום נקטע על ידי אזעקת אש."},
+{id:"v612",word:"intimidation",hebrew:"הפחדה, איום",sentence:"The use of intimidation to silence witnesses is a serious crime.",level:2,sentence_he:"שימוש בהפחדה להשתקת עדים הוא פשע חמור."},
+{id:"v613",word:"invoked",hebrew:"הופעל, נדרש",sentence:"Emergency powers were invoked after the natural disaster.",level:3,sentence_he:"סמכויות חירום הופעלו לאחר אסון הטבע."},
+{id:"v614",word:"isolated",hebrew:"מבודד, בודד",sentence:"The remote village was so isolated that supplies could only reach it by helicopter.",level:2,sentence_he:"הכפר המרוחק כל כך עד שניתן היה להגיע אליו רק במסוק."},
+{id:"v615",word:"jubilant",hebrew:"עליז, שמח מאוד",sentence:"The jubilant crowd celebrated long into the night after the victory.",level:2,sentence_he:"הקהל העליז חגג עד שעות הלילה המאוחרות לאחר הניצחון."},
+{id:"v616",word:"liberated",hebrew:"שוחרר, נגאל",sentence:"The prisoners were liberated by advancing troops after years of captivity.",level:2,sentence_he:"האסירים שוחררו על ידי כוחות מתקדמים לאחר שנים של שבי."},
+{id:"v617",word:"magnified",hebrew:"הוגדל, הוגזם",sentence:"The lens magnified the tiny insect to many times its actual size.",level:2,sentence_he:"העדשה הגדילה את החרק הזעיר לכמה פעמים גודלו האמיתי."},
+{id:"v618",word:"majestic",hebrew:"הדור, מרשים",sentence:"The majestic mountains rose above the clouds in the early morning light.",level:2,sentence_he:"ההרים ההדורים התנשאו מעל העננים באור הבוקר המוקדם."},
+{id:"v619",word:"measured",hebrew:"מאוזן, מחושב",sentence:"The prime minister gave a measured response to avoid inflaming the situation.",level:2,sentence_he:"ראש הממשלה נתן תגובה מאוזנת כדי למנוע החרפה של המצב."},
+{id:"v620",word:"mounting",hebrew:"גובר, עולה",sentence:"There was mounting pressure on the government to act on climate change.",level:2,sentence_he:"הייתה לחץ גובר על הממשלה לפעול בנושא שינוי האקלים."},
+{id:"v621",word:"naive",hebrew:"תמים, נאיבי",sentence:"It would be naive to assume that all politicians act in the public interest.",level:2,sentence_he:"יהיה תמים להניח שכל הפוליטיקאים פועלים לטובת הציבור."},
+{id:"v622",word:"nocturnal",hebrew:"לילי, פעיל בלילה",sentence:"Owls are nocturnal predators that hunt by sound as much as by sight.",level:2,sentence_he:"ינשופים הם טורפים לילאיים שצדים בקול לא פחות מבראייה."},
+{id:"v623",word:"nutritious",hebrew:"מזין, עשיר בחומרי מזון",sentence:"A nutritious breakfast improves concentration and performance throughout the day.",level:1,sentence_he:"ארוחת בוקר מזינה משפרת ריכוז וביצועים לאורך כל היום."},
+{id:"v624",word:"obligation",hebrew:"חובה, התחייבות",sentence:"Every citizen has an obligation to obey the law.",level:2,sentence_he:"לכל אזרח חובה לציית לחוק."},
+{id:"v625",word:"obstacle",hebrew:"מכשול, עיכוב",sentence:"Lack of funding proved to be the biggest obstacle to the project.",level:1,sentence_he:"מחסור במימון הוכיח עצמו כמכשול הגדול ביותר לפרויקט."},
+{id:"v626",word:"oppressive",hebrew:"מדכא, כבד",sentence:"The oppressive heat made it impossible to work outdoors.",level:2,sentence_he:"החום המדכא הפך עבודה בחוץ לבלתי אפשרית."},
+{id:"v627",word:"orations",hebrew:"נאומים, נאום פומבי",sentence:"The famous orations of Cicero are still studied in schools today.",level:3,sentence_he:"נאומיו המפורסמים של קיקרו עדיין נלמדים בבתי ספר כיום."},
+{id:"v628",word:"phenomenon",hebrew:"תופעה",sentence:"The Northern Lights are a natural phenomenon caused by solar particles.",level:2,sentence_he:"הזוהר הצפוני הוא תופעת טבע הנגרמת על ידי חלקיקים סולאריים."},
+{id:"v629",word:"pilgrimage",hebrew:"עלייה לרגל, מסע קדוש",sentence:"Muslims are required to make a pilgrimage to Mecca at least once in their lives.",level:2,sentence_he:"מוסלמים נדרשים לעלות לרגל למכה לפחות פעם בחייהם."},
+{id:"v630",word:"placid",hebrew:"שלו, רגוע",sentence:"The placid surface of the lake reflected the mountains perfectly.",level:2,sentence_he:"פני הכינרת השלווים שיקפו את ההרים בצורה מושלמת."},
+{id:"v631",word:"plunged",hebrew:"צנח, ירד בחדות",sentence:"The temperature plunged overnight from twenty degrees to below zero.",level:2,sentence_he:"הטמפרטורה צנחה בן לילה מעשרים מעלות לתחת אפס."},
+{id:"v632",word:"ponders",hebrew:"מהרהר, שוקל",sentence:"She ponders every decision carefully before committing to a course of action.",level:2,sentence_he:"היא שוקלת כל החלטה בקפידה לפני שמתחייבת לפעולה."},
+{id:"v633",word:"precedent",hebrew:"תקדים",sentence:"The ruling set a legal precedent that would affect future cases.",level:2,sentence_he:"פסיקת בית המשפט הציבה תקדים משפטי שישפיע על תיקים עתידיים."},
+{id:"v634",word:"prolonged",hebrew:"ממושך, מוארך",sentence:"Prolonged exposure to loud noise can cause permanent hearing damage.",level:2,sentence_he:"חשיפה ממושכת לרעש חזק עלולה לגרום לנזק קבוע לשמיעה."},
+{id:"v635",word:"remedy",hebrew:"תרופה, פתרון",sentence:"There is no simple remedy for the complex problem of urban poverty.",level:2,sentence_he:"אין פתרון פשוט לבעיה המורכבת של עוני עירוני."},
+{id:"v636",word:"remote",hebrew:"נידח, מרוחק",sentence:"The village was so remote that it took three days to reach by foot.",level:1,sentence_he:"הכפר היה כל כך נידח עד שלקח שלושה ימים להגיע אליו ברגל."},
+{id:"v637",word:"renovations",hebrew:"שיפוצים, שיקום",sentence:"The museum was closed for two years during extensive renovations.",level:1,sentence_he:"המוזיאון היה סגור שנתיים בזמן שיפוצים נרחבים."},
+{id:"v638",word:"replicated",hebrew:"שוכפל, שוחזר",sentence:"The results of the experiment were replicated by three independent teams.",level:2,sentence_he:"תוצאות הניסוי שוחזרו על ידי שלושה צוותים עצמאיים."},
+{id:"v639",word:"reputation",hebrew:"מוניטין, שם טוב",sentence:"The university has a worldwide reputation for excellence in research.",level:1,sentence_he:"לאוניברסיטה יש מוניטין עולמי למצוינות במחקר."},
+{id:"v640",word:"restriction",hebrew:"הגבלה",sentence:"New restrictions on travel were imposed following the outbreak of disease.",level:2,sentence_he:"הגבלות נסיעה חדשות הוטלו בעקבות פרוץ מחלה."},
+{id:"v641",word:"sacred",hebrew:"קדוש, מקודש",sentence:"The temple is considered sacred by millions of pilgrims each year.",level:1,sentence_he:"המקדש נחשב קדוש על ידי מיליוני עולי רגל בכל שנה."},
+{id:"v642",word:"scarce",hebrew:"נדיר, מועט",sentence:"Fresh water is increasingly scarce in many parts of the developing world.",level:2,sentence_he:"מים מתוקים הפכו נדירים יותר ויותר בחלקים רבים של העולם המתפתח."},
+{id:"v643",word:"scorching",hebrew:"שורף, לוהט",sentence:"The scorching summer temperatures broke records across the continent.",level:2,sentence_he:"הטמפרטורות השורפות בקיץ שברו שיאים ברחבי היבשת."},
+{id:"v644",word:"slain",hebrew:"נרצח, נהרג",sentence:"A monument was erected in memory of those slain in the battle.",level:2,sentence_he:"הוקם אנדרטה לזכר הנרצחים בקרב."},
+{id:"v645",word:"smoldering",hebrew:"גחל, בוער לאט",sentence:"Fires ignited in a coal mine decades ago are still smoldering underground.",level:3,sentence_he:"שריפות שנגרמו בבור מכרות לפני עשרות שנים עדיין לוחשות מתחת לאדמה."},
+{id:"v646",word:"sprawling",hebrew:"מתפשט, ענק",sentence:"The sprawling city covers an area of over a thousand square kilometers.",level:2,sentence_he:"העיר המתפשטת משתרעת על שטח של למעלה מאלף קילומטרים רבועים."},
+{id:"v647",word:"struck",hebrew:"הוכה, פגע",sentence:"He was struck by how much the city had changed since his last visit.",level:1,sentence_he:"הוא הוכה על ידי כמה שהשתנתה העיר מאז ביקורו האחרון."},
+{id:"v648",word:"supervision",hebrew:"פיקוח, השגחה",sentence:"Children should not use the internet without adult supervision.",level:1,sentence_he:"ילדים לא אמורים להשתמש באינטרנט ללא השגחת מבוגרים."},
+{id:"v649",word:"suspicion",hebrew:"חשד",sentence:"His strange behavior aroused the suspicion of the security guards.",level:2,sentence_he:"התנהגותו המוזרה עוררה את חשד שומרי הביטחון."},
+{id:"v650",word:"tenacious",hebrew:"עיקש, עמיד",sentence:"The tenacious reporter refused to drop the story despite repeated threats.",level:3,sentence_he:"הכתב העקשן סירב לזנוח את הסיפור למרות איומים חוזרים."},
+{id:"v651",word:"tentative",hebrew:"זהיר, מהסס",sentence:"The two sides reached a tentative agreement but nothing has been signed yet.",level:2,sentence_he:"שני הצדדים הגיעו להסכם זהיר אך דבר עדיין לא נחתם."},
+{id:"v652",word:"tirelessly",hebrew:"ללא לאות",sentence:"She worked tirelessly to improve conditions for workers in the factory.",level:2,sentence_he:"היא עבדה ללא לאות לשיפור תנאי העובדים במפעל."},
+{id:"v653",word:"toiled",hebrew:"עמל, עבד קשה",sentence:"Thousands of workers toiled for years to build the great cathedral.",level:2,sentence_he:"אלפי עמלו שנים לבניית הקתדרלה הגדולה."},
+{id:"v654",word:"trance",hebrew:"טראנס, מצב היפנוטי",sentence:"Hypnosis puts a person into a relaxed trance between sleep and wakefulness.",level:2,sentence_he:"היפנוזה מביאה אדם לטראנס רגוע בין שינה לעירות."},
+{id:"v655",word:"transparent",hebrew:"שקוף, גלוי",sentence:"The organization was praised for its transparent reporting of finances.",level:2,sentence_he:"הארגון זכה לשבחים על שקיפות דיווח הכספים שלו."},
+{id:"v656",word:"trivial",hebrew:"טריוויאלי, זניח",sentence:"Do not waste time on trivial matters when important issues need attention.",level:2,sentence_he:"אל תבזבז זמן על ענינים טריוויאליים כשנושאים חשובים דורשים תשומת לב."},
+{id:"v657",word:"unearthed",hebrew:"חשף, גילה",sentence:"Archaeologists unearthed the remains of an ancient settlement.",level:2,sentence_he:"ארכיאולוגים חשפו שרידי ישוב עתיק."},
+{id:"v658",word:"unified",hebrew:"מאוחד",sentence:"A unified approach is more effective than each country acting alone.",level:2,sentence_he:"גישה מאוחדת יעילה יותר מכל מדינה שפועלת לבד."},
+{id:"v659",word:"upheaval",hebrew:"מהפכה, תסיסה",sentence:"The industrial revolution caused enormous social upheaval.",level:2,sentence_he:"המהפכה התעשייתית גרמה למהפכה חברתית עצומה."},
+{id:"v660",word:"versatile",hebrew:"רב-תחומי, גמיש",sentence:"A versatile athlete can compete successfully in several different events.",level:2,sentence_he:"ספורטאי רב-תחומי יכול להתחרות בהצלחה במספר ענפי ספורט שונים."},
+{id:"v661",word:"vindicated",hebrew:"הוצדק, זוכה",sentence:"After years of criticism, the scientist was finally vindicated by new evidence.",level:3,sentence_he:"לאחר שנות ביקורת, המדענית הוצדקה לבסוף בראיות חדשות."},
+{id:"v662",word:"withstand",hebrew:"לעמוד בפני, לסבול",sentence:"The structure was designed to withstand winds of up to two hundred kilometers per hour.",level:2,sentence_he:"המבנה תוכנן לעמוד ברוחות של עד מאתיים קילומטרים לשעה."},
+{id:"v663",word:"abundance",hebrew:"שפע, עושר",sentence:"The region is blessed with an abundance of natural resources.",level:2,sentence_he:"האזור מבורך בשפע משאבי טבע."},
+{id:"v664",word:"acclaimed",hebrew:"מצטיין, מהולל",sentence:"The acclaimed novelist received the prize at a ceremony in Stockholm.",level:2,sentence_he:"הסופר המהולל קיבל את הפרס בטקס בשטוקהולם."},
+{id:"v665",word:"ambitious",hebrew:"שאפתן",sentence:"Her ambitious plan to reform the entire healthcare system won few supporters.",level:1,sentence_he:"תוכניתה השאפתנית לרפורמה במערכת הבריאות כולה זכתה למעט תומכים."},
+{id:"v666",word:"assumption",hebrew:"הנחה, השערה",sentence:"The plan was based on the assumption that costs would not rise.",level:2,sentence_he:"התוכנית התבססה על ההנחה שהעלויות לא יעלו."},
+{id:"v667",word:"barrier",hebrew:"מחסום, מכשול",sentence:"Language can be a significant barrier to integration in a new country.",level:1,sentence_he:"שפה יכולה להוות מחסום משמעותי לשילוב במדינה חדשה."},
+{id:"v668",word:"blunder",hebrew:"טעות גסה, כשלון",sentence:"The minister's blunder in the interview dominated the news for days.",level:2,sentence_he:"הטעות הגסה של השר בראיון שלטה בחדשות במשך ימים."},
+{id:"v669",word:"cautious",hebrew:"זהיר, מחושב",sentence:"A cautious approach is advisable when dealing with unfamiliar terrain.",level:1,sentence_he:"גישה זהירה מומלצת בהתמודדות עם שטח לא מוכר."},
+{id:"v670",word:"channel",hebrew:"לכוון, ערוץ",sentence:"She channeled all her frustration into her work, producing her best results.",level:2,sentence_he:"היא כיוונה את כל תסכוליה לעבודתה, ויצרה את התוצאות הטובות ביותר שלה."},
+{id:"v671",word:"conflict",hebrew:"סכסוך, קונפליקט",sentence:"The conflict between the two factions had lasted for decades.",level:1,sentence_he:"הסכסוך בין שתי הסיעות נמשך עשרות שנים."},
+{id:"v672",word:"decisive",hebrew:"נחרץ, מכריע",sentence:"The general made a decisive move that ended the battle within hours.",level:2,sentence_he:"הגנרל ביצע מהלך נחרץ שסיים את הקרב תוך שעות."},
+{id:"v673",word:"designated",hebrew:"מיועד, מוגדר",sentence:"This area has been designated as a protected nature reserve.",level:2,sentence_he:"אזור זה יועד כשמורת טבע מוגנת."},
+{id:"v674",word:"destination",hebrew:"יעד, מקום היעד",sentence:"Paris remains one of the most popular tourist destinations in the world.",level:1,sentence_he:"פריז נשארת אחד מיעדי התיירות הפופולריים ביותר בעולם."},
+{id:"v675",word:"dismiss",hebrew:"לדחות, לפטר",sentence:"The court dismissed all charges against the defendant.",level:2,sentence_he:"בית המשפט דחה את כל האישומים נגד הנאשם."},
+{id:"v676",word:"dominant",hebrew:"דומיננטי, שולט",sentence:"The dominant species in any ecosystem shapes the environment around it.",level:2,sentence_he:"המין הדומיננטי בכל מערכת אקולוגית מעצב את הסביבה סביבו."},
+{id:"v677",word:"durable",hebrew:"עמיד, איכותי",sentence:"The manufacturer claims the product is more durable than anything on the market.",level:2,sentence_he:"היצרן טוען שהמוצר עמיד יותר מכל מה שיש בשוק."},
+{id:"v678",word:"extinct",hebrew:"נכחד, שאין ממנו שריד",sentence:"Hundreds of species become extinct every year due to habitat destruction.",level:1,sentence_he:"מאות מינים נכחדים בכל שנה עקב הרס בית הגידול."},
+{id:"v679",word:"formal",hebrew:"פורמלי, רשמי",sentence:"A formal complaint was submitted to the board of directors.",level:1,sentence_he:"תלונה רשמית הוגשה למועצת המנהלים."},
+{id:"v680",word:"fortune",hebrew:"עושר, גורל",sentence:"He made his fortune investing in technology companies in the early 2000s.",level:1,sentence_he:"הוא עשה את הונו בהשקעות בחברות טכנולוגיה בתחילת שנות ה-2000."},
+{id:"v681",word:"guided",hebrew:"מודרך, מונחה",sentence:"The guided tour took visitors through all the major historical sites.",level:1,sentence_he:"הסיור המודרך לקח את המבקרים דרך כל אתרי הביקור ההיסטוריים."},
+{id:"v682",word:"ignore",hebrew:"להתעלם",sentence:"It is dangerous to ignore warning signs of serious illness.",level:1,sentence_he:"מסוכן להתעלם מסימני אזהרה של מחלה חמורה."},
+{id:"v683",word:"inspire",hebrew:"לעורר השראה",sentence:"Her courage in the face of adversity inspired everyone who knew her.",level:1,sentence_he:"אומץ לבה בפני הצרות עוררה השראה בכולם שהכירו אותה."},
+{id:"v684",word:"massive",hebrew:"עצום, ענק",sentence:"The earthquake caused massive destruction across the entire region.",level:1,sentence_he:"רעש האדמה גרם להרס עצום ברחבי האזור."},
+{id:"v685",word:"merchants",hebrew:"סוחרים, תגרים",sentence:"Medieval merchants traveled vast distances to trade spices and silk.",level:2,sentence_he:"סוחרים מימי הביניים נסעו מרחקים עצומים לסחורה בתבלינים ומשי."},
+{id:"v686",word:"modest",hebrew:"צנוע, מתון",sentence:"Despite his success, he remained modest and avoided the spotlight.",level:1,sentence_he:"למרות הצלחתו, נשאר צנוע ונמנע מהתפרסות."},
+{id:"v687",word:"navigable",hebrew:"ניתן לשיט, עביר",sentence:"The river was navigable for large ships as far as the inland port.",level:2,sentence_he:"הנהר היה ניתן לשיט לאוניות גדולות עד לנמל הפנימי."},
+{id:"v688",word:"negligent",hebrew:"רשלני",sentence:"The company was found negligent in its duty of care toward employees.",level:2,sentence_he:"החברה נמצאה אשמה ברשלנות בחובת הטיפול שלה כלפי עובדים."},
+{id:"v689",word:"negotiation",hebrew:"משא ומתן, שיחות",sentence:"Peaceful negotiation is always preferable to armed conflict.",level:1,sentence_he:"משא ומתן שלום תמיד עדיף על סכסוך מזוין."},
+{id:"v690",word:"obscure",hebrew:"עלום, לא ידוע",sentence:"The poet remained obscure during his lifetime but is now widely celebrated.",level:2,sentence_he:"המשורר נשאר עלום בחייו אך מפורסם כיום."},
+{id:"v691",word:"obvious",hebrew:"ברור, מובן מאליו",sentence:"It was obvious from the start that the plan would not work.",level:1,sentence_he:"היה ברור מההתחלה שהתוכנית לא תעבוד."},
+{id:"v692",word:"ordinary",hebrew:"רגיל, שגרתי",sentence:"The discovery of penicillin transformed what had been an ordinary cut into a treatable wound.",level:1,sentence_he:"גילוי הפניצילין שינה את מה שהיה פצע רגיל לפצע ניתן לטיפול."},
+{id:"v693",word:"permanent",hebrew:"קבוע, תמידי",sentence:"The injury left him with permanent damage to his hearing.",level:1,sentence_he:"הפציעה גרמה לנזק קבוע לשמיעה שלו."},
+{id:"v694",word:"protection",hebrew:"הגנה, שמירה",sentence:"The new law offers greater protection to whistleblowers.",level:1,sentence_he:"החוק החדש מציע הגנה רבה יותר למגלי שחיתויות."},
+{id:"v695",word:"reckless",hebrew:"פזיז, חסר אחריות",sentence:"Reckless driving is one of the leading causes of road accidents.",level:2,sentence_he:"נהיגה פזיזה היא אחת הסיבות המובילות לתאונות דרכים."},
+{id:"v696",word:"regulation",hebrew:"תקנה, חוק",sentence:"New regulations require all food manufacturers to list every ingredient.",level:1,sentence_he:"תקנות חדשות מחייבות את כל יצרני המזון לרשום כל מרכיב."},
+{id:"v697",word:"remarkable",hebrew:"מרשים, יוצא דופן",sentence:"The patient made a remarkable recovery that surprised all her doctors.",level:1,sentence_he:"המטופלת עשתה התאוששות מרשימה שהפתיעה את כל רופאיה."},
+{id:"v698",word:"restore",hebrew:"לשקם, לשחזר",sentence:"The museum spent years working to restore the damaged paintings.",level:1,sentence_he:"המוזיאון בילה שנים בעבודה לשחזור הציורים הפגועים."},
+{id:"v699",word:"temporary",hebrew:"זמני",sentence:"The bridge is a temporary structure that will be replaced within two years.",level:1,sentence_he:"הגשר הוא מבנה זמני שיוחלף תוך שנתיים."},
+{id:"v700",word:"threat",hebrew:"איום, סכנה",sentence:"Climate change poses a serious threat to biodiversity worldwide.",level:1,sentence_he:"שינוי האקלים מהווה איום חמור על המגוון הביולוגי ברחבי העולם."}
+];
+
+let currentUser = null;
+let userProgress = {};
+let currentLevel = 0;
+let currentMode = "flashcard";
+let sessionQueue = [];
+let sessionIdx = 0;
+let isFlipped = false;
+let currentWord = null;
+
+async function init() {
+  try {
+    const { data } = await sb.auth.getSession();
+    if (data.session) {
+      currentUser = data.session.user;
+      await loadProgress();
+    }
+  } catch(e) { console.warn("Auth error:", e); }
+  document.getElementById("loading-overlay").classList.add("hidden");
+  buildSession();
+  updateStats();
+}
+
+async function loadProgress() {
+  if (!currentUser) return;
+  const { data } = await sb.from("vocab_progress").select("*").eq("user_id", currentUser.id);
+  if (data) data.forEach(row => { userProgress[row.word_id] = { status: row.status }; });
+}
+
+async function saveProgress(wordId, status) {
+  userProgress[wordId] = { status };
+  if (!currentUser) return;
+  const { data: existing } = await sb.from("vocab_progress").select("id").eq("user_id", currentUser.id).eq("word_id", wordId).single();
+  if (existing) {
+    await sb.from("vocab_progress").update({ status, last_seen: new Date() }).eq("user_id", currentUser.id).eq("word_id", wordId);
+  } else {
+    await sb.from("vocab_progress").insert({ user_id: currentUser.id, word_id: wordId, status });
+  }
+}
+
+function getFilteredWords() {
+  return currentLevel === 0 ? VOCAB_BANK : VOCAB_BANK.filter(w => w.level === currentLevel);
+}
+
+function buildSession() {
+  const words = getFilteredWords();
+  const newWords = words.filter(w => !userProgress[w.id] || userProgress[w.id].status === "new");
+  const learningWords = words.filter(w => userProgress[w.id] && (userProgress[w.id].status === "familiar" || userProgress[w.id].status === "unknown"));
+  let queue = [...learningWords.slice(0, 5), ...newWords.slice(0, 20)];
+  if (queue.length === 0) queue = words.slice(0, 20);
+  sessionQueue = queue.sort(() => Math.random() - 0.5);
+  sessionIdx = 0;
+  document.getElementById("session-complete").classList.remove("show");
+  document.getElementById("action-row").style.display = "flex";
+  document.getElementById("flashcard").style.display = "";
+  showCard();
+}
+
+function showCard() {
+  if (sessionIdx >= sessionQueue.length) { showSessionComplete(); return; }
+  currentWord = sessionQueue[sessionIdx];
+  isFlipped = false;
+  document.getElementById("flashcard").classList.remove("flipped");
+  document.getElementById("card-word").textContent = currentWord.word;
+  const wordLower = currentWord.word.toLowerCase();
+  const sentLower = currentWord.sentence.toLowerCase();
+  const idx = sentLower.indexOf(wordLower);
+  let highlighted = currentWord.sentence;
+  if (idx !== -1) {
+    highlighted = currentWord.sentence.substring(0, idx) + "<em>" + currentWord.sentence.substring(idx, idx + currentWord.word.length) + "</em>" + currentWord.sentence.substring(idx + currentWord.word.length);
+  }
+  document.getElementById("card-sentence").innerHTML = highlighted;
+  document.getElementById("card-hebrew").textContent = currentWord.hebrew;
+  // Show sentence translation on back if available
+  const enEl = document.getElementById("card-back-sentence-en");
+  const heEl = document.getElementById("card-back-sentence-he");
+  const hintEl = document.getElementById("card-flip-hint");
+  if (currentWord.sentence_he) {
+    enEl.textContent = currentWord.sentence;
+    enEl.style.display = "block";
+    heEl.textContent = currentWord.sentence_he;
+    heEl.style.display = "block";
+    hintEl.style.marginTop = "8px";
+  } else {
+    enEl.style.display = "none";
+    heEl.style.display = "none";
+    hintEl.style.marginTop = "";
+  }
+  const badge = document.getElementById("card-badge");
+  badge.textContent = "רמה " + currentWord.level;
+  badge.className = "card-level-badge badge-l" + currentWord.level;
+  document.getElementById("card-counter").textContent = (sessionIdx + 1) + " / " + sessionQueue.length;
+}
+
+function flipCard() {
+  isFlipped = !isFlipped;
+  document.getElementById("flashcard").classList.toggle("flipped", isFlipped);
+}
+
+function markWord(status) {
+  if (!currentWord) return;
+  saveProgress(currentWord.id, status);
+  updateStats();
+  if (status === "unknown") sessionQueue.push(currentWord);
+  sessionIdx++;
+  showCard();
+}
+
+function showSessionComplete() {
+  const words = getFilteredWords();
+  const known = words.filter(w => userProgress[w.id] && userProgress[w.id].status === "known").length;
+  document.getElementById("session-summary").textContent = "שולט ב-" + known + " מתוך " + words.length + " מילים. המשך כך!";
+  document.getElementById("session-complete").classList.add("show");
+  document.getElementById("action-row").style.display = "none";
+  document.getElementById("flashcard").style.display = "none";
+}
+
+function restartSession() {
+  document.getElementById("flashcard").style.display = "";
+  buildSession();
+}
+
+function updateStats() {
+  const words = getFilteredWords();
+  const known = words.filter(w => userProgress[w.id] && userProgress[w.id].status === "known").length;
+  const learning = words.filter(w => userProgress[w.id] && (userProgress[w.id].status === "familiar" || userProgress[w.id].status === "unknown")).length;
+  const newW = words.length - known - learning;
+  document.getElementById("stat-total").textContent = words.length;
+  document.getElementById("stat-known").textContent = known;
+  document.getElementById("stat-learning").textContent = learning;
+  document.getElementById("stat-new").textContent = newW;
+  const pct = words.length > 0 ? Math.round((known / words.length) * 100) : 0;
+  document.getElementById("progress-fill").style.width = pct + "%";
+  document.getElementById("progress-label").textContent = known + " / " + words.length + " מילים נלמדו (" + pct + "%)";
+}
+
+function setLevel(level) {
+  currentLevel = level;
+  document.querySelectorAll(".level-tab").forEach((t, i) => t.classList.toggle("active", i === level));
+  buildSession();
+  updateStats();
+  if (currentMode === "list") renderList();
+}
+
+function setMode(mode) {
+  currentMode = mode;
+  document.querySelectorAll(".mode-btn").forEach(b => b.classList.toggle("active", b.textContent.includes(mode === "flashcard" ? "כרטיסיות" : "רשימה")));
+  document.getElementById("flashcard-mode").style.display = mode === "flashcard" ? "flex" : "none";
+  document.getElementById("list-mode").style.display = mode === "list" ? "block" : "none";
+  if (mode === "list") renderList();
+}
+
+function renderList() {
+  const words = getFilteredWords();
+  const statusLabels = { new: "חדשה", unknown: "לא יודע", familiar: "מתרגל", known: "שולט" };
+  const statusClasses = { new: "status-new", unknown: "status-unknown", familiar: "status-familiar", known: "status-known" };
+  document.getElementById("word-list-body").innerHTML = words.map(w => {
+    const status = userProgress[w.id] ? userProgress[w.id].status : "new";
+    const sc = statusClasses[status] || "status-new";
+    const sl = statusLabels[status] || "חדשה";
+    return `<div class='word-row'><div class='word-eng'>${w.word}</div><div class='word-heb'>${w.hebrew}</div><div class='word-ex'>${w.sentence}</div><div class='word-status'><span class='status-badge ${sc}' onclick='cycleStatus("${w.id}")'>${sl}</span></div></div>`;
+  }).join("");
+}
+
+function cycleStatus(wordId) {
+  const current = userProgress[wordId] ? userProgress[wordId].status : "new";
+  const next = current === "new" ? "unknown" : current === "unknown" ? "familiar" : current === "familiar" ? "known" : "new";
+  saveProgress(wordId, next);
+  updateStats();
+  renderList();
+}
+
+function speakWord() {
+  if (!currentWord) return;
+  const utt = new SpeechSynthesisUtterance(currentWord.word);
+  utt.lang = "en-US";
+  utt.rate = 0.85;
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(utt);
+}
+
+function speakSentence() {
+  if (!currentWord) return;
+  const utt = new SpeechSynthesisUtterance(currentWord.sentence);
+  utt.lang = "en-US";
+  utt.rate = 0.85;
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(utt);
+}
+
+document.addEventListener("keydown", e => {
+  if (currentMode !== "flashcard") return;
+  if (e.key === " " || e.key === "ArrowUp") { e.preventDefault(); flipCard(); }
+  if (e.key === "ArrowRight") { markWord("familiar"); }
+  if (e.key === "ArrowLeft") markWord("unknown");
+  if (e.key === "ArrowDown") markWord("known");
+});
+
+init();
+</script>
+</body>
+</html>
