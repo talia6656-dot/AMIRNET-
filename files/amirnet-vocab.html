@@ -1378,75 +1378,92 @@ document.addEventListener("keydown", e => {
 });
 
 // Swipe gestures
-let touchStartX = 0, touchStartY = 0, touchStartTime = 0, isDragging = false;
-const flashcardEl = document.getElementById("flashcard");
+// ── TOUCH & SWIPE ────────────────────────────────────────────
+(function() {
+  var card = document.getElementById("flashcard");
+  var sx = 0, sy = 0, st = 0, moved = false;
 
-flashcardEl.addEventListener("touchstart", e => {
-  touchStartX = e.touches[0].clientX;
-  touchStartY = e.touches[0].clientY;
-  touchStartTime = Date.now();
-  isDragging = false;
-}, { passive: true });
+  card.addEventListener("touchstart", function(e) {
+    sx = e.touches[0].clientX;
+    sy = e.touches[0].clientY;
+    st = Date.now();
+    moved = false;
+    card.style.transition = "none";
+  }, { passive: true });
 
-flashcardEl.addEventListener("touchmove", e => {
-  const dx = e.touches[0].clientX - touchStartX;
-  const dy = e.touches[0].clientY - touchStartY;
-  if (Math.abs(dx) > 10 || Math.abs(dy) > 10) isDragging = true;
-  if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 10) {
-    flashcardEl.style.transform = `translateX(${dx * 0.3}px) rotate(${dx * 0.05}deg)`;
-    flashcardEl.style.opacity = Math.max(0.6, 1 - Math.abs(dx) / 400);
-    showSwipeHint(dx, dy);
-  }
-}, { passive: true });
-
-flashcardEl.addEventListener("touchend", e => {
-  const dx = e.changedTouches[0].clientX - touchStartX;
-  const dy = e.changedTouches[0].clientY - touchStartY;
-  const dt = Date.now() - touchStartTime;
-  flashcardEl.style.transform = "";
-  flashcardEl.style.opacity = "";
-  flashcardEl.style.transition = "transform 0.55s cubic-bezier(0.4,0,0.2,1)";
-  hideSwipeHint();
-  if (isDragging && dt < 400) {
-    if (Math.abs(dx) > 80 && Math.abs(dx) > Math.abs(dy)) {
-      if (dx > 0) { animateSwipe("right"); setTimeout(() => markWord("known"), 200); }
-      else { animateSwipe("left"); setTimeout(() => markWord("unknown"), 200); }
-    } else if (Math.abs(dy) > 80 && Math.abs(dy) > Math.abs(dx) && dy < 0) {
-      animateSwipe("up"); setTimeout(() => markWord("familiar"), 200);
+  card.addEventListener("touchmove", function(e) {
+    var dx = e.touches[0].clientX - sx;
+    var dy = e.touches[0].clientY - sy;
+    if (Math.abs(dx) > 5 || Math.abs(dy) > 5) moved = true;
+    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 8) {
+      var rot = dx * 0.07;
+      var lift = -Math.abs(dx) * 0.08;
+      card.style.transform = "translateX(" + (dx*0.45) + "px) translateY(" + lift + "px) rotate(" + rot + "deg)";
+      card.style.opacity = String(Math.max(0.5, 1 - Math.abs(dx)/300));
+      showHint(dx > 0 ? "known" : "unknown", Math.abs(dx));
+    } else if (dy < -8 && Math.abs(dy) > Math.abs(dx)) {
+      card.style.transform = "translateY(" + (dy*0.4) + "px)";
+      card.style.opacity = String(Math.max(0.5, 1 - Math.abs(dy)/300));
+      showHint("familiar", Math.abs(dy));
     }
-  } else if (!isDragging && dt < 250) { flipCard(); }
-  isDragging = false;
-}, { passive: true });
+  }, { passive: true });
 
-function animateSwipe(dir) {
-  flashcardEl.style.transition = "transform 0.3s ease, opacity 0.3s ease";
-  if (dir === "right") flashcardEl.style.transform = "translateX(200%) rotate(20deg)";
-  else if (dir === "left") flashcardEl.style.transform = "translateX(-200%) rotate(-20deg)";
-  else if (dir === "up") flashcardEl.style.transform = "translateY(-200%)";
-  flashcardEl.style.opacity = "0";
-  setTimeout(() => { flashcardEl.style.transition = ""; flashcardEl.style.transform = ""; flashcardEl.style.opacity = ""; }, 350);
-}
+  card.addEventListener("touchend", function(e) {
+    e.preventDefault(); // prevent click from firing on mobile
+    var dx = e.changedTouches[0].clientX - sx;
+    var dy = e.changedTouches[0].clientY - sy;
+    hideHint();
+    card.style.transition = "transform 0.35s ease, opacity 0.35s ease";
+    if (!moved || (Math.abs(dx) < 10 && Math.abs(dy) < 10)) {
+      card.style.transform = "";
+      card.style.opacity = "";
+      setTimeout(function() { card.style.transition = ""; }, 350);
+      flipCard();
+      return;
+    }
+    var absDx = Math.abs(dx), absDy = Math.abs(dy);
+    if (absDx > absDy && absDx > 55) {
+      var dir = dx > 0 ? 1 : -1;
+      card.style.transform = "translateX(" + (dir*150) + "vw) translateY(-40px) rotate(" + (dir*30) + "deg)";
+      card.style.opacity = "0";
+      var action = dx > 0 ? "known" : "unknown";
+      setTimeout(function() {
+        card.style.transition = ""; card.style.transform = ""; card.style.opacity = "";
+        markWord(action);
+      }, 320);
+    } else if (absDy > absDx && dy < -55) {
+      card.style.transform = "translateY(-150vh)";
+      card.style.opacity = "0";
+      setTimeout(function() {
+        card.style.transition = ""; card.style.transform = ""; card.style.opacity = "";
+        markWord("familiar");
+      }, 320);
+    } else {
+      card.style.transform = ""; card.style.opacity = "";
+      setTimeout(function() { card.style.transition = ""; }, 350);
+    }
+    moved = false;
+  });
 
-function showSwipeHint(dx, dy) {
-  let hint = document.getElementById("swipe-hint");
-  if (!hint) {
-    hint = document.createElement("div");
-    hint.id = "swipe-hint";
-    hint.style.cssText = "position:absolute;top:16px;left:50%;transform:translateX(-50%);padding:6px 18px;border-radius:999px;font-size:14px;font-weight:700;pointer-events:none;transition:opacity 0.1s;z-index:10;";
-    flashcardEl.querySelector(".card-front").appendChild(hint);
+  function showHint(type, dist) {
+    var hint = document.getElementById("swipe-hint");
+    if (!hint) {
+      hint = document.createElement("div");
+      hint.id = "swipe-hint";
+      hint.style.cssText = "position:absolute;top:16px;left:50%;transform:translateX(-50%);padding:7px 18px;border-radius:999px;font-size:15px;font-weight:700;pointer-events:none;z-index:10;color:#fff;";
+      card.querySelector(".card-front").appendChild(hint);
+    }
+    hint.style.opacity = String(Math.min(1, (dist-15)/50));
+    if (type==="known") { hint.textContent="✓ שולט"; hint.style.background="rgba(5,150,105,0.9)"; }
+    else if (type==="unknown") { hint.textContent="✗ לא יודע"; hint.style.background="rgba(220,38,38,0.9)"; }
+    else { hint.textContent="↺ מתרגל"; hint.style.background="rgba(245,158,11,0.9)"; }
   }
-  if (Math.abs(dx) > Math.abs(dy)) {
-    if (dx > 40) { hint.textContent = "\u2713 \u05e9\u05d5\u05dc\u05d8"; hint.style.background = "rgba(5,150,105,0.8)"; hint.style.color = "#fff"; hint.style.opacity = Math.min(1, (dx-40)/80); }
-    else if (dx < -40) { hint.textContent = "\u2717 \u05dc\u05d0 \u05d9\u05d5\u05d3\u05e2"; hint.style.background = "rgba(220,38,38,0.8)"; hint.style.color = "#fff"; hint.style.opacity = Math.min(1, (-dx-40)/80); }
-    else hint.style.opacity = "0";
-  } else if (dy < -40) { hint.textContent = "\u21ba \u05de\u05ea\u05e8\u05d2\u05dc"; hint.style.background = "rgba(245,158,11,0.8)"; hint.style.color = "#fff"; hint.style.opacity = Math.min(1, (-dy-40)/80); }
-  else hint.style.opacity = "0";
-}
 
-function hideSwipeHint() {
-  const hint = document.getElementById("swipe-hint");
-  if (hint) hint.style.opacity = "0";
-}
+  function hideHint() {
+    var hint = document.getElementById("swipe-hint");
+    if (hint) hint.style.opacity = "0";
+  }
+})();
 
 init();
 </script>
