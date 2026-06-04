@@ -141,8 +141,8 @@ body { font-family: var(--font); background: var(--gray-50); min-height: 100vh; 
           <span class="card-counter" id="card-counter">1 / 100</span>
           <div class="card-word" id="card-word">—</div>
           <div class="card-sentence" id="card-sentence">—</div>
-          <button class="card-listen-btn" onclick="event.stopPropagation();speakWord()" style="bottom:16px;left:16px">&#9654; מילה</button>
-          <button class="card-listen-btn" onclick="event.stopPropagation();speakSentence()" style="bottom:16px;left:90px">&#9654; משפט</button>
+          <button class="card-listen-btn" onclick="event.stopPropagation();speakWord()" ontouchstart="event.stopPropagation();speakWord()" style="bottom:16px;left:16px">&#9654; מילה</button>
+          <button class="card-listen-btn" onclick="event.stopPropagation();speakSentence()" ontouchstart="event.stopPropagation();speakSentence()" style="bottom:16px;left:90px">&#9654; משפט</button>
         </div>
         <div class="card-face card-back">
           <div class="card-hebrew" id="card-hebrew">—</div>
@@ -1209,19 +1209,56 @@ async function init() {
 }
 
 async function loadProgress() {
+  // Always try localStorage first as instant fallback
+  try {
+    const stored = JSON.parse(localStorage.getItem("vocab_progress") || "{}");
+    Object.keys(stored).forEach(k => { userProgress[k] = { status: stored[k] }; });
+  } catch(e) {}
+
   if (!currentUser) return;
-  const { data } = await sb.from("vocab_progress").select("*").eq("user_id", currentUser.id);
-  if (data) data.forEach(row => { userProgress[row.word_id] = { status: row.status }; });
+
+  // Then load from Supabase (overrides localStorage with server data)
+  try {
+    const { data, error } = await sb.from("vocab_progress").select("*").eq("user_id", currentUser.id);
+    if (error) { console.error("Load error:", error); return; }
+    if (data) {
+      data.forEach(row => {
+        userProgress[row.word_id] = { status: row.status };
+        // Sync to localStorage too
+        try {
+          const stored = JSON.parse(localStorage.getItem("vocab_progress") || "{}");
+          stored[row.word_id] = row.status;
+          localStorage.setItem("vocab_progress", JSON.stringify(stored));
+        } catch(e) {}
+      });
+    }
+  } catch(e) {
+    console.error("Load exception:", e);
+  }
 }
 
 async function saveProgress(wordId, status) {
   userProgress[wordId] = { status };
-  if (!currentUser) return;
-  const { data: existing } = await sb.from("vocab_progress").select("id").eq("user_id", currentUser.id).eq("word_id", wordId).single();
-  if (existing) {
-    await sb.from("vocab_progress").update({ status, last_seen: new Date() }).eq("user_id", currentUser.id).eq("word_id", wordId);
-  } else {
-    await sb.from("vocab_progress").insert({ user_id: currentUser.id, word_id: wordId, status });
+  if (!currentUser) {
+    // Not logged in — save to localStorage as fallback
+    try {
+      const stored = JSON.parse(localStorage.getItem("vocab_progress") || "{}");
+      stored[wordId] = status;
+      localStorage.setItem("vocab_progress", JSON.stringify(stored));
+    } catch(e) {}
+    return;
+  }
+  try {
+    // Use upsert to handle both insert and update in one call
+    const { error } = await sb.from("vocab_progress").upsert({
+      user_id: currentUser.id,
+      word_id: wordId,
+      status: status,
+      last_seen: new Date().toISOString()
+    }, { onConflict: "user_id,word_id" });
+    if (error) console.error("Save error:", error);
+  } catch(e) {
+    console.error("Save exception:", e);
   }
 }
 
