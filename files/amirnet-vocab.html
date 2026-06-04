@@ -1196,16 +1196,52 @@ let isFlipped = false;
 let currentWord = null;
 
 async function init() {
+  // Load from localStorage immediately so UI is responsive
   try {
-    const { data } = await sb.auth.getSession();
-    if (data.session) {
-      currentUser = data.session.user;
-      await loadProgress();
-    }
-  } catch(e) { console.warn("Auth error:", e); }
+    const stored = JSON.parse(localStorage.getItem("vocab_progress") || "{}");
+    Object.keys(stored).forEach(k => { userProgress[k] = { status: stored[k] }; });
+  } catch(e) {}
+
   document.getElementById("loading-overlay").classList.add("hidden");
   buildSession();
   updateStats();
+
+  // Then try to get Supabase session — retry a few times since it can take a moment
+  let attempts = 0;
+  async function tryGetSession() {
+    attempts++;
+    try {
+      const { data } = await sb.auth.getSession();
+      if (data.session) {
+        currentUser = data.session.user;
+        console.log("Logged in as:", currentUser.email);
+        // Load from Supabase and merge with localStorage
+        await loadProgress();
+        updateStats();
+        buildSession();
+      } else if (attempts < 5) {
+        // Retry after a short delay — session may not be ready yet
+        setTimeout(tryGetSession, 800);
+      } else {
+        console.warn("No session after", attempts, "attempts — using localStorage only");
+      }
+    } catch(e) {
+      console.warn("Session check error:", e);
+      if (attempts < 3) setTimeout(tryGetSession, 1000);
+    }
+  }
+  tryGetSession();
+
+  // Also listen for auth state changes
+  sb.auth.onAuthStateChange(async (event, session) => {
+    if (session && !currentUser) {
+      currentUser = session.user;
+      console.log("Auth state change - logged in:", currentUser.email);
+      await loadProgress();
+      updateStats();
+      buildSession();
+    }
+  });
 }
 
 async function loadProgress() {
@@ -1249,14 +1285,25 @@ async function saveProgress(wordId, status) {
     return;
   }
   try {
-    // Use upsert to handle both insert and update in one call
     const { error } = await sb.from("vocab_progress").upsert({
       user_id: currentUser.id,
       word_id: wordId,
       status: status,
       last_seen: new Date().toISOString()
     }, { onConflict: "user_id,word_id" });
-    if (error) console.error("Save error:", error);
+    if (error) {
+      console.error("Supabase save error:", error);
+      // Fallback to localStorage
+      const stored = JSON.parse(localStorage.getItem("vocab_progress") || "{}");
+      stored[wordId] = status;
+      localStorage.setItem("vocab_progress", JSON.stringify(stored));
+    } else {
+      console.log("Saved", wordId, "->", status);
+      // Also save to localStorage as backup
+      const stored = JSON.parse(localStorage.getItem("vocab_progress") || "{}");
+      stored[wordId] = status;
+      localStorage.setItem("vocab_progress", JSON.stringify(stored));
+    }
   } catch(e) {
     console.error("Save exception:", e);
   }
