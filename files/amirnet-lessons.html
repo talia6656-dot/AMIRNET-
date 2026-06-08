@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AmirNET Pro — שיעורים מוקלטים</title>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --navy: #0a1628; --navy-mid: #112040; --blue: #1a56db;
+  --accent: #f59e0b; --green: #059669; --white: #fff;
+  --gray-50: #f8fafc; --gray-100: #f1f5f9; --gray-200: #e2e8f0;
+  --gray-400: #94a3b8; --gray-600: #475569; --gray-800: #1e293b;
+  --font: 'Heebo', sans-serif; --radius: 14px;
+}
+body { font-family: var(--font); background: var(--gray-50); min-height: 100vh; direction: rtl; }
+
+/* Header */
+.header {
+  background: var(--navy); padding: 0 1.5rem; height: 56px;
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 10;
+}
+.header-logo { font-family: 'DM Serif Display', serif; font-size: 1.3rem; color: var(--white); }
+.header-logo span { color: var(--accent); }
+.btn-back {
+  display: flex; align-items: center; gap: 6px;
+  background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 8px; color: rgba(255,255,255,0.7); font-family: var(--font);
+  font-size: 13px; padding: 6px 12px; cursor: pointer; text-decoration: none;
+  transition: all 0.15s;
+}
+.btn-back:hover { background: rgba(255,255,255,0.15); color: var(--white); }
+
+/* Hero */
+.hero {
+  background: linear-gradient(135deg, var(--navy) 0%, #1a2f5e 100%);
+  padding: 2.5rem 1.5rem; text-align: center; position: relative; overflow: hidden;
+}
+.hero::before {
+  content: ''; position: absolute; top: -50%; left: -20%;
+  width: 60vw; height: 60vw; border-radius: 50%;
+  background: radial-gradient(circle, rgba(245,158,11,0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+.hero-title { font-family: 'DM Serif Display', serif; font-size: 2rem; color: var(--white); margin-bottom: 0.5rem; }
+.hero-title span { color: var(--accent); }
+.hero-sub { font-size: 14px; color: rgba(255,255,255,0.5); max-width: 500px; margin: 0 auto; line-height: 1.7; }
+
+/* Main */
+.main { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem; }
+
+/* Category */
+.category { margin-bottom: 2.5rem; }
+.category-header {
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 1rem;
+}
+.category-icon { font-size: 1.4rem; }
+.category-title { font-size: 17px; font-weight: 700; color: var(--navy); }
+.category-desc { font-size: 13px; color: var(--gray-400); margin-top: 2px; }
+.category-count {
+  margin-right: auto; font-size: 12px; font-weight: 500;
+  padding: 3px 10px; background: var(--gray-100);
+  color: var(--gray-600); border-radius: 999px;
+}
+
+/* Lessons grid */
+.lessons-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+
+/* Lesson card */
+.lesson-card {
+  background: var(--white); border: 1px solid var(--gray-200);
+  border-radius: var(--radius); overflow: hidden;
+  transition: all 0.2s; cursor: pointer; position: relative;
+}
+.lesson-card:hover { box-shadow: 0 8px 24px rgba(10,22,40,0.1); transform: translateY(-2px); }
+.lesson-card.coming-soon { opacity: 0.6; cursor: default; }
+.lesson-card.coming-soon:hover { box-shadow: none; transform: none; }
+.lesson-card.watched { border-color: rgba(5,150,105,0.3); }
+
+.lesson-thumb {
+  height: 130px; background: linear-gradient(135deg, var(--navy) 0%, #1a3a6b 100%);
+  display: flex; align-items: center; justify-content: center;
+  position: relative; overflow: hidden;
+}
+.lesson-thumb-icon { font-size: 2.5rem; opacity: 0.4; }
+.lesson-play {
+  position: absolute; width: 44px; height: 44px;
+  background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.4);
+  border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  font-size: 16px; color: var(--white); transition: all 0.2s;
+}
+.lesson-card:not(.coming-soon):hover .lesson-play {
+  background: var(--accent); border-color: var(--accent); transform: scale(1.1);
+}
+.coming-soon-badge {
+  position: absolute; top: 10px; left: 10px;
+  background: rgba(245,158,11,0.9); color: var(--white);
+  font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 999px;
+}
+.watched-badge {
+  position: absolute; top: 10px; right: 10px;
+  background: rgba(5,150,105,0.9); color: var(--white);
+  font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 999px;
+}
+.lesson-duration {
+  position: absolute; bottom: 8px; left: 8px;
+  background: rgba(0,0,0,0.6); color: var(--white);
+  font-size: 11px; padding: 2px 7px; border-radius: 4px;
+  font-family: monospace;
+}
+
+.lesson-body { padding: 14px; }
+.lesson-title { font-size: 14px; font-weight: 600; color: var(--navy); margin-bottom: 5px; line-height: 1.4; }
+.lesson-desc { font-size: 12px; color: var(--gray-400); line-height: 1.6; }
+
+/* Video Modal */
+.video-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 100; padding: 1rem; opacity: 0; pointer-events: none;
+  transition: opacity 0.2s;
+}
+.video-overlay.open { opacity: 1; pointer-events: all; }
+.video-modal {
+  background: var(--navy); border-radius: 16px; overflow: hidden;
+  width: 100%; max-width: 800px; transform: scale(0.95);
+  transition: transform 0.2s;
+}
+.video-overlay.open .video-modal { transform: scale(1); }
+.video-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px; border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+.video-title { font-size: 15px; font-weight: 600; color: var(--white); }
+.video-close {
+  background: rgba(255,255,255,0.1); border: none; color: var(--white);
+  width: 32px; height: 32px; border-radius: 50%; cursor: pointer;
+  font-size: 16px; display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s;
+}
+.video-close:hover { background: rgba(255,255,255,0.2); }
+.video-container {
+  position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden;
+}
+.video-container iframe {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none;
+}
+.video-coming-soon {
+  padding: 3rem; text-align: center; color: rgba(255,255,255,0.5); font-size: 14px;
+}
+.video-coming-soon .icon { font-size: 3rem; margin-bottom: 1rem; }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-logo">Amir<span>NET</span> Pro</div>
+  <a href="amirnet-pro.html" class="btn-back">&#8592; חזרה לתרגול</a>
+</header>
+
+<div class="hero">
+  <div class="hero-title">שיעורים <span>מוקלטים</span></div>
+  <div class="hero-sub">שיעורי וידאו מקיפים שיעזרו לך להבין את המבנה של הבחינה, לשלוט בסוגי השאלות ולפתח אסטרטגיות ניצחון</div>
+</div>
+
+<main class="main" id="main-content">
+  <!-- Categories rendered by JS -->
+</main>
+
+<!-- Video Modal -->
+<div class="video-overlay" id="video-overlay" onclick="closeVideoIfOutside(event)">
+  <div class="video-modal">
+    <div class="video-header">
+      <div class="video-title" id="video-modal-title">שיעור</div>
+      <button class="video-close" onclick="closeVideo()">✕</button>
+    </div>
+    <div id="video-modal-body"></div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = "https://ivauncueyedwlthzylnt.supabase.co";
+const SUPABASE_KEY = "sb_publishable_BbdQ2HYYKcO4uxJbFT0JWw_k5nqO39G";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let currentUser = null;
+let watchedLessons = new Set();
+
+// ── LESSON DATA ───────────────────────────────────────────────
+const CATEGORIES = [
+  {
+    id: "intro",
+    icon: "👋",
+    title: "ברוכים הבאים",
+    desc: "הכרות עם המורה ועם הפלטפורמה לפני שמתחילים",
+    lessons: [
+      { id: "intro-01", title: "היכרות עם המורה והפלטפורמה", desc: "מי אני, מה תמצאו כאן וכיצד להפיק את המרב מהשיעורים והתרגולים", duration: null, youtube: null },
+    ]
+  },
+  {
+    id: "strategy",
+    icon: "🎯",
+    title: "אסטרטגיית הבחינה",
+    desc: "הבנת מבנה הבחינה, טיפול בשאלות קשות ושיטות עבודה מנצחות ליום הבחינה",
+    lessons: [
+      { id: "str-01", title: "הכרת מבנה הבחינה", desc: "סקירה מלאה של הפרקים, מספר השאלות, הזמן המוקצב לכל חלק וכיצד זה משפיע על אסטרטגיית הפתרון", duration: null, youtube: null },
+      { id: "str-02", title: "טיפול בשאלות קשות", desc: "מתי לדלג, מתי לנחש ואיך לצמצם אפשרויות בחירה", duration: null, youtube: null },
+      { id: "str-03", title: "הכנה ליום הבחינה", desc: "מה לעשות בשבוע לפני הבחינה, ביום לפני ובבוקר הבחינה", duration: null, youtube: null },
+    ]
+  },
+  {
+    id: "sentence-completion",
+    icon: "✏️",
+    title: "השלמת משפטים",
+    desc: "אסטרטגיות לזיהוי המילה הנכונה מתוך ארבע אפשרויות",
+    lessons: [
+      { id: "sc-01", title: "מבוא להשלמת משפטים", desc: "הכרת מבנה השאלה ואסטרטגיות בסיסיות לפתרון", duration: null, youtube: null },
+      { id: "sc-02", title: "זיהוי הקשר תחבירי", desc: "כיצד לנתח את מבנה המשפט כדי לצמצם את האפשרויות", duration: null, youtube: null },
+      { id: "sc-03", title: "מילות מפתח ורמזים", desc: "שימוש ברמזים לשוניים ומילות קישור לזיהוי התשובה הנכונה", duration: null, youtube: null },
+    ]
+  },
+  {
+    id: "restatement",
+    icon: "🔄",
+    title: "ניסוח מחדש",
+    desc: "כיצד לזהות את המשפט השקול ביותר מבחינה סמנטית",
+    lessons: [
+      { id: "rs-01", title: "מבוא לניסוח מחדש", desc: "הבנת הרעיון המרכזי ואיך לפתור שאלות אלו", duration: null, youtube: null },
+      { id: "rs-02", title: "מלכודות נפוצות", desc: "זיהוי תשובות מטעות שנראות נכונות אך משנות את המשמעות", duration: null, youtube: null },
+      { id: "rs-03", title: "תרגול מתקדם", desc: "עבודה על שאלות ניסוח ברמת קושי גבוהה", duration: null, youtube: null },
+    ]
+  },
+  {
+    id: "reading",
+    icon: "📖",
+    title: "הבנת הנקרא",
+    desc: "טכניקות קריאה מהירה ומענה יעיל על שאלות הבנה",
+    lessons: [
+      { id: "rc-01", title: "מבוא להבנת הנקרא", desc: "הכרת סוגי הטקסטים וסוגי השאלות שמופיעות בבחינה", duration: null, youtube: null },
+      { id: "rc-02", title: "קריאה אסטרטגית", desc: "כיצד לקרוא ביעילות ולמצוא תשובות מהר יותר", duration: null, youtube: null },
+      { id: "rc-03", title: "שאלות הסקה ומסקנות", desc: "כיצד לענות על שאלות שדורשות הסקה מהטקסט", duration: null, youtube: null },
+      { id: "rc-04", title: "מציאת רעיון מרכזי", desc: "זיהוי הטענה הראשית של הטקסט בשאלות מטרה ותכלית", duration: null, youtube: null },
+    ]
+  },
+  {
+    id: "vocabulary",
+    icon: "📚",
+    title: "אוצר מילים",
+    desc: "שיטות לימוד והרחבת אוצר המילים האקדמי",
+    lessons: [
+      { id: "voc-01", title: "מבוא לאוצר מילים אקדמי", desc: "המילים החשובות ביותר שמופיעות שוב ושוב בבחינה", duration: null, youtube: null },
+      { id: "voc-02", title: "שורשים ותחיליות", desc: "כיצד לפרש מילים לא מוכרות על בסיס שורש לטיני או יווני", duration: null, youtube: null },
+      { id: "voc-03", title: "מילים בהקשר", desc: "הבנת מילה חדשה מתוך הקשר המשפט", duration: null, youtube: null },
+    ]
+  }
+];
+
+// ── INIT ──────────────────────────────────────────────────────
+async function init() {
+  try {
+    const { data } = await sb.auth.getSession();
+    if (data.session) {
+      currentUser = data.session.user;
+      await loadWatched();
+    }
+  } catch(e) {}
+  renderCategories();
+}
+
+async function loadWatched() {
+  if (!currentUser) return;
+  try {
+    const { data } = await sb.from('lesson_progress')
+      .select('lesson_id').eq('user_id', currentUser.id).eq('watched', true);
+    if (data) data.forEach(r => watchedLessons.add(r.lesson_id));
+  } catch(e) {}
+}
+
+async function markWatched(lessonId) {
+  watchedLessons.add(lessonId);
+  if (!currentUser) return;
+  try {
+    await sb.from('lesson_progress').upsert({
+      user_id: currentUser.id, lesson_id: lessonId, watched: true,
+      watched_at: new Date().toISOString()
+    }, { onConflict: 'user_id,lesson_id' });
+  } catch(e) {}
+}
+
+// ── RENDER ────────────────────────────────────────────────────
+function renderCategories() {
+  const main = document.getElementById('main-content');
+  main.innerHTML = CATEGORIES.map(cat => {
+    const available = cat.lessons.filter(l => l.youtube).length;
+    const total = cat.lessons.length;
+    const lessonsHtml = cat.lessons.map(l => renderLessonCard(l)).join('');
+    return `<div class="category">
+      <div class="category-header">
+        <span class="category-icon">${cat.icon}</span>
+        <div>
+          <div class="category-title">${cat.title}</div>
+          <div class="category-desc">${cat.desc}</div>
+        </div>
+        <span class="category-count">${available}/${total} זמינים</span>
+      </div>
+      <div class="lessons-grid">${lessonsHtml}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderLessonCard(lesson) {
+  const isComingSoon = !lesson.youtube;
+  const isWatched = watchedLessons.has(lesson.id);
+  const comingSoonBadge = isComingSoon ? '<span class="coming-soon-badge">בקרוב</span>' : '';
+  const watchedBadge = isWatched ? '<span class="watched-badge">✓ נצפה</span>' : '';
+  const durationBadge = lesson.duration ? `<span class="lesson-duration">${lesson.duration}</span>` : '';
+  const cardClass = `lesson-card${isComingSoon ? ' coming-soon' : ''}${isWatched ? ' watched' : ''}`;
+  const clickHandler = isComingSoon ? '' : `onclick="openVideo('${lesson.id}')"`;
+
+  return `<div class="${cardClass}" ${clickHandler}>
+    <div class="lesson-thumb">
+      <div class="lesson-thumb-icon">🎬</div>
+      ${!isComingSoon ? '<div class="lesson-play">▶</div>' : ''}
+      ${comingSoonBadge}
+      ${watchedBadge}
+      ${durationBadge}
+    </div>
+    <div class="lesson-body">
+      <div class="lesson-title">${lesson.title}</div>
+      <div class="lesson-desc">${lesson.desc}</div>
+    </div>
+  </div>`;
+}
+
+// ── VIDEO MODAL ───────────────────────────────────────────────
+function openVideo(lessonId) {
+  const lesson = CATEGORIES.flatMap(c => c.lessons).find(l => l.id === lessonId);
+  if (!lesson) return;
+
+  document.getElementById('video-modal-title').textContent = lesson.title;
+
+  if (lesson.youtube) {
+    const embedUrl = `https://www.youtube.com/embed/${lesson.youtube}?autoplay=1&rel=0`;
+    document.getElementById('video-modal-body').innerHTML =
+      `<div class="video-container"><iframe src="${embedUrl}" allowfullscreen allow="autoplay"></iframe></div>`;
+    markWatched(lessonId);
+    // Re-render to show watched badge
+    setTimeout(renderCategories, 500);
+  } else {
+    document.getElementById('video-modal-body').innerHTML =
+      `<div class="video-coming-soon"><div class="icon">🎬</div><p>שיעור זה יהיה זמין בקרוב.<br>המורה עובד על הכנתו עבורך.</p></div>`;
+  }
+  document.getElementById('video-overlay').classList.add('open');
+}
+
+function closeVideo() {
+  document.getElementById('video-overlay').classList.remove('open');
+  document.getElementById('video-modal-body').innerHTML = '';
+}
+
+function closeVideoIfOutside(e) {
+  if (e.target === document.getElementById('video-overlay')) closeVideo();
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeVideo(); });
+
+init();
+</script>
+</body>
+</html>
