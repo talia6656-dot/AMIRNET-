@@ -158,6 +158,7 @@ body { font-family: var(--font); background: var(--gray-50); min-height: 100vh; 
       <button class="action-btn btn-familiar" onclick="markWord('familiar')">&#128260; מתרגל</button>
       <button class="action-btn btn-practice" onclick="markWord('unknown')">&#10005; לא יודע</button>
     </div>
+    <div id="save-indicator" style="font-size:12px;color:var(--green);text-align:center;height:16px;transition:opacity 0.5s;opacity:0;">✓ נשמר</div>
     <div style="font-size:12px;color:var(--gray-400);text-align:center;margin-top:-4px;line-height:1.8">
       <span style="display:block;margin-bottom:2px">לחץ על הכרטיס כדי להפוך אותו ולראות את התרגום</span>
       <span>📱 החלק ימינה = שולט &nbsp;·&nbsp; החלק למעלה = מתרגל &nbsp;·&nbsp; החלק שמאלה = לא יודע</span>
@@ -1875,38 +1876,51 @@ async function loadProgress() {
 }
 
 async function saveProgress(wordId, status) {
+  // 1. Update in-memory immediately
   userProgress[wordId] = { status };
-  if (!currentUser) {
-    // Not logged in — save to localStorage as fallback
-    try {
-      const stored = JSON.parse(localStorage.getItem("vocab_progress") || "{}");
-      stored[wordId] = status;
-      localStorage.setItem("vocab_progress", JSON.stringify(stored));
-    } catch(e) {}
-    return;
-  }
+
+  // 2. Save to localStorage immediately (works even without login)
   try {
-    const { error } = await sb.from("vocab_progress").upsert({
-      user_id: currentUser.id,
-      word_id: wordId,
-      status: status,
-      last_seen: new Date().toISOString()
-    }, { onConflict: "user_id,word_id" });
-    if (error) {
-      console.error("Supabase save error:", error);
-      // Fallback to localStorage
-      const stored = JSON.parse(localStorage.getItem("vocab_progress") || "{}");
-      stored[wordId] = status;
-      localStorage.setItem("vocab_progress", JSON.stringify(stored));
+    const stored = JSON.parse(localStorage.getItem("vocab_progress") || "{}");
+    stored[wordId] = status;
+    localStorage.setItem("vocab_progress", JSON.stringify(stored));
+  } catch(e) {}
+
+  // 3. Save to Supabase if logged in
+  if (!currentUser) return;
+  try {
+    // First try to select existing row
+    const { data: existing } = await sb
+      .from("vocab_progress")
+      .select("id")
+      .eq("user_id", currentUser.id)
+      .eq("word_id", wordId)
+      .maybeSingle();
+
+    let error;
+    if (existing) {
+      // Update existing row
+      const res = await sb
+        .from("vocab_progress")
+        .update({ status: status })
+        .eq("user_id", currentUser.id)
+        .eq("word_id", wordId);
+      error = res.error;
     } else {
-      console.log("Saved", wordId, "->", status);
-      // Also save to localStorage as backup
-      const stored = JSON.parse(localStorage.getItem("vocab_progress") || "{}");
-      stored[wordId] = status;
-      localStorage.setItem("vocab_progress", JSON.stringify(stored));
+      // Insert new row
+      const res = await sb
+        .from("vocab_progress")
+        .insert({ user_id: currentUser.id, word_id: wordId, status: status });
+      error = res.error;
+    }
+
+    if (error) {
+      console.error("Supabase save error:", error.message);
+    } else {
+      console.log("✓ Saved to Supabase:", wordId, "->", status);
     }
   } catch(e) {
-    console.error("Save exception:", e);
+    console.error("Save exception:", e.message);
   }
 }
 
@@ -1969,6 +1983,9 @@ function markWord(status) {
   if (!currentWord) return;
   saveProgress(currentWord.id, status);
   updateStats();
+  // Flash save indicator
+  const ind = document.getElementById("save-indicator");
+  if (ind) { ind.style.opacity = "1"; setTimeout(() => { ind.style.opacity = "0"; }, 1000); }
   if (status === "unknown") sessionQueue.push(currentWord);
   sessionIdx++;
   showCard();
