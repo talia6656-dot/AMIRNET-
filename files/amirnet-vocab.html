@@ -102,6 +102,7 @@ body { font-family: var(--font); background: var(--gray-50); min-height: 100vh; 
 <body>
 
 <div class="loading-overlay" id="loading-overlay">טוען מילים...</div>
+<div id="debug-bar" style="position:fixed;bottom:0;left:0;right:0;background:rgba(0,0,0,0.85);color:#0f0;font-size:11px;padding:4px 10px;z-index:999;font-family:monospace;display:none"></div>
 
 <header class="header">
   <div class="header-logo">Amir<span>NET</span> Pro</div>
@@ -2436,6 +2437,12 @@ let sessionIdx = 0;
 let isFlipped = false;
 let currentWord = null;
 
+function dbg(msg) {
+  console.log(msg);
+  const bar = document.getElementById('debug-bar');
+  if (bar) { bar.style.display='block'; bar.textContent = msg; }
+}
+
 async function init() {
   // Load from localStorage immediately so UI is responsive
   try {
@@ -2490,22 +2497,22 @@ async function loadProgress() {
   try {
     const stored = JSON.parse(localStorage.getItem("vocab_progress") || "{}");
     Object.keys(stored).forEach(k => { userProgress[k] = { status: stored[k] }; });
-    console.log("Loaded", Object.keys(stored).length, "words from localStorage");
+    dbg("localStorage: " + Object.keys(stored).length + " words");
   } catch(e) {}
 
   if (!currentUser) {
-    console.warn("No user session — using localStorage only");
+    dbg("⚠ No session - localStorage only");
     return;
   }
 
   // Load from Supabase — source of truth across all devices
   try {
-    console.log("Loading from Supabase for:", currentUser.email);
+    dbg("Loading for: " + currentUser.email);
     const { data, error } = await sb.from("vocab_progress").select("*").eq("user_id", currentUser.id);
-    if (error) { console.error("Supabase load error:", error.code, error.message); return; }
+    if (error) { dbg("✗ Load error: " + error.message); return; }
 
     if (data && data.length > 0) {
-      console.log("✓ Loaded", data.length, "words from Supabase");
+      dbg("✓ Supabase LOADED: " + data.length + " words");
       userProgress = {};
       data.forEach(row => { userProgress[row.word_id] = { status: row.status }; });
       // Sync Supabase data back to localStorage
@@ -2560,9 +2567,9 @@ async function saveProgress(wordId, status) {
       { onConflict: "user_id,word_id", ignoreDuplicates: false }
     );
     if (error) {
-      console.error("Save error:", error.code, error.message);
+      dbg("✗ Save error: " + error.message);
     } else {
-      console.log("✓ Synced to Supabase:", wordId, "->", status);
+      dbg("✓ Supabase SAVED:", wordId, "->", status);
     }
   } catch(e) {
     console.error("Save exception:", e.message);
