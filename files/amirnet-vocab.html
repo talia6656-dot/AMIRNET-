@@ -2569,14 +2569,31 @@ async function saveProgress(wordId, status) {
   }
   dbg("Sending to Supabase...");
   try {
-    const { data, error } = await sb.from("vocab_progress").upsert(
-      { user_id: currentUser.id, word_id: wordId, status: status },
-      { onConflict: "user_id,word_id" }
-    );
-    if (error) {
-      dbg("✗ Error: " + error.message + " (" + error.code + ")");
+    // Try update first
+    const { data: existing } = await sb
+      .from("vocab_progress")
+      .select("id")
+      .eq("user_id", currentUser.id)
+      .eq("word_id", wordId)
+      .maybeSingle();
+
+    let result;
+    if (existing) {
+      dbg("Updating existing row...");
+      result = await sb.from("vocab_progress")
+        .update({ status: status })
+        .eq("user_id", currentUser.id)
+        .eq("word_id", wordId);
     } else {
-      dbg("✓ Saved to Supabase: " + wordId + " = " + status);
+      dbg("Inserting new row...");
+      result = await sb.from("vocab_progress")
+        .insert({ user_id: currentUser.id, word_id: wordId, status: status });
+    }
+
+    if (result.error) {
+      dbg("✗ Error: " + result.error.message + " code:" + result.error.code);
+    } else {
+      dbg("✓ Saved! " + wordId + " = " + status);
     }
   } catch(e) {
     dbg("✗ Exception: " + e.message);
