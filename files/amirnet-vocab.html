@@ -2494,56 +2494,9 @@ async function testSupabase() {
   }
 }
 
+let currentAccessToken = null;
+
 async function init() {
-  // Load from localStorage immediately so UI is responsive
-  try {
-    const stored = JSON.parse(localStorage.getItem("vocab_progress") || "{}");
-    Object.keys(stored).forEach(k => { userProgress[k] = { status: stored[k] }; });
-  } catch(e) {}
-
-  document.getElementById("loading-overlay").classList.add("hidden");
-  buildSession();
-  updateStats();
-
-  // Then try to get Supabase session — retry a few times since it can take a moment
-  let attempts = 0;
-  async function tryGetSession() {
-    attempts++;
-    try {
-      const { data } = await sb.auth.getSession();
-      if (data.session) {
-        currentUser = data.session.user;
-        console.log("Logged in as:", currentUser.email);
-        // Load from Supabase and merge with localStorage
-        await loadProgress();
-        updateStats();
-        buildSession();
-      } else if (attempts < 5) {
-        // Retry after a short delay — session may not be ready yet
-        setTimeout(tryGetSession, 800);
-      } else {
-        console.warn("No session after", attempts, "attempts — using localStorage only");
-      }
-    } catch(e) {
-      console.warn("Session check error:", e);
-      if (attempts < 3) setTimeout(tryGetSession, 1000);
-    }
-  }
-  tryGetSession();
-
-  // Also listen for auth state changes
-  sb.auth.onAuthStateChange(async (event, session) => {
-    if (session && !currentUser) {
-      currentUser = session.user;
-      console.log("Auth state change - logged in:", currentUser.email);
-      await loadProgress();
-      updateStats();
-      buildSession();
-    }
-  });
-}
-
-async function loadProgress() {
   // Load from localStorage first for instant display
   try {
     const stored = JSON.parse(localStorage.getItem("vocab_progress") || "{}");
@@ -2551,47 +2504,89 @@ async function loadProgress() {
     dbg("localStorage: " + Object.keys(stored).length + " words");
   } catch(e) {}
 
-  if (!currentUser) {
-    dbg("⚠ No session - localStorage only");
-    return;
+  document.getElementById("loading-overlay").classList.add("hidden");
+  buildSession();
+  updateStats();
+
+  // Get session
+  try {
+    const { data } = await sb.auth.getSession();
+    if (data.session) {
+      currentUser = data.session.user;
+      currentAccessToken = data.session.access_token;
+      dbg("Loading for: " + currentUser.email);
+      await loadProgress();
+      updateStats();
+      buildSession();
+    }
+  } catch(e) {
+    dbg("Session error: " + e.message);
   }
 
-  // Load from Supabase — source of truth across all devices
-  try {
-    dbg("Loading for: " + currentUser.email);
-    const { data, error } = await sb.from("vocab_progress").select("*").eq("user_id", currentUser.id);
-    if (error) { dbg("✗ Load error: " + error.message); return; }
+  // Listen for auth state changes
+  sb.auth.onAuthStateChange(async (event, session) => {
+    if (session) {
+      currentUser = session.user;
+      currentAccessToken = session.access_token;
+      dbg("Auth state change - logged in: " + currentUser.email);
+      await loadProgress();
+      updateStats();
+      buildSession();
+    }
+  });
+}
 
+
+async function loadProgress() {
+  // Load from localStorage first
+  try {
+    const stored = JSON.parse(localStorage.getItem("vocab_progress") || "{}");
+    Object.keys(stored).forEach(k => { userProgress[k] = { status: stored[k] }; });
+  } catch(e) {}
+
+  if (!currentUser || !currentAccessToken) return;
+
+  try {
+    const url = "https://ivauncueyedwlthzylnt.supabase.co/rest/v1/vocab_progress?select=*&user_id=eq." + currentUser.id;
+    const res = await fetch(url, {
+      headers: {
+        "apikey": SUPABASE_KEY,
+        "Authorization": "Bearer " + currentAccessToken
+      }
+    });
+    if (!res.ok) { dbg("✗ Load error: " + res.status); return; }
+    const data = await res.json();
     if (data && data.length > 0) {
       dbg("✓ Supabase LOADED: " + data.length + " words");
       userProgress = {};
       data.forEach(row => { userProgress[row.word_id] = { status: row.status }; });
-      // Sync Supabase data back to localStorage
       try {
         const toStore = {};
         Object.keys(userProgress).forEach(k => { toStore[k] = userProgress[k].status; });
         localStorage.setItem("vocab_progress", JSON.stringify(toStore));
       } catch(e) {}
     } else {
-      // No Supabase data — push localStorage up to Supabase
+      dbg("No Supabase data — pushing localStorage up...");
       const stored = JSON.parse(localStorage.getItem("vocab_progress") || "{}");
       const keys = Object.keys(stored);
       if (keys.length > 0) {
-        console.log("Pushing", keys.length, "localStorage words to Supabase...");
-        const rows = keys.map(k => ({ user_id: currentUser.id, word_id: k, status: stored[k] }));
-        // Insert in batches of 100
-        for (let i = 0; i < rows.length; i += 100) {
-          const batch = rows.slice(i, i + 100);
-          const { error: e2 } = await sb.from("vocab_progress").upsert(batch, { onConflict: "user_id,word_id" });
-          if (e2) console.error("Batch sync error:", e2.message);
+        for (let i = 0; i < keys.length; i++) {
+          await fetch("https://ivauncueyedwlthzylnt.supabase.co/rest/v1/vocab_progress", {
+            method: "POST",
+            headers: {
+              "apikey": SUPABASE_KEY,
+              "Authorization": "Bearer " + currentAccessToken,
+              "Content-Type": "application/json",
+              "Prefer": "resolution=merge-duplicates,return=minimal"
+            },
+            body: JSON.stringify({ user_id: currentUser.id, word_id: keys[i], status: stored[keys[i]] })
+          });
         }
-        console.log("✓ Pushed localStorage to Supabase");
-      } else {
-        console.log("No progress data found anywhere — fresh start");
+        dbg("✓ Pushed " + keys.length + " words to Supabase");
       }
     }
   } catch(e) {
-    console.error("loadProgress exception:", e.message);
+    dbg("Load exception: " + e.message);
   }
 }
 
@@ -2614,33 +2609,28 @@ async function saveProgress(wordId, status) {
     dbg("⚠ No user — localStorage only");
     return;
   }
+  if (!currentAccessToken) {
+    dbg("⚠ No token — localStorage only");
+    return;
+  }
   dbg("Sending to Supabase...");
   try {
-    // Try update first
-    const { data: existing } = await sb
-      .from("vocab_progress")
-      .select("id")
-      .eq("user_id", currentUser.id)
-      .eq("word_id", wordId)
-      .maybeSingle();
-
-    let result;
-    if (existing) {
-      dbg("Updating existing row...");
-      result = await sb.from("vocab_progress")
-        .update({ status: status })
-        .eq("user_id", currentUser.id)
-        .eq("word_id", wordId);
-    } else {
-      dbg("Inserting new row...");
-      result = await sb.from("vocab_progress")
-        .insert({ user_id: currentUser.id, word_id: wordId, status: status });
-    }
-
-    if (result.error) {
-      dbg("✗ Error: " + result.error.message + " code:" + result.error.code);
-    } else {
+    const url = "https://ivauncueyedwlthzylnt.supabase.co/rest/v1/vocab_progress";
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "apikey": SUPABASE_KEY,
+        "Authorization": "Bearer " + currentAccessToken,
+        "Content-Type": "application/json",
+        "Prefer": "resolution=merge-duplicates,return=minimal"
+      },
+      body: JSON.stringify({ user_id: currentUser.id, word_id: wordId, status: status })
+    });
+    if (res.ok) {
       dbg("✓ Saved! " + wordId + " = " + status);
+    } else {
+      const err = await res.text();
+      dbg("✗ Error " + res.status + ": " + err.substring(0, 100));
     }
   } catch(e) {
     dbg("✗ Exception: " + e.message);
