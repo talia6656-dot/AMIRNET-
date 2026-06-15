@@ -159,6 +159,7 @@ body { font-family: var(--font); background: var(--gray-50); min-height: 100vh; 
       <button class="action-btn btn-familiar" onclick="markWord('familiar')">&#128260; מתרגל</button>
       <button class="action-btn btn-practice" onclick="markWord('unknown')">&#10005; לא יודע</button>
     </div>
+    <button onclick="testSupabase()" style="font-size:11px;padding:4px 10px;background:#333;color:#0f0;border:1px solid #0f0;border-radius:4px;cursor:pointer;margin-top:4px">🔧 Test Supabase</button>
     <div id="save-indicator" style="font-size:12px;color:var(--green);text-align:center;height:16px;transition:opacity 0.5s;opacity:0;">✓ נשמר</div>
     <div style="font-size:12px;color:var(--gray-400);text-align:center;margin-top:-4px;line-height:1.8">
       <span style="display:block;margin-bottom:2px">לחץ על הכרטיס כדי להפוך אותו ולראות את התרגום</span>
@@ -2444,6 +2445,52 @@ function dbg(msg) {
     bar.style.display='block';
     bar.innerHTML += '<br>' + msg;
     bar.scrollTop = bar.scrollHeight;
+  }
+}
+
+async function testSupabase() {
+  dbg("--- DIRECT TEST ---");
+  const url = "https://ivauncueyedwlthzylnt.supabase.co/rest/v1/vocab_progress";
+  const key = document.querySelector('script') ? SUPABASE_KEY : '';
+  try {
+    const res = await fetch(url + "?select=count", {
+      headers: {
+        "apikey": SUPABASE_KEY,
+        "Authorization": "Bearer " + SUPABASE_KEY,
+        "Content-Type": "application/json"
+      }
+    });
+    dbg("Fetch status: " + res.status + " " + res.statusText);
+    const text = await res.text();
+    dbg("Response: " + text.substring(0, 100));
+  } catch(e) {
+    dbg("Fetch error: " + e.message);
+  }
+
+  // Also test insert directly
+  try {
+    const session = await sb.auth.getSession();
+    if (session.data.session) {
+      const token = session.data.session.access_token;
+      dbg("Token starts: " + token.substring(0,20) + "...");
+      const res2 = await fetch(url, {
+        method: "POST",
+        headers: {
+          "apikey": SUPABASE_KEY,
+          "Authorization": "Bearer " + token,
+          "Content-Type": "application/json",
+          "Prefer": "return=minimal"
+        },
+        body: JSON.stringify({ user_id: session.data.session.user.id, word_id: "test123", status: "known" })
+      });
+      dbg("Insert status: " + res2.status + " " + res2.statusText);
+      const t2 = await res2.text();
+      dbg("Insert response: " + t2.substring(0, 100));
+    } else {
+      dbg("No session for direct test");
+    }
+  } catch(e) {
+    dbg("Insert error: " + e.message);
   }
 }
 
