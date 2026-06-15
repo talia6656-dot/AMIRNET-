@@ -102,7 +102,7 @@ body { font-family: var(--font); background: var(--gray-50); min-height: 100vh; 
 <body>
 
 <div class="loading-overlay" id="loading-overlay">טוען מילים...</div>
-<div id="debug-bar" style="position:fixed;bottom:0;left:0;right:0;background:rgba(0,0,0,0.85);color:#0f0;font-size:11px;padding:4px 10px;z-index:999;font-family:monospace;display:none"></div>
+<div id="debug-bar" style="position:fixed;bottom:0;left:0;right:0;background:rgba(0,0,0,0.9);color:#0f0;font-size:11px;padding:6px 10px;z-index:999;font-family:monospace;display:none;max-height:120px;overflow-y:auto;line-height:1.6"></div>
 
 <header class="header">
   <div class="header-logo">Amir<span>NET</span> Pro</div>
@@ -2440,7 +2440,11 @@ let currentWord = null;
 function dbg(msg) {
   console.log(msg);
   const bar = document.getElementById('debug-bar');
-  if (bar) { bar.style.display='block'; bar.textContent = msg; }
+  if (bar) {
+    bar.style.display='block';
+    bar.innerHTML += '<br>' + msg;
+    bar.scrollTop = bar.scrollHeight;
+  }
 }
 
 async function init() {
@@ -2546,33 +2550,36 @@ async function loadProgress() {
 
 
 async function saveProgress(wordId, status) {
-  // 1. Update in-memory immediately
+  dbg("Saving: " + wordId + " -> " + status);
+
+  // 1. Update in-memory
   userProgress[wordId] = { status };
 
-  // 2. Save to localStorage (device fallback)
+  // 2. Save to localStorage
   try {
     const stored = JSON.parse(localStorage.getItem("vocab_progress") || "{}");
     stored[wordId] = status;
     localStorage.setItem("vocab_progress", JSON.stringify(stored));
   } catch(e) {}
 
-  // 3. Save to Supabase (cross-device sync)
+  // 3. Save to Supabase
   if (!currentUser) {
-    console.warn("Not logged in — progress saved locally only");
+    dbg("⚠ No user — localStorage only");
     return;
   }
+  dbg("Sending to Supabase...");
   try {
-    const { error } = await sb.from("vocab_progress").upsert(
+    const { data, error } = await sb.from("vocab_progress").upsert(
       { user_id: currentUser.id, word_id: wordId, status: status },
-      { onConflict: "user_id,word_id", ignoreDuplicates: false }
+      { onConflict: "user_id,word_id" }
     );
     if (error) {
-      dbg("✗ Save error: " + error.message);
+      dbg("✗ Error: " + error.message + " (" + error.code + ")");
     } else {
-      dbg("✓ Supabase SAVED:", wordId, "->", status);
+      dbg("✓ Saved to Supabase: " + wordId + " = " + status);
     }
   } catch(e) {
-    console.error("Save exception:", e.message);
+    dbg("✗ Exception: " + e.message);
   }
 }
 
