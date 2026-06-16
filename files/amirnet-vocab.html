@@ -2788,9 +2788,9 @@ document.addEventListener("keydown", e => {
   const card = document.getElementById("flashcard");
   let sx = 0, sy = 0, st = 0;
   let moved = false;
-  let swipeAxis = null; // 'h' for horizontal, 'v' for vertical, null for undecided
+  let swipeAxis = null;
+  let blocked = false; // blocked if started too close to left edge
 
-  // Fix 1: Prevent page scroll when swiping horizontally on the card
   card.addEventListener("touchstart", function(e) {
     sx = e.touches[0].clientX;
     sy = e.touches[0].clientY;
@@ -2798,31 +2798,30 @@ document.addEventListener("keydown", e => {
     moved = false;
     swipeAxis = null;
     card.style.transition = "none";
-  }, { passive: true });
+    // Block swipes that start within 30px of left edge — that's the browser back gesture zone
+    blocked = sx < 30;
+  }, { passive: false });
 
   card.addEventListener("touchmove", function(e) {
+    if (blocked) return;
     var dx = e.touches[0].clientX - sx;
     var dy = e.touches[0].clientY - sy;
     var absDx = Math.abs(dx);
     var absDy = Math.abs(dy);
 
-    // Determine swipe axis once we have enough movement
     if (swipeAxis === null && (absDx > 8 || absDy > 8)) {
-      // Fix 2: Only lock to horizontal if clearly more horizontal than vertical
-      // This prevents accidental upward swipes while scrolling
       if (absDx > absDy * 1.5) {
         swipeAxis = 'h';
       } else if (absDy > absDx * 1.5) {
         swipeAxis = 'v';
       } else {
-        swipeAxis = 'none'; // diagonal — ignore
+        swipeAxis = 'none';
       }
     }
 
     moved = absDx > 5 || absDy > 5;
 
     if (swipeAxis === 'h') {
-      // Horizontal swipe — prevent page scroll and animate card
       e.preventDefault();
       var rot = dx * 0.07;
       var lift = -Math.abs(dx) * 0.08;
@@ -2830,15 +2829,15 @@ document.addEventListener("keydown", e => {
       card.style.opacity = String(Math.max(0.5, 1 - Math.abs(dx) / 300));
       showHint(dx > 0 ? "known" : "unknown", Math.abs(dx));
     } else if (swipeAxis === 'v' && dy < -8) {
-      // Fix 2: Require much more deliberate upward swipe — minimum 120px
-      // to avoid accidental triggers while scrolling
+      e.preventDefault();
       card.style.transform = "translateY(" + (dy * 0.3) + "px)";
       card.style.opacity = String(Math.max(0.6, 1 - Math.abs(dy) / 400));
       showHint("familiar", Math.abs(dy));
     }
-  }, { passive: false }); // passive:false needed to call preventDefault()
+  }, { passive: false });
 
   card.addEventListener("touchend", function(e) {
+    if (blocked) { blocked = false; return; }
     e.preventDefault();
     var dx = e.changedTouches[0].clientX - sx;
     var dy = e.changedTouches[0].clientY - sy;
