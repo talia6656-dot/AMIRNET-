@@ -141,8 +141,8 @@ body { font-family: var(--font); background: var(--gray-50); min-height: 100vh; 
           <span class="card-counter" id="card-counter">1 / 100</span>
           <div class="card-word" id="card-word">—</div>
           <div class="card-sentence" id="card-sentence">—</div>
-          <button class="card-listen-btn" onclick="event.stopPropagation();speakWord()" ontouchstart="event.stopPropagation();speakWord()" style="bottom:16px;left:16px">&#9654; מילה</button>
-          <button class="card-listen-btn" onclick="event.stopPropagation();speakSentence()" ontouchstart="event.stopPropagation();speakSentence()" style="bottom:16px;left:90px">&#9654; משפט</button>
+          <button class="card-listen-btn" ontouchstart="event.stopPropagation();event.preventDefault();speakWord()" onclick="event.stopPropagation();speakWord()" style="bottom:16px;left:16px">&#9654; מילה</button>
+          <button class="card-listen-btn" ontouchstart="event.stopPropagation();event.preventDefault();speakSentence()" onclick="event.stopPropagation();speakSentence()" style="bottom:16px;left:90px">&#9654; משפט</button>
         </div>
         <div class="card-face card-back">
           <div class="card-hebrew" id="card-hebrew">—</div>
@@ -2785,40 +2785,69 @@ document.addEventListener("keydown", e => {
 // Swipe gestures
 // ── TOUCH & SWIPE ────────────────────────────────────────────
 (function() {
-  var card = document.getElementById("flashcard");
-  var sx = 0, sy = 0, st = 0, moved = false;
+  const card = document.getElementById("flashcard");
+  let sx = 0, sy = 0, st = 0;
+  let moved = false;
+  let swipeAxis = null; // 'h' for horizontal, 'v' for vertical, null for undecided
 
+  // Fix 1: Prevent page scroll when swiping horizontally on the card
   card.addEventListener("touchstart", function(e) {
     sx = e.touches[0].clientX;
     sy = e.touches[0].clientY;
     st = Date.now();
     moved = false;
+    swipeAxis = null;
     card.style.transition = "none";
   }, { passive: true });
 
   card.addEventListener("touchmove", function(e) {
     var dx = e.touches[0].clientX - sx;
     var dy = e.touches[0].clientY - sy;
-    if (Math.abs(dx) > 5 || Math.abs(dy) > 5) moved = true;
-    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 8) {
+    var absDx = Math.abs(dx);
+    var absDy = Math.abs(dy);
+
+    // Determine swipe axis once we have enough movement
+    if (swipeAxis === null && (absDx > 8 || absDy > 8)) {
+      // Fix 2: Only lock to horizontal if clearly more horizontal than vertical
+      // This prevents accidental upward swipes while scrolling
+      if (absDx > absDy * 1.5) {
+        swipeAxis = 'h';
+      } else if (absDy > absDx * 1.5) {
+        swipeAxis = 'v';
+      } else {
+        swipeAxis = 'none'; // diagonal — ignore
+      }
+    }
+
+    moved = absDx > 5 || absDy > 5;
+
+    if (swipeAxis === 'h') {
+      // Horizontal swipe — prevent page scroll and animate card
+      e.preventDefault();
       var rot = dx * 0.07;
       var lift = -Math.abs(dx) * 0.08;
-      card.style.transform = "translateX(" + (dx*0.45) + "px) translateY(" + lift + "px) rotate(" + rot + "deg)";
-      card.style.opacity = String(Math.max(0.5, 1 - Math.abs(dx)/300));
+      card.style.transform = "translateX(" + (dx * 0.45) + "px) translateY(" + lift + "px) rotate(" + rot + "deg)";
+      card.style.opacity = String(Math.max(0.5, 1 - Math.abs(dx) / 300));
       showHint(dx > 0 ? "known" : "unknown", Math.abs(dx));
-    } else if (dy < -8 && Math.abs(dy) > Math.abs(dx)) {
-      card.style.transform = "translateY(" + (dy*0.4) + "px)";
-      card.style.opacity = String(Math.max(0.5, 1 - Math.abs(dy)/300));
+    } else if (swipeAxis === 'v' && dy < -8) {
+      // Fix 2: Require much more deliberate upward swipe — minimum 120px
+      // to avoid accidental triggers while scrolling
+      card.style.transform = "translateY(" + (dy * 0.3) + "px)";
+      card.style.opacity = String(Math.max(0.6, 1 - Math.abs(dy) / 400));
       showHint("familiar", Math.abs(dy));
     }
-  }, { passive: true });
+  }, { passive: false }); // passive:false needed to call preventDefault()
 
   card.addEventListener("touchend", function(e) {
-    e.preventDefault(); // prevent click from firing on mobile
+    e.preventDefault();
     var dx = e.changedTouches[0].clientX - sx;
     var dy = e.changedTouches[0].clientY - sy;
+    var dt = Date.now() - st;
+
     hideHint();
     card.style.transition = "transform 0.35s ease, opacity 0.35s ease";
+
+    // Short tap with little movement = flip
     if (!moved || (Math.abs(dx) < 10 && Math.abs(dy) < 10)) {
       card.style.transform = "";
       card.style.opacity = "";
@@ -2826,28 +2855,38 @@ document.addEventListener("keydown", e => {
       flipCard();
       return;
     }
-    var absDx = Math.abs(dx), absDy = Math.abs(dy);
-    if (absDx > absDy && absDx > 55) {
+
+    if (swipeAxis === 'h' && Math.abs(dx) > 60) {
+      // Horizontal swipe
       var dir = dx > 0 ? 1 : -1;
-      card.style.transform = "translateX(" + (dir*150) + "vw) translateY(-40px) rotate(" + (dir*30) + "deg)";
+      card.style.transform = "translateX(" + (dir * 150) + "vw) translateY(-40px) rotate(" + (dir * 30) + "deg)";
       card.style.opacity = "0";
       var action = dx > 0 ? "known" : "unknown";
       setTimeout(function() {
-        card.style.transition = ""; card.style.transform = ""; card.style.opacity = "";
+        card.style.transition = "";
+        card.style.transform = "";
+        card.style.opacity = "";
         markWord(action);
       }, 320);
-    } else if (absDy > absDx && dy < -55) {
+    } else if (swipeAxis === 'v' && dy < -120) {
+      // Fix 2: Require 120px upward swipe minimum
       card.style.transform = "translateY(-150vh)";
       card.style.opacity = "0";
       setTimeout(function() {
-        card.style.transition = ""; card.style.transform = ""; card.style.opacity = "";
+        card.style.transition = "";
+        card.style.transform = "";
+        card.style.opacity = "";
         markWord("familiar");
       }, 320);
     } else {
-      card.style.transform = ""; card.style.opacity = "";
+      // Not enough — snap back
+      card.style.transform = "";
+      card.style.opacity = "";
       setTimeout(function() { card.style.transition = ""; }, 350);
     }
+
     moved = false;
+    swipeAxis = null;
   });
 
   function showHint(type, dist) {
@@ -2858,10 +2897,10 @@ document.addEventListener("keydown", e => {
       hint.style.cssText = "position:absolute;top:16px;left:50%;transform:translateX(-50%);padding:7px 18px;border-radius:999px;font-size:15px;font-weight:700;pointer-events:none;z-index:10;color:#fff;";
       card.querySelector(".card-front").appendChild(hint);
     }
-    hint.style.opacity = String(Math.min(1, (dist-15)/50));
-    if (type==="known") { hint.textContent="✓ שולט"; hint.style.background="rgba(5,150,105,0.9)"; }
-    else if (type==="unknown") { hint.textContent="✗ לא יודע"; hint.style.background="rgba(220,38,38,0.9)"; }
-    else { hint.textContent="↺ מתרגל"; hint.style.background="rgba(245,158,11,0.9)"; }
+    hint.style.opacity = String(Math.min(1, (dist - 15) / 50));
+    if (type === "known") { hint.textContent = "✓ שולט"; hint.style.background = "rgba(5,150,105,0.9)"; }
+    else if (type === "unknown") { hint.textContent = "✗ לא יודע"; hint.style.background = "rgba(220,38,38,0.9)"; }
+    else { hint.textContent = "↺ מתרגל"; hint.style.background = "rgba(245,158,11,0.9)"; }
   }
 
   function hideHint() {
