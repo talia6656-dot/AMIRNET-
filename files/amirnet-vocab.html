@@ -101,6 +101,9 @@ body { font-family: var(--font); background: var(--gray-50); min-height: 100vh; 
 /* Touch-device-only: disable browser gestures on the card so swipes work cleanly */
 @media (pointer: coarse) {
   .flashcard, .flashcard-wrap { touch-action: none; overscroll-behavior: none; }
+  /* Block horizontal overscroll/back-gesture on the whole page on touch devices only */
+  html { overscroll-behavior-x: none; }
+  body { overscroll-behavior-x: none; }
 }
 </style>
 </head>
@@ -146,8 +149,8 @@ body { font-family: var(--font); background: var(--gray-50); min-height: 100vh; 
           <span class="card-counter" id="card-counter">1 / 100</span>
           <div class="card-word" id="card-word">—</div>
           <div class="card-sentence" id="card-sentence">—</div>
-          <button class="card-listen-btn" ontouchstart="event.stopPropagation();event.preventDefault();speakWord()" onclick="event.stopPropagation();speakWord()" style="bottom:16px;left:16px">&#9654; מילה</button>
-          <button class="card-listen-btn" ontouchstart="event.stopPropagation();event.preventDefault();speakSentence()" onclick="event.stopPropagation();speakSentence()" style="bottom:16px;left:90px">&#9654; משפט</button>
+          <button class="card-listen-btn" ontouchend="event.stopPropagation();event.preventDefault();speakWord();return false;" onclick="event.stopPropagation();speakWord()" style="bottom:16px;left:16px">&#9654; מילה</button>
+          <button class="card-listen-btn" ontouchend="event.stopPropagation();event.preventDefault();speakSentence();return false;" onclick="event.stopPropagation();speakSentence()" style="bottom:16px;left:90px">&#9654; משפט</button>
         </div>
         <div class="card-face card-back">
           <div class="card-hebrew" id="card-hebrew">—</div>
@@ -2788,71 +2791,74 @@ document.addEventListener("keydown", e => {
 });
 
 // Swipe gestures
-// ── TOUCH & SWIPE ────────────────────────────────────────────
+// ── TOUCH & SWIPE (touch devices only) ──────────────────────
 (function() {
   const card = document.getElementById("flashcard");
   let sx = 0, sy = 0, st = 0;
   let moved = false;
   let swipeAxis = null;
-  let blocked = false; // blocked if started too close to left edge
+  let ignore = false; // ignore this gesture entirely (e.g. started on a button)
+
+  function startedOnButton(target) {
+    return target.closest && target.closest('.card-listen-btn');
+  }
 
   card.addEventListener("touchstart", function(e) {
+    // If the touch started on a listen button, ignore this whole gesture
+    if (startedOnButton(e.target)) {
+      ignore = true;
+      return;
+    }
+    ignore = false;
     sx = e.touches[0].clientX;
     sy = e.touches[0].clientY;
     st = Date.now();
     moved = false;
     swipeAxis = null;
     card.style.transition = "none";
-    // Block swipes that start within 30px of left edge — that's the browser back gesture zone
-    blocked = sx < 30;
-  }, { passive: false });
+  }, { passive: true });
 
   card.addEventListener("touchmove", function(e) {
-    if (blocked) return;
+    if (ignore) return;
     var dx = e.touches[0].clientX - sx;
     var dy = e.touches[0].clientY - sy;
     var absDx = Math.abs(dx);
     var absDy = Math.abs(dy);
 
     if (swipeAxis === null && (absDx > 8 || absDy > 8)) {
-      if (absDx > absDy * 1.5) {
-        swipeAxis = 'h';
-      } else if (absDy > absDx * 1.5) {
-        swipeAxis = 'v';
-      } else {
-        swipeAxis = 'none';
-      }
+      if (absDx > absDy * 1.3) swipeAxis = 'h';
+      else if (absDy > absDx * 1.3) swipeAxis = 'v';
+      else swipeAxis = 'none';
     }
 
     moved = absDx > 5 || absDy > 5;
 
     if (swipeAxis === 'h') {
       e.preventDefault();
+      e.stopPropagation();
       var rot = dx * 0.07;
       var lift = -Math.abs(dx) * 0.08;
       card.style.transform = "translateX(" + (dx * 0.45) + "px) translateY(" + lift + "px) rotate(" + rot + "deg)";
-      card.style.opacity = String(Math.max(0.5, 1 - Math.abs(dx) / 300));
-      showHint(dx > 0 ? "known" : "unknown", Math.abs(dx));
+      card.style.opacity = String(Math.max(0.5, 1 - absDx / 300));
+      showHint(dx > 0 ? "known" : "unknown", absDx);
     } else if (swipeAxis === 'v' && dy < -8) {
       e.preventDefault();
       card.style.transform = "translateY(" + (dy * 0.3) + "px)";
-      card.style.opacity = String(Math.max(0.6, 1 - Math.abs(dy) / 400));
-      showHint("familiar", Math.abs(dy));
+      card.style.opacity = String(Math.max(0.6, 1 - absDy / 400));
+      showHint("familiar", absDy);
     }
   }, { passive: false });
 
   card.addEventListener("touchend", function(e) {
-    if (blocked) { blocked = false; return; }
-    e.preventDefault();
+    if (ignore) { ignore = false; return; }
     var dx = e.changedTouches[0].clientX - sx;
     var dy = e.changedTouches[0].clientY - sy;
-    var dt = Date.now() - st;
+    var absDx = Math.abs(dx), absDy = Math.abs(dy);
 
     hideHint();
     card.style.transition = "transform 0.35s ease, opacity 0.35s ease";
 
-    // Short tap with little movement = flip
-    if (!moved || (Math.abs(dx) < 10 && Math.abs(dy) < 10)) {
+    if (!moved || (absDx < 10 && absDy < 10)) {
       card.style.transform = "";
       card.style.opacity = "";
       setTimeout(function() { card.style.transition = ""; }, 350);
@@ -2860,37 +2866,27 @@ document.addEventListener("keydown", e => {
       return;
     }
 
-    if (swipeAxis === 'h' && Math.abs(dx) > 60) {
-      // Horizontal swipe
+    if (swipeAxis === 'h' && absDx > 60) {
       var dir = dx > 0 ? 1 : -1;
       card.style.transform = "translateX(" + (dir * 150) + "vw) translateY(-40px) rotate(" + (dir * 30) + "deg)";
       card.style.opacity = "0";
       var action = dx > 0 ? "known" : "unknown";
       setTimeout(function() {
-        card.style.transition = "";
-        card.style.transform = "";
-        card.style.opacity = "";
+        card.style.transition = ""; card.style.transform = ""; card.style.opacity = "";
         markWord(action);
       }, 320);
     } else if (swipeAxis === 'v' && dy < -120) {
-      // Fix 2: Require 120px upward swipe minimum
       card.style.transform = "translateY(-150vh)";
       card.style.opacity = "0";
       setTimeout(function() {
-        card.style.transition = "";
-        card.style.transform = "";
-        card.style.opacity = "";
+        card.style.transition = ""; card.style.transform = ""; card.style.opacity = "";
         markWord("familiar");
       }, 320);
     } else {
-      // Not enough — snap back
-      card.style.transform = "";
-      card.style.opacity = "";
+      card.style.transform = ""; card.style.opacity = "";
       setTimeout(function() { card.style.transition = ""; }, 350);
     }
-
-    moved = false;
-    swipeAxis = null;
+    moved = false; swipeAxis = null;
   });
 
   function showHint(type, dist) {
@@ -2906,7 +2902,6 @@ document.addEventListener("keydown", e => {
     else if (type === "unknown") { hint.textContent = "✗ לא יודע"; hint.style.background = "rgba(220,38,38,0.9)"; }
     else { hint.textContent = "↺ מתרגל"; hint.style.background = "rgba(245,158,11,0.9)"; }
   }
-
   function hideHint() {
     var hint = document.getElementById("swipe-hint");
     if (hint) hint.style.opacity = "0";
