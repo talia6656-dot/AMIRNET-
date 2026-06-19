@@ -211,6 +211,18 @@ body{font-family:'Heebo',sans-serif;background:var(--gray-50);color:var(--text);
 .sec-summary td{padding:8px 10px;border-bottom:1px solid var(--gray-100);color:var(--text)}
 .sec-summary tr:last-child td{border-bottom:none}
 #home.screen{overflow-y:auto!important}
+.tword{cursor:pointer;border-radius:3px;transition:background 0.15s;padding:0 1px}
+.tword:hover{background:rgba(59,130,246,0.15)}
+#word-popup{position:absolute;z-index:9999;background:var(--white);border:1px solid var(--gray-200);border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,0.18);padding:12px 14px;min-width:160px;max-width:220px;direction:rtl;text-align:center;animation:wpfade 0.12s ease}
+@keyframes wpfade{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+.wp-word{font-size:15px;font-weight:700;color:var(--gray-700);direction:ltr;margin-bottom:4px}
+.wp-heb{font-size:16px;color:#2563eb;font-weight:600;margin-bottom:10px;min-height:20px}
+.wp-listen{background:var(--gray-100);border:1px solid var(--gray-200);border-radius:8px;padding:5px 14px;font-size:13px;cursor:pointer;color:var(--gray-600);font-family:inherit}
+.wp-listen:hover{background:var(--gray-200)}
+#seg-listen-btn{position:absolute;z-index:10000;background:#2563eb;color:#fff;border:none;border-radius:8px;padding:7px 16px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 4px 14px rgba(37,99,235,0.4);direction:rtl;animation:wpfade 0.12s ease;white-space:nowrap}
+#seg-listen-btn:hover{background:#1d4ed8}
+.q-text,.passage-text,.opt-text{-webkit-user-select:text;user-select:text}
+.q-text ::selection,.passage-text ::selection,.opt-text ::selection{background:rgba(245,158,11,0.4)}
 </style>
 </head>
 <body>
@@ -2998,8 +3010,182 @@ function endSection(){
 
 // getPassage now defined in PASSAGE_BANK system above
 
+// ───────────────────────────────────────────────────────────
+// WORD TRANSLATION POPUP (Section 1 only for now)
+// Click any word → small popup with Hebrew translation + listen button
+// Uses MyMemory free API, with in-memory caching to avoid repeat lookups
+// ───────────────────────────────────────────────────────────
+const translationCache = {};
+
+let _twordCounter = 0;
+function makeWordsClickable(html){
+  // Wrap each English word in a clickable span, leaving HTML tags intact.
+  // Each word gets a unique index so we can support drag-to-select for listening.
+  const groupId = 'wg' + (_twordCounter++);
+  let wi = 0;
+  const inner = html.replace(/(<[^>]+>)|([A-Za-z]+(?:'[A-Za-z]+)?)/g, function(match, tag, word){
+    if(tag) return tag;            // leave HTML tags untouched
+    const idx = wi++;
+    return '<span class="tword" data-g="'+groupId+'" data-i="'+idx+'" '
+      + 'onclick="showWordTranslation(event,\''+word.replace(/'/g,"\\'")+'\')">'+word+'</span>';
+  });
+  return '<span class="tword-group" data-group="'+groupId+'">'+inner+'</span>';
+}
+
+async function showWordTranslation(ev, word){
+  ev.stopPropagation();
+  closeWordPopup();
+  const clean = word.toLowerCase().replace(/[^a-z']/g,'');
+  if(!clean) return;
+
+  // Build popup shell immediately (shows loading)
+  const pop = document.createElement('div');
+  pop.id = 'word-popup';
+  pop.innerHTML = '<div class="wp-word">'+word+'</div>'
+    + '<div class="wp-heb" id="wp-heb">מתרגם…</div>'
+    + '<button class="wp-listen" onclick="speakSingleWord(\''+clean.replace(/'/g,"\\'")+'\')">&#9654; האזן</button>';
+  document.body.appendChild(pop);
+
+  // Position near the clicked word
+  const rect = ev.target.getBoundingClientRect();
+  pop.style.top = (window.scrollY + rect.bottom + 6) + 'px';
+  let left = window.scrollX + rect.left;
+  if(left + 200 > window.innerWidth) left = window.innerWidth - 210;
+  pop.style.left = Math.max(8,left) + 'px';
+
+  // Fetch translation (cached) — try Google's free endpoint first, then MyMemory
+  let heb;
+  if(translationCache[clean]){
+    heb = translationCache[clean];
+  } else {
+    heb = await translateWord(clean);
+    if(heb && heb !== '—' && !heb.startsWith('שגיאה')) translationCache[clean] = heb;
+  }
+  const hebEl = document.getElementById('wp-heb');
+  if(hebEl) hebEl.textContent = heb;
+}
+
+async function translateWord(word){
+  // Method 1: Google translate free gtx endpoint (very reliable from browser)
+  try {
+    const url = 'https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=iw&dt=t&q='+encodeURIComponent(word);
+    const res = await fetch(url);
+    if(res.ok){
+      const data = await res.json();
+      if(data && data[0] && data[0][0] && data[0][0][0]){
+        return data[0][0][0];
+      }
+    }
+  } catch(e){ /* fall through to method 2 */ }
+
+  // Method 2: MyMemory fallback
+  try {
+    const params = new URLSearchParams({ q: word, langpair: 'en|he' });
+    const res = await fetch('https://api.mymemory.translated.net/get?'+params.toString());
+    if(res.ok){
+      const data = await res.json();
+      if(data && data.responseData && data.responseData.translatedText){
+        return data.responseData.translatedText;
+      }
+    }
+  } catch(e){ /* both failed */ }
+
+  return 'אין תרגום';
+}
+
+function speakSingleWord(word){
+  if(window.speechSynthesis.speaking) window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(word);
+  u.lang = 'en-US';
+  u.rate = 0.9;
+  const voices = window.speechSynthesis.getVoices();
+  const en = voices.find(v=>v.lang.startsWith('en'));
+  if(en) u.voice = en;
+  window.speechSynthesis.speak(u);
+}
+
+function closeWordPopup(){
+  const ex = document.getElementById('word-popup');
+  if(ex) ex.remove();
+}
+
+// Close popup when clicking elsewhere
+document.addEventListener('click', function(e){
+  const pop = document.getElementById('word-popup');
+  if(pop && !pop.contains(e.target) && !e.target.classList.contains('tword')){
+    closeWordPopup();
+  }
+});
+
+// ───────────────────────────────────────────────────────────
+// SELECT TEXT TO LISTEN  (native selection → floating listen button)
+// Highlight any text (drag on desktop, or native selection on phone).
+// When a selection is made, a "האזן" button appears near it.
+// A plain tap with no selection still triggers translation.
+// ───────────────────────────────────────────────────────────
+function _removeSegButton(){
+  const b = document.getElementById('seg-listen-btn');
+  if(b) b.remove();
+}
+
+function speakSegment(text){
+  if(window.speechSynthesis.speaking) window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'en-US'; u.rate = 0.9;
+  const voices = window.speechSynthesis.getVoices();
+  const en = voices.find(v=>v.lang.startsWith('en'));
+  if(en) u.voice = en;
+  window.speechSynthesis.speak(u);
+}
+
+function _showSegButtonForSelection(){
+  const sel = window.getSelection();
+  if(!sel || sel.isCollapsed){ _removeSegButton(); return; }
+  const text = sel.toString().trim();
+  // Only show for a real multi-character selection that contains letters
+  if(text.length < 2 || !/[A-Za-z]/.test(text)){ _removeSegButton(); return; }
+  // Make sure the selection is inside the quiz body (exercise text), not elsewhere
+  let node = sel.anchorNode;
+  let inside = false;
+  while(node){
+    if(node.id === 'quiz-body'){ inside = true; break; }
+    node = node.parentNode;
+  }
+  if(!inside){ _removeSegButton(); return; }
+
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  let btn = document.getElementById('seg-listen-btn');
+  if(!btn){ btn = document.createElement('button'); btn.id='seg-listen-btn'; document.body.appendChild(btn); }
+  btn.innerHTML = '&#9654; האזן';
+  btn.onmousedown = function(ev){ ev.preventDefault(); }; // keep selection alive
+  btn.onclick = function(ev){ ev.stopPropagation(); speakSegment(text); };
+  btn.style.top = (window.scrollY + rect.top - 44) + 'px';
+  let left = window.scrollX + rect.left + (rect.width/2) - 40;
+  if(left + 110 > window.innerWidth) left = window.innerWidth - 120;
+  btn.style.left = Math.max(8,left) + 'px';
+}
+
+// Desktop: selection finishes on mouseup
+document.addEventListener('mouseup', function(){
+  setTimeout(_showSegButtonForSelection, 10);
+});
+// Phone: native selection change
+document.addEventListener('selectionchange', function(){
+  // debounce slightly so the button appears once selection settles
+  clearTimeout(window._segSelTimer);
+  window._segSelTimer = setTimeout(_showSegButtonForSelection, 250);
+});
+// Remove the button when selection is cleared by tapping elsewhere
+document.addEventListener('mousedown', function(e){
+  if(e.target.id === 'seg-listen-btn') return;
+  const sel = window.getSelection();
+  if(!sel || sel.isCollapsed) _removeSegButton();
+});
+
 function renderQuestion(){
   sectionPhase='question';
+  _removeSegButton();
   const sec=SECTIONS[currentSec];
   const qs=secQuestions(currentSec);
   const q=qs[currentQInSec];
@@ -3050,7 +3236,7 @@ function renderQuestion(){
           const showNum=true;
           return `<div class="css-para">
             <span class="para-line-num">(${paraNum})</span>
-            <p class="para-text${isFirst?'':' para-indent'}">${para}</p>
+            <p class="para-text${isFirst?'':' para-indent'}">${makeWordsClickable(para)}</p>
           </div>`;
         }).join('');
         passageHtml=`<div class="passage-card"><div class="passage-listen-row"><div class="passage-label">Read the following passage</div>${passageListenBtn}</div><div class="passage-text">${passageBodyHtml}</div></div>`;
@@ -3061,6 +3247,8 @@ function renderQuestion(){
   // Q text
   let qText=q.text;
   if(q.type==='completion')qText=qText.replace('______','<span class="blank-line"></span>');
+  // All sections: make each word clickable for translation
+  qText=makeWordsClickable(qText);
 
   // Options
   const letters=['1','2','3','4'];
@@ -3075,7 +3263,7 @@ function renderQuestion(){
     const speakerBtn=mode==='practice'?`<button class="opt-listen" onclick="event.stopPropagation();speakOption('${opt.replace(/'/g,"\'")}')" title="האזן לתשובה">&#128264;</button>`:'';
     optsHtml+=`<div class="${cls}" id="opt-${i}" onclick="selectOpt(${i})" ${blocked}>
       <div class="opt-badge">${letters[i]}</div>
-      <div class="opt-text">${opt}</div>
+      <div class="opt-text">${makeWordsClickable(opt)}</div>
       ${speakerBtn}
     </div>`;
   });
