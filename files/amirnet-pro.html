@@ -279,7 +279,7 @@ body{font-family:'Heebo',sans-serif;background:var(--gray-50);color:var(--text);
         <div class="mode-desc">תרגל שאלות ברמת הבחינה האמיתית וקבל הסבר מפורט בעברית אחרי כל תשובה. בקצב שלך, ללא שעון.</div>
         <div class="mode-meta"><span class="meta-chip">ללא שעון</span><span class="meta-chip">הסבר לכל שאלה</span><span class="meta-chip">רמת בחינה אמיתית</span></div>
       </div>
-      <div class="mode-card featured" onclick="startMock()">
+      <div class="mode-card featured" onclick="showMockPicker()">
         <div class="featured-badge">מומלץ</div>
         <div class="mode-icon mode-icon-mock">🎯</div>
         <div class="mode-name">מבחן מדומה</div>
@@ -424,6 +424,63 @@ body{font-family:'Heebo',sans-serif;background:var(--gray-50);color:var(--text);
         <div style="font-size:13px;color:var(--gray-600);line-height:1.6">8 השלמות · 5 הבנת הנקרא · 6 ניסוח מחדש</div>
       </div>
 
+      <div class="mode-card" onclick="selectSetAndPractice(10)" style="text-align:right;cursor:pointer">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
+          <span style="font-size:12px;font-weight:500;padding:3px 10px;background:#e2e8f0;color:#475569;border-radius:999px">סט 11</span>
+          <span style="font-size:22px">📜</span>
+        </div>
+        <div style="font-size:15px;font-weight:500;margin-bottom:6px">השלמת משפטים + קריאה + ניסוח</div>
+        <div style="font-size:13px;color:var(--gray-600);line-height:1.6">8 השלמות · 10 הבנת הנקרא · 6 ניסוח מחדש</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- MOCK PICKER -->
+<div id="mock-picker" class="screen">
+  <header class="home-header">
+    <div class="logo">Amir<span>NET</span> Pro</div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <span id="user-name-display-mock" style="font-size:13px;color:rgba(255,255,255,0.7);font-family:var(--font-sans)"></span>
+      <button onclick="signOut()" style="font-family:var(--font-sans);font-size:12px;background:transparent;border:1px solid rgba(255,255,255,0.25);color:rgba(255,255,255,0.6);padding:5px 12px;border-radius:999px;cursor:pointer;">יציאה</button>
+    </div>
+    <button onclick="showScreen('home')" style="font-family:inherit;font-size:13px;background:transparent;border:0.5px solid rgba(255,255,255,0.3);color:rgba(255,255,255,0.8);padding:6px 14px;border-radius:999px;cursor:pointer">← חזרה</button>
+  </header>
+  <div style="max-width:700px;margin:0 auto;padding:3rem 2rem">
+    <div style="text-align:center;margin-bottom:2.5rem">
+      <div style="font-size:22px;font-weight:500;color:var(--text);margin-bottom:8px">בחר מבחן מדומה</div>
+      <div style="font-size:15px;color:var(--gray-600)">כל מבחן הוא סימולציה מלאה עם שעון נפרד לכל חלק — בדיוק כמו הבחינה האמיתית</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+
+      <div class="mode-card" onclick="selectMockAndStart(0)" style="text-align:right;cursor:pointer">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
+          <span style="font-size:12px;font-weight:700;padding:3px 10px;background:#dbeafe;color:#1d4ed8;border-radius:999px">מבחן מדומה 1</span>
+          <span style="font-size:22px">📜</span>
+        </div>
+        <div style="font-size:15px;font-weight:500;margin-bottom:6px">סימולציה מלאה של הבחינה</div>
+        <div style="font-size:13px;color:var(--gray-600);line-height:1.6">6 חלקים · שעון נפרד לכל חלק · 24 שאלות</div>
+      </div>
+
+      <div class="mode-card" onclick="selectMockAndStart(1)" style="text-align:right;cursor:pointer">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
+          <span style="font-size:12px;font-weight:700;padding:3px 10px;background:#dbeafe;color:#1d4ed8;border-radius:999px">מבחן מדומה 2</span>
+          <span style="font-size:22px">🧪</span>
+        </div>
+        <div style="font-size:15px;font-weight:500;margin-bottom:6px">סימולציה מלאה של הבחינה</div>
+        <div style="font-size:13px;color:var(--gray-600);line-height:1.6">6 חלקים · שעון נפרד לכל חלק · 24 שאלות</div>
+      </div>
+
+      <div class="mode-card" onclick="selectMockAndStart(2)" style="text-align:right;cursor:pointer">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
+          <span style="font-size:12px;font-weight:700;padding:3px 10px;background:#dbeafe;color:#1d4ed8;border-radius:999px">מבחן מדומה 3</span>
+          <span style="font-size:22px">📖</span>
+        </div>
+        <div style="font-size:15px;font-weight:500;margin-bottom:6px">סימולציה מלאה של הבחינה</div>
+        <div style="font-size:13px;color:var(--gray-600);line-height:1.6">6 חלקים · שעון נפרד לכל חלק · 24 שאלות</div>
+      </div>
+
     </div>
   </div>
 </div>
@@ -474,6 +531,11 @@ body{font-family:'Heebo',sans-serif;background:var(--gray-50);color:var(--text);
       <div class="feedback-title">סיכום לפי חלקים</div>
       <table class="sec-summary" id="r-sec-table"></table>
     </div>
+    <div class="feedback-card">
+      <div class="feedback-title">סקירת כל השאלות — ללמוד מהטעויות</div>
+      <div class="feedback-text" style="margin-bottom:12px">להלן כל השאלות במבחן, עם התשובה שלך, התשובה הנכונה, והסבר. עברו על השאלות שטעיתם בהן כדי להבין מה הייתה הטעות.</div>
+      <div id="r-review-list"></div>
+    </div>
     <div class="results-actions">
       <button class="btn-result btn-result-primary" onclick="startPractice()">תרגל שוב</button>
       <button class="btn-result btn-result-ghost" onclick="goHome()">חזרה לדף הבית</button>
@@ -493,6 +555,26 @@ const SECTIONS = [
   {id:5,type:'Restatement',label:'ניסוח מחדש',qCount:3,time:360},
   {id:6,type:'Sentence Completion',label:'השלמת משפטים',qCount:4,time:240},
 ];
+
+// Some sets use a different section layout. SECTION_OVERRIDES[setIndex] replaces
+// the default SECTIONS for that set. Set 11 (index 10) has reading in section 6.
+const SECTION_OVERRIDES = {
+  10: [
+    {id:1,type:'Sentence Completion',label:'השלמת משפטים',qCount:4,time:240},
+    {id:2,type:'Sentence Completion',label:'השלמת משפטים',qCount:4,time:240},
+    {id:3,type:'Reading Comprehension',label:'הבנת הנקרא',qCount:5,time:900},
+    {id:4,type:'Restatement',label:'ניסוח מחדש',qCount:3,time:360},
+    {id:5,type:'Restatement',label:'ניסוח מחדש',qCount:3,time:360},
+    {id:6,type:'Reading Comprehension',label:'הבנת הנקרא',qCount:5,time:900},
+  ]
+};
+
+function getSections(){
+  if(usingMock){
+    return MOCK_SECTION_OVERRIDES[currentMock] || SECTIONS;
+  }
+  return SECTION_OVERRIDES[currentSet] || SECTIONS;
+}
 
 // ============================================================
 // PASSAGES — original texts written for this site
@@ -1418,9 +1500,20 @@ const PASSAGE_BANK = [
 ];
 
 let currentSet = 0;
+let currentMock = 0;        // which mock test is selected
+let usingMock = false;      // true when taking a mock test (separate content)
+
+// Separate banks for the mock tests so they never overlap with practice sets.
+// Populated further down (MOCK_QUESTION_BANK / MOCK_PASSAGE_BANK).
+function activeQuestions(){
+  return usingMock ? MOCK_QUESTION_BANK[currentMock] : QUESTION_BANK[currentSet];
+}
+function activePassages(){
+  return usingMock ? MOCK_PASSAGE_BANK[currentMock] : PASSAGE_BANK[currentSet];
+}
 
 function getPassage(pid){
-  return PASSAGE_BANK[currentSet][pid] || null;
+  return (activePassages() || {})[pid] || null;
 }
 
 
@@ -2804,6 +2897,432 @@ QUESTION_BANK.push(SET10_QUESTIONS);
 PASSAGE_BANK.push({tartans: passageTartans, sleepscience: passageSleep});
 
 // ============================================================
+// SET 11 — original content, fact-checked. Topics chosen to differ
+// entirely from any source material; skills/format match a real exam.
+// ============================================================
+const passageGaudi = {
+  id:'gaudi',
+  paragraphs:[
+    'In the Spanish city of Barcelona stands a basilica unlike any other: the Sagrada Família. Designed by the Catalan architect Antoni Gaudí, it has the unusual distinction of having been under construction for well over a century. Work began in 1882, and the building remains unfinished to this day, making it one of the longest-running construction projects in the modern world. Gaudí himself was well aware that he would never see the structure completed; he is reported to have remarked that his client — by which he meant God — was in no hurry.',
+    'Gaudí did not begin the project. The first architect, Francisco de Paula del Villar, had planned a fairly conventional church in the Gothic revival style then in fashion. When Gaudí took charge in 1883, he abandoned that plan almost entirely and reimagined the building as something radically new. He replaced the heavy external supports typical of Gothic cathedrals with an internal system of branching, tree-like columns and curved surfaces drawn from geometry and from forms he observed in nature. The result was a structure that combined religious tradition with engineering that was decades ahead of its time.',
+    'Progress was repeatedly interrupted. Gaudí died in 1926, struck by a tram, with only a small portion of the basilica complete. A decade later, during the Spanish Civil War, his workshop was set on fire and many of his plans and plaster models were destroyed, forcing later architects to reconstruct his intentions from surviving fragments and photographs. Funded largely by private donations and, more recently, by the fees of millions of visitors each year, construction has continued into the present century, aided by computer-based design tools that Gaudí could never have imagined.'
+  ]
+};
+
+const passageOctopus = {
+  id:'octopus',
+  paragraphs:[
+    'Few animals are as strange, by human standards, as the octopus. It has three hearts rather than one: two pump blood through the gills, where it absorbs oxygen, while the third sends that blood on to the rest of the body. Stranger still, the octopus\'s blood is blue, not red. This is because it carries oxygen using a copper-based substance called hemocyanin, rather than the iron-based hemoglobin found in human blood. This adaptation is well suited to the cold, low-oxygen waters in which many octopus species live.',
+    'The octopus is also remarkably intelligent — by some measures the most intelligent of all invertebrates, the animals that lack a backbone. Much of what makes its nervous system unusual is how it is arranged. Rather than being concentrated in a single brain, a large share of the animal\'s nerve cells are distributed through its eight arms, so that each arm can sense and respond to its surroundings with a degree of independence. Octopuses have been observed solving puzzles, opening containers, and using objects such as shells for shelter.',
+    'Perhaps the octopus\'s best-known ability is its talent for disguise. Using special cells in its skin, it can change color and even surface texture in a fraction of a second, allowing it to blend into rocks, coral, or sand almost instantly. This serves both to hide from predators and to ambush prey. Curiously, experiments suggest that octopuses are color-blind in the ordinary sense, which has left scientists puzzled as to how they match their surroundings so precisely — a question that remains not fully answered.'
+  ]
+};
+
+const SET11_QUESTIONS = [
+  // SEC 1 — Sentence Completion (everyday-to-moderate)
+  {sec:1,type:'completion',
+   text:'Because the bridge had not been properly maintained for years, engineers warned that it was no longer ______ enough to carry heavy traffic.',
+   options:['sturdy','curious','generous','distant'],
+   answer:0,
+   explanation:'(1) "Sturdy" = חזק, יציב — מתאים בדיוק: גשר שלא תוחזק אינו יציב מספיק לתנועה כבדה. (2) "Curious" = סקרן — לא קשור. (3) "Generous" = נדיב — לא הגיוני. (4) "Distant" = רחוק — לא מתאים.'
+  },
+  {sec:1,type:'completion',
+   text:'The volcano had been ______ for centuries, showing no sign of activity, so the sudden eruption took the nearby villages completely by surprise.',
+   options:['crowded','dormant','flexible','honest'],
+   answer:1,
+   explanation:'(2) "Dormant" = רדום, לא פעיל — מתאים בדיוק: הר געש "רדום" אינו פעיל, ולכן ההתפרצות הפתיעה. (1) "Crowded" = צפוף — לא קשור. (3) "Flexible" = גמיש — לא מתאים. (4) "Honest" = כן — לא הגיוני.'
+  },
+  {sec:1,type:'completion',
+   text:'Honey never spoils; jars of it found in ancient Egyptian tombs were still ______ to eat thousands of years after they were sealed.',
+   options:['eager','reluctant','safe','curious'],
+   answer:2,
+   explanation:'(3) "Safe" = בטוח — מתאים בדיוק: הדבש עדיין היה בטוח לאכילה (עובדה מתועדת על דבש בקברים מצריים). (1) "Eager" = להוט — מתאר אדם, לא דבש. (2) "Reluctant" = ממאן — לא הגיוני. (4) "Curious" = סקרן — לא מתאים.'
+  },
+  {sec:1,type:'completion',
+   text:'The young athlete trained for hours every day, ______ to represent her country at the Olympic Games.',
+   options:['determined','confused','reluctant','amused'],
+   answer:0,
+   explanation:'(1) "Determined" = נחושה — מתאים בדיוק: התאמנה שעות מתוך נחישות להגיע לאולימפיאדה. (2) "Confused" = מבולבלת — לא מתאים. (3) "Reluctant" = ממאנת — הפוך. (4) "Amused" = משועשעת — לא הגיוני בהקשר.'
+  },
+
+  // SEC 2 — Sentence Completion (harder, academic vocab)
+  {sec:2,type:'completion',
+   text:'The committee\'s report was criticized for being ______: it raised many questions but offered almost no concrete recommendations.',
+   options:['inconclusive','generous','luminous','compulsory'],
+   answer:0,
+   explanation:'(1) "Inconclusive" = לא חד-משמעי, ללא מסקנה — מתאים בדיוק: דוח שמעלה שאלות אך אינו מציע מסקנות. (2) "Generous" = נדיב — לא קשור. (3) "Luminous" = זוהר — לא מתאים. (4) "Compulsory" = חובה — לא הגיוני.'
+  },
+  {sec:2,type:'completion',
+   text:'Although the new policy was intended to reduce poverty, its effects proved ______, helping some communities while leaving others worse off than before.',
+   options:['uniform','uneven','transparent','permanent'],
+   answer:1,
+   explanation:'(2) "Uneven" = לא אחיד — מתאים בדיוק: השפעות שעזרו לחלק ופגעו באחרים אינן אחידות. (1) "Uniform" = אחיד — הפוך. (3) "Transparent" = שקוף — לא מתאים. (4) "Permanent" = קבוע — לא קשור לניגוד.'
+  },
+  {sec:2,type:'completion',
+   text:'The scientist was careful to present her findings as ______ rather than final, stressing that further research would be needed to confirm them.',
+   options:['decisive','tentative','hostile','abundant'],
+   answer:1,
+   explanation:'(2) "Tentative" = ראשוני, זהיר ולא סופי — מתאים בדיוק: ממצאים שאינם סופיים וטעונים אישור נוסף. (1) "Decisive" = מכריע — הפוך. (3) "Hostile" = עוין — לא קשור. (4) "Abundant" = שופע — לא מתאים.'
+  },
+  {sec:2,type:'completion',
+   text:'For decades the painting was ______ to a minor artist, but recent analysis has convinced experts that it was in fact the work of a master.',
+   options:['attributed','restricted','opposed','delivered'],
+   answer:0,
+   explanation:'(1) "Attributed" = יוחס ל — מתאים בדיוק: הציור יוחס לאמן מינורי, אך כעת מיוחס לאמן דגול. (2) "Restricted" = הוגבל — לא הגיוני. (3) "Opposed" = הותנגד — לא קשור. (4) "Delivered" = נמסר — לא מתאים.'
+  },
+
+  // SEC 3 — Reading: Gaudí / Sagrada Família
+  {sec:3,type:'reading',passageId:'gaudi',
+   text:'An appropriate title for this text would be -',
+   options:[
+     'A Cathedral More Than a Century in the Making',
+     'The Gothic Cathedrals of Spain',
+     'The Life of Francisco de Paula del Villar',
+     'How Computers Changed Architecture'
+   ],
+   answer:0,
+   explanation:'הטקסט עוסק בסגרדה פמיליה, בניין שבנייתו נמשכת למעלה ממאה שנה. (2) שגוי — הגותיקה מוזכרת רק כניגוד. (3) שגוי — דל וייאר מוזכר רק כפרט. (4) שגוי — המחשבים מוזכרים רק במשפט אחד בסוף.'
+  },
+  {sec:3,type:'reading',passageId:'gaudi',
+   text:'According to the first paragraph, Gaudí\'s remark about his "client" being in no hurry suggests that he -',
+   options:[
+     'expected the building to be finished quickly',
+     'accepted that he would not live to see it completed',
+     'was angry about the slow pace of the work',
+     'planned to hand the project to del Villar'
+   ],
+   answer:1,
+   explanation:'הפסקה אומרת במפורש שגאודי ידע שלא יראה את הבניין מושלם, ואמרתו על "הלקוח שאינו ממהר" מבטאת השלמה עם כך. (1) שגוי — ההפך. (3) שגוי — אין כעס, אלא השלמה. (4) שגוי — דל וייאר קדם לגאודי ולא היפך.'
+  },
+  {sec:3,type:'reading',passageId:'gaudi',
+   text:'It can be understood from the second paragraph that, compared with del Villar\'s plan, Gaudí\'s design was -',
+   options:[
+     'far more conventional',
+     'almost identical',
+     'much more original',
+     'cheaper to build'
+   ],
+   answer:2,
+   explanation:'הפסקה מתארת כיצד גאודי זנח את התוכנית המקובלת של דל וייאר ויצר משהו "radically new" — כלומר מקורי הרבה יותר. (1) שגוי — ההפך. (2) שגוי — הוא זנח אותה כמעט לחלוטין. (4) שגוי — לא מוזכר עניין העלות.'
+  },
+  {sec:3,type:'reading',passageId:'gaudi',
+   text:'According to the third paragraph, why did later architects have to reconstruct Gaudí\'s intentions?',
+   options:[
+     'Gaudí had never written down any plans.',
+     'Many of his plans and models were destroyed in a fire.',
+     'His design was considered too old-fashioned.',
+     'The city of Barcelona rejected his original design.'
+   ],
+   answer:1,
+   explanation:'הפסקה אומרת שבמלחמת האזרחים הסדנה הוצתה ורבים מתוכניותיו ומודליו נהרסו, ולכן נאלצו לשחזר. (1) שגוי — היו לו תוכניות, אך הן נהרסו. (3),(4) אינם נתמכים בטקסט.'
+  },
+  {sec:3,type:'reading',passageId:'gaudi',
+   text:'In the third paragraph, "interrupted" could best be replaced by -',
+   options:['continued','halted','funded','admired'],
+   answer:1,
+   explanation:'"Interrupted" כאן פירושו הופסק/נעצר. (2) "Halted" = נעצר — נרדף מדויק. (1) "Continued" = המשיך — הפוך. (3) "Funded" = מומן — לא קשור. (4) "Admired" = זכה להערצה — לא מתאים.'
+  },
+
+  // SEC 4 — Restatement
+  {sec:4,type:'restatement',
+   text:'The octopus can change the color of its skin almost instantly to blend into its surroundings.',
+   options:[
+     'The octopus slowly adjusts its skin color to match the objects around it.',
+     'Almost at once, the octopus can alter its skin color to match its environment.',
+     'The octopus changes color only when it is threatened by predators.',
+     'The surroundings of the octopus gradually change its skin color.'
+   ],
+   answer:1,
+   explanation:'(2) משמר את המשמעות במדויק: "almost instantly" → "almost at once", "blend into surroundings" → "match its environment". (1) שגוי — "slowly" סותר את "instantly". (3) שגוי — מוסיף תנאי שאינו במקור. (4) שגוי — הופך את הסיבתיות.'
+  },
+  {sec:4,type:'restatement',
+   text:'Construction of the Sagrada Família has continued for more than a century and is still not complete.',
+   options:[
+     'After more than a hundred years, the Sagrada Família has finally been completed.',
+     'The Sagrada Família has been under construction for over a hundred years and remains unfinished.',
+     'It took just over a century to finish building the Sagrada Família.',
+     'Construction of the Sagrada Família was abandoned more than a century ago.'
+   ],
+   answer:1,
+   explanation:'(2) משמר את המשמעות: בנייה במשך יותר ממאה שנה ועדיין לא הושלמה. (1),(3) שגויים — אומרים שהושלם. (4) שגוי — אומר שהבנייה ננטשה, לא נמשכת.'
+  },
+  {sec:4,type:'restatement',
+   text:'Unlike most of his colleagues, the director refused to follow current fashions in filmmaking.',
+   options:[
+     'The director was one of many who rejected the trends of the time.',
+     'The director followed the latest filmmaking trends, just as his colleagues did.',
+     'In contrast to most other directors, he would not adopt the current trends in filmmaking.',
+     'Most directors, including him, ignored the fashions of the day.'
+   ],
+   answer:2,
+   explanation:'(3) משמר את המשמעות: בניגוד לרוב הבמאים, הוא לא אימץ את הטרנדים. (1) שגוי — "one of many" סותר את "unlike most". (2) שגוי — הפוך לחלוטין. (4) שגוי — מכליל גם אותו בין הרוב.'
+  },
+
+  // SEC 5 — Restatement
+  {sec:5,type:'restatement',
+   text:'The medicine relieves the symptoms of the disease but does not cure it.',
+   options:[
+     'The medicine eases the disease\'s symptoms without actually curing it.',
+     'The medicine cures the disease by removing all of its symptoms.',
+     'The disease cannot be treated by any medicine at all.',
+     'The medicine prevents the disease rather than treating its symptoms.'
+   ],
+   answer:0,
+   explanation:'(1) משמר את המשמעות: מקל על הסימפטומים אך אינו מרפא. (2) שגוי — אומר שמרפא. (3) שגוי — קיצוני; התרופה כן מקלה. (4) שגוי — "prevents" שונה מ"relieves symptoms".'
+  },
+  {sec:5,type:'restatement',
+   text:'Few people attended the lecture, despite the speaker\'s considerable fame.',
+   options:[
+     'The speaker\'s fame was the main reason so many people attended the lecture.',
+     'Although the speaker was quite famous, only a small number of people came to the lecture.',
+     'Many people came to the lecture because the speaker was so well known.',
+     'The lecture was canceled because the famous speaker did not appear.'
+   ],
+   answer:1,
+   explanation:'(2) משמר את המשמעות: למרות פרסומו הרב של הדובר, מעטים הגיעו. (1),(3) שגויים — אומרים שרבים הגיעו. (4) שגוי — ההרצאה לא בוטלה.'
+  },
+  {sec:5,type:'restatement',
+   text:'The two scientists reached the same conclusion independently, without knowing of each other\'s work.',
+   options:[
+     'The two scientists worked closely together to reach a shared conclusion.',
+     'Each of the two scientists arrived at the same conclusion on his own, unaware of the other\'s research.',
+     'One scientist copied the conclusion of the other without giving credit.',
+     'The two scientists disagreed about the conclusion of their research.'
+   ],
+   answer:1,
+   explanation:'(2) משמר את המשמעות: כל אחד הגיע לאותה מסקנה בעצמו, מבלי לדעת על השני. (1) שגוי — "closely together" סותר "independently". (3) שגוי — לא הייתה העתקה. (4) שגוי — הם הסכימו, לא חלקו.'
+  },
+
+  // SEC 6 — Reading: Octopus
+  {sec:6,type:'reading',passageId:'octopus',
+   text:'An appropriate title for this text would be -',
+   options:[
+     'The Many Unusual Features of the Octopus',
+     'How to Keep an Octopus as a Pet',
+     'The Deepest Parts of the Ocean',
+     'The History of Marine Biology'
+   ],
+   answer:0,
+   explanation:'הטקסט מתאר כמה תכונות יוצאות דופן של התמנון: שלושה לבבות, דם כחול, אינטליגנציה והסוואה. (2),(3),(4) אינם הנושא של הטקסט.'
+  },
+  {sec:6,type:'reading',passageId:'octopus',
+   text:'According to the first paragraph, the octopus\'s blood is blue because -',
+   options:[
+     'it lives in very deep water',
+     'it carries oxygen using a copper-based substance',
+     'it has three hearts instead of one',
+     'it lacks a backbone'
+   ],
+   answer:1,
+   explanation:'הפסקה אומרת במפורש שהדם כחול כי הוא נושא חמצן באמצעות חומר מבוסס נחושת (המוציאנין). (1) שגוי — העומק קשור להתאמה, לא לצבע ישירות. (3) שגוי — הלבבות אינם הסיבה לצבע. (4) שגוי — היעדר עמוד שדרה אינו קשור לצבע הדם.'
+  },
+  {sec:6,type:'reading',passageId:'octopus',
+   text:'It can be understood from the second paragraph that the octopus\'s nervous system is unusual because -',
+   options:[
+     'it is concentrated entirely in a single brain',
+     'much of it is spread through the animal\'s arms',
+     'it does not allow the animal to solve problems',
+     'it is smaller than that of other invertebrates'
+   ],
+   answer:1,
+   explanation:'הפסקה אומרת שחלק גדול מתאי העצב מפוזרים בשמונה הזרועות, כך שכל זרוע פועלת בעצמאות מסוימת. (1) שגוי — ההפך מהאמור. (3) שגוי — התמנון כן פותר בעיות. (4) שגוי — לא מוזכר גודל יחסי לאל-חולייתנים אחרים.'
+  },
+  {sec:6,type:'reading',passageId:'octopus',
+   text:'According to the third paragraph, what puzzles scientists about the octopus?',
+   options:[
+     'how it can match its surroundings despite appearing to be color-blind',
+     'why it has three hearts rather than one',
+     'how it manages to live in cold water',
+     'why it uses shells for shelter'
+   ],
+   answer:0,
+   explanation:'הפסקה השלישית אומרת שניסויים מצביעים על כך שהתמנון עיוור-צבעים, ולכן נותר תעלומה כיצד הוא מתאים עצמו לסביבה כה במדויק. (2),(3) שייכים לפסקאות אחרות. (4) הקונכיות מוזכרות בפסקה השנייה ואינן התעלומה.'
+  },
+  {sec:6,type:'reading',passageId:'octopus',
+   text:'The octopus changes the texture and color of its skin in order to - (according to the third paragraph)',
+   options:[
+     'communicate with other octopuses',
+     'hide from predators and catch prey',
+     'increase the oxygen in its blood',
+     'help it swim more quickly'
+   ],
+   answer:1,
+   explanation:'הפסקה השלישית אומרת שההסוואה משמשת גם להסתתר מטורפים וגם לארוב לטרף. (1) שגוי — תקשורת אינה מוזכרת בטקסט. (3),(4) אינם קשורים להסוואה.'
+  }
+];
+
+QUESTION_BANK.push(SET11_QUESTIONS);
+PASSAGE_BANK.push({gaudi: passageGaudi, octopus: passageOctopus});
+
+// ============================================================
+// MOCK TESTS — separate bank, ONLY for מבחן מדומה.
+// 3 original, fact-checked tests. Inspired by real-exam style,
+// not copied. Topics differ from the practice sets.
+// ============================================================
+
+// ---------- MOCK TEST 1 ----------
+const mockPassageStradivari = {
+  id:'stradivari',
+  paragraphs:[
+    'For three centuries, the violins crafted by Antonio Stradivari in the northern Italian city of Cremona have been esteemed as the finest ever made. Working during what is now called the golden age of violin-making, Stradivari produced well over a thousand instruments, of which roughly 650 survive. The most celebrated change hands for many millions of dollars, prized not merely as tools for performance but as objects of historical and artistic reverence. Yet the source of their extraordinary tone has never been conclusively established, and the question continues to provoke debate among scientists and musicians alike.',
+    'A variety of explanations have been advanced. Some researchers have attributed the instruments\' brilliance to the dense alpine spruce from which their bellies were carved — wood that grew slowly, and therefore tightly, during the unusually cold decades of the so-called Little Ice Age. Others have pointed to chemical treatments: analyses have detected traces of minerals such as copper and alum in the wood, substances originally applied, it seems, to protect the instruments from worm infestation, but which may incidentally have altered their acoustic properties. The varnish, long suspected of harbouring a secret ingredient, has on examination proved unremarkable.',
+    'More provocative still is the possibility that the supremacy of the Stradivari is, at least in part, an illusion. In a series of experiments, accomplished violinists were blindfolded and invited to compare antique instruments, several of them by Stradivari, against high-quality modern ones. Contrary to expectation, the players were frequently unable to distinguish the old from the new, and in some trials actually preferred the modern instruments. Such findings suggest that the reputation surrounding a Stradivari may shape the listener\'s judgement as powerfully as any quality inherent in the instrument itself — a reminder of how readily expectation can masquerade as perception.'
+  ]
+};
+
+const mockPassageGalileo = {
+  id:'galileo',
+  paragraphs:[
+    'When the Italian astronomer Galileo Galilei turned his newly improved telescope toward the night sky in 1609, he initiated a revolution whose consequences are difficult to overstate. Earlier thinkers had assumed the heavens to be perfect and unchanging, with the Earth fixed at the centre of all things. What Galileo observed flatly contradicted this picture. The Moon, far from being a flawless sphere, was pitted with mountains and craters; Jupiter was accompanied by four moons of its own; and the planet Venus passed through phases, much as our own Moon does — an observation that could be explained only if Venus orbited the Sun.',
+    'These discoveries lent powerful support to the theory, earlier proposed by Copernicus, that the Earth was merely one of several planets revolving around the Sun. For asserting this view, Galileo eventually came into open conflict with the Church authorities of his day, who regarded it as contrary to scripture. Summoned before the Inquisition, he was compelled to renounce his convictions publicly and was confined to his house for the remainder of his life. Tradition holds that, having formally recanted, he muttered under his breath that the Earth moves nonetheless — a story that, though almost certainly apocryphal, captures the defiance of a man silenced but unconvinced.',
+    'Galileo\'s significance, however, extends beyond any single discovery. He insisted that the workings of nature be described in the precise language of mathematics and tested against careful observation, rather than deduced from the authority of ancient texts. In this insistence many historians locate the very origins of modern experimental science. The telescope had revealed not only new objects in the sky but a new way of interrogating the world — one in which a claim was to be judged not by who had asserted it, but by whether the evidence could be made to bear it out.'
+  ]
+};
+
+const MOCK1_QUESTIONS = [
+  // ── SEC 1 — Sentence Completion (4) — ascending difficulty ──
+  {sec:1,type:'completion',text:'When Howard Carter opened the tomb of the pharaoh Tutankhamun in 1922, he found sealed jars of honey that were still ______ after more than three thousand years.',options:['edible','frozen','painted','missing'],answer:0,explanation:'(1) "Edible" = ראוי למאכל — מתאים בדיוק: דבש שנמצא בקבר תות ענח׳ אמון נשאר ראוי למאכל לאחר אלפי שנים (עובדה מאומתת). (2) "Frozen" = קפוא — לא הגיוני במצרים. (3) "Painted" = צבוע — לא קשור. (4) "Missing" = חסר — סותר את "he found".'},
+  {sec:1,type:'completion',text:'The octopus can change the colour and texture of its skin in a fraction of a second, allowing it to ______ almost perfectly into the rocks and sand around it.',options:['collapse','blend','expand','drift'],answer:1,explanation:'(2) "Blend (into)" = להיטמע, להשתלב — מתאים בדיוק: התמנון משנה צבע ומרקם כדי להיטמע בסביבתו (עובדה ביולוגית). (1) "Collapse" = לקרוס — לא הגיוני. (3) "Expand" = להתרחב — לא מתאים. (4) "Drift" = להיסחף — לא קשור להסוואה.'},
+  {sec:1,type:'completion',text:'The explosion of the volcano Krakatoa in 1883 was so violent that it is widely regarded as the loudest sound ever ______ in recorded history.',options:['composed','measured','silenced','imagined'],answer:1,explanation:'(2) "Measured" = נמדד — מתאים בדיוק: התפרצות קרקטואה נחשבת לקול החזק ביותר שנמדד אי פעם (עובדה מאומתת). (1) "Composed" = הולחן — לא מתאים לקול של פיצוץ. (3) "Silenced" = הושתק — הפוך. (4) "Imagined" = דומיין — לא הגיוני.'},
+  {sec:1,type:'completion',text:'Because the Dead Sea is so saturated with salt, bathers ______ effortlessly on its surface instead of sinking.',options:['drown','float','dive','struggle'],answer:1,explanation:'(2) "Float" = צפים — מתאים בדיוק: ריכוז המלח הגבוה בים המלח מאפשר ציפה ללא מאמץ (עובדה ידועה). (1) "Drown" = טובעים — הפוך. (3) "Dive" = צוללים — סותר. (4) "Struggle" = נאבקים — אינו מתאים ל"effortlessly".'},
+  // ── SEC 2 — Sentence Completion (4) — harder ──
+  {sec:2,type:'completion',text:'The Rosetta Stone, which records the same decree in three different scripts, proved ______ to scholars who had struggled for centuries to read Egyptian hieroglyphs.',options:['indifferent','invaluable','harmful','irrelevant'],answer:1,explanation:'(2) "Invaluable" = בעל ערך עצום — מתאים בדיוק: אבן רוזטה הייתה בעלת ערך עצום לפענוח ההירוגליפים (עובדה היסטורית). (1) "Indifferent" = אדיש — לא מתאים לחפץ. (3) "Harmful" = מזיק — הפוך. (4) "Irrelevant" = לא רלוונטי — הפוך.'},
+  {sec:2,type:'completion',text:'During the trial of Galileo in 1633, the astronomer was compelled to ______ his claim that the Earth moves around the Sun.',options:['publish','renounce','prove','repeat'],answer:1,explanation:'(2) "Renounce" = להתכחש, לחזור בו מ — מתאים בדיוק: גליליאו נאלץ לחזור בו מטענתו במשפטו (עובדה היסטורית). (1) "Publish" = לפרסם — הפוך. (3) "Prove" = להוכיח — סותר; הוא נאלץ לחזור בו. (4) "Repeat" = לחזור על — לא מתאים.'},
+  {sec:2,type:'completion',text:'For roughly six thousand years, the region we now call the Sahara was not a desert but a green savanna ______ with lakes, rivers, and herds of grazing animals.',options:['deprived','teeming','finished','confused'],answer:1,explanation:'(2) "Teeming (with)" = שורץ, גדוש — מתאים בדיוק: הסהרה הירוקה הייתה גדושה אגמים, נהרות ועדרים (עובדה מדעית). (1) "Deprived" = נטול — הפוך. (3) "Finished" = גמור — לא הגיוני. (4) "Confused" = מבולבל — לא מתאים לנוף.'},
+  {sec:2,type:'completion',text:'The mass migration of the Serengeti\'s wildebeest, in which over a million animals move together in search of grass, is among the most ______ spectacles in the natural world.',options:['mundane','awe-inspiring','artificial','concealed'],answer:1,explanation:'(2) "Awe-inspiring" = מעורר יראה והשתאות — מתאים בדיוק: נדידת הגנו בסרנגטי היא מחזה מרהיב (עובדה אקולוגית). (1) "Mundane" = שגרתי — הפוך. (3) "Artificial" = מלאכותי — סותר "natural world". (4) "Concealed" = מוסתר — לא מתאים למחזה.'},
+  // ── SEC 3 — Reading Comprehension (5) — Stradivari ──
+  {sec:3,type:'reading',passageId:'stradivari',text:'An appropriate title for this text would be -',options:['The Unsolved Mystery of the Stradivari Sound','How to Care for an Antique Violin','The Cities of Northern Italy','Why Modern Violins Are Worthless'],answer:0,explanation:'הטקסט סובב סביב התעלומה הבלתי פתורה של צליל הסטרדיווארי. (2),(3) פרטים שוליים. (4) שגוי — הטקסט אומר שכינורות מודרניים לעיתים הועדפו, לא שהם חסרי ערך.'},
+  {sec:3,type:'reading',passageId:'stradivari',text:'In the first paragraph, "conclusively established" could best be replaced by -',options:['definitely determined','widely admired','carefully hidden','frequently performed'],answer:0,explanation:'"Conclusively established" = נקבע באופן מוחלט/סופי. (1) "Definitely determined" = נקבע בוודאות — נרדף מדויק. (2),(3),(4) אינם מתאימים למשמעות.'},
+  {sec:3,type:'reading',passageId:'stradivari',text:'According to the second paragraph, the chemicals found in the wood were probably applied in order to -',options:['improve the instrument\'s sound','protect the wood from worms','increase the violin\'s value','imitate the work of rivals'],answer:1,explanation:'הפסקה אומרת שהחומרים יושמו במקור כדי להגן מפני נגיעות תולעים, ורק במקרה אולי שינו את הצליל. (1) שגוי — שיפור הצליל היה תוצאת לוואי אפשרית, לא הכוונה. (3),(4) אינם נתמכים.'},
+  {sec:3,type:'reading',passageId:'stradivari',text:'The blindfold experiments described in the third paragraph suggest that -',options:['Stradivari violins are always easy to identify by sound','the reputation of a violin can influence how its sound is judged','modern violins cannot compete with antique ones','only experts can hear the difference between violins'],answer:1,explanation:'הפסקה אומרת שהנגנים לעיתים לא הבחינו בין ישן לחדש ואף העדיפו חדש, מה שמרמז שהמוניטין משפיע על השיפוט. (1),(3) שגויים — ההפך מהממצאים. (4) שגוי — דווקא מומחים התקשו להבחין.'},
+  {sec:3,type:'reading',passageId:'stradivari',text:'It can be inferred from the text that the author regards the supremacy of the Stradivari as -',options:['beyond any possible doubt','at least partly a matter of reputation','entirely due to the varnish','a recent invention of scientists'],answer:1,explanation:'הכותב מציג את האפשרות שהעליונות היא בחלקה אשליה הנובעת מהמוניטין ("expectation can masquerade as perception"). (1) שגוי — הכותב מטיל ספק. (3) שגוי — הלכה התבררה כרגילה. (4) אינו נתמך.'},
+  // ── SEC 4 — Restatement (3) ──
+  {sec:4,type:'restatement',text:'The platypus is one of the only mammals that lays eggs instead of giving birth to live young.',options:['Unlike nearly all other mammals, the platypus reproduces by laying eggs.','The platypus, like most mammals, gives birth to live young rather than laying eggs.','The platypus is the only animal of any kind that lays eggs.','Most animals that lay eggs, including the platypus, are mammals.'],answer:0,explanation:'(1) משמר את המשמעות: בניגוד כמעט לכל היונקים, הברווזן מתרבה בהטלת ביצים. (2) שגוי — הפוך. (3) שגוי — "the only animal of any kind" מסלף; בעלי חיים רבים מטילים ביצים. (4) שגוי — רוב מטילי הביצים אינם יונקים.'},
+  {sec:4,type:'restatement',text:'Although the Eiffel Tower was meant to be dismantled after twenty years, it was kept standing because it proved useful as a radio antenna.',options:['The Eiffel Tower was taken down after twenty years, exactly as originally planned.','The Eiffel Tower was preserved rather than demolished because of its value as a radio antenna.','The Eiffel Tower was built specifically to serve as a permanent radio antenna.','The Eiffel Tower was kept standing despite being completely useless.'],answer:1,explanation:'(2) משמר את המשמעות: נשמר במקום שיפורק בשל תועלתו כאנטנת רדיו. (1) שגוי — הוא לא פורק. (3) שגוי — לא נבנה במקור לשם כך. (4) שגוי — דווקא תועלתו הצילה אותו.'},
+  {sec:4,type:'restatement',text:'The Great Wall of China was not built all at once but constructed and rebuilt by many dynasties over roughly two thousand years.',options:['A single dynasty built the Great Wall of China within a short period.','The Great Wall of China was put up by successive dynasties over a span of about two thousand years.','The Great Wall of China took exactly two thousand years of continuous building to complete.','The Great Wall of China was built quickly and never rebuilt afterwards.'],answer:1,explanation:'(2) משמר את המשמעות: נבנה ושוקם על ידי שושלות עוקבות במשך כאלפיים שנה. (1) שגוי — לא שושלת אחת. (3) שגוי — לא בנייה רציפה. (4) שגוי — דווקא נבנה ושוקם שוב ושוב.'},
+  // ── SEC 5 — Restatement (3) — harder ──
+  {sec:5,type:'restatement',text:'Antarctica receives so little precipitation that, despite its permanent covering of ice, much of it is technically classified as a desert.',options:['Heavy snowfall on Antarctica means it cannot be regarded as a desert.','Even though Antarctica is covered in ice, its very low precipitation means much of it counts as a desert.','Antarctica is considered a desert only because of its extreme cold, not its dryness.','Most of Antarctica is too wet to be classified as a desert.'],answer:1,explanation:'(2) משמר את המשמעות: למרות כיסוי הקרח, המשקעים המעטים הופכים חלק גדול ממנה למדבר. (1) שגוי — הפוך; נופל מעט שלג. (3) שגוי — היא מדבר בשל היובש, לא רק הקור. (4) שגוי — סותר; היא יבשה.'},
+  {sec:5,type:'restatement',text:'It was only in the late nineteenth century that malaria, long blamed on "bad air," was shown to be transmitted by mosquitoes.',options:['Malaria has always been known to be carried by mosquitoes.','The role of mosquitoes in spreading malaria was discovered only towards the end of the nineteenth century.','Malaria was proven in the late nineteenth century to be caused by bad air.','By the late nineteenth century, scientists had ruled out mosquitoes as a cause of malaria.'],answer:1,explanation:'(2) משמר את המשמעות: רק בשלהי המאה ה-19 התגלה שיתושים מעבירים מלריה. (1) שגוי — לא תמיד היה ידוע. (3) שגוי — הופרך הקשר ל"אוויר רע". (4) שגוי — היפוך מוחלט; דווקא אישרו את תפקיד היתושים.'},
+  {sec:5,type:'restatement',text:'Far from being the work of a single architect, the Sagrada Família in Barcelona has remained under construction for well over a century.',options:['The Sagrada Família was completed quickly by one architect.','Rather than the creation of one architect alone, the Sagrada Família has been under construction for more than a hundred years.','One architect designed and finished the Sagrada Família within his own lifetime.','The Sagrada Família was abandoned more than a century ago and never resumed.'],answer:1,explanation:'(2) משמר את המשמעות: לא מעשה ידיו של אדריכל יחיד, ובנייתה נמשכת למעלה ממאה שנה. (1) שגוי — לא הושלם במהירות. (3) שגוי — אף אדריכל לא סיים אותה בחייו. (4) שגוי — היא לא ננטשה; הבנייה נמשכת.'},
+  // ── SEC 6 — Sentence Completion (4) ──
+  {sec:6,type:'completion',text:'The first powered flight by the Wright brothers at Kitty Hawk in 1903 lasted only twelve seconds, yet it ______ a new age of human transportation.',options:['ended','heralded','delayed','concealed'],answer:1,explanation:'(1) "Ended" = סיים — הפוך. (2) "Heralded" = בישר — מתאים בדיוק: הטיסה הקצרה בישרה עידן חדש בתעופה (עובדה היסטורית). (3) "Delayed" = עיכב — לא הגיוני. (4) "Concealed" = הסתיר — לא מתאים.'},
+  {sec:6,type:'completion',text:'Construction of the Panama Canal, completed in 1914, was for years ______ by tropical disease and immense engineering difficulties.',options:['accelerated','plagued','rewarded','simplified'],answer:1,explanation:'(2) "Plagued" = פקדו, הציקו ל — מתאים בדיוק: בניית תעלת פנמה נפקדה במשך שנים על ידי מחלות וקשיים הנדסיים (עובדה היסטורית). (1) "Accelerated" = הואצה — הפוך. (3) "Rewarded" = תוגמלה — לא מתאים. (4) "Simplified" = פושטה — הפוך.'},
+  {sec:6,type:'completion',text:'In 1815 the eruption of Mount Tambora in Indonesia threw so much ash into the atmosphere that the following year became known as the year without a ______.',options:['name','summer','river','language'],answer:1,explanation:'(2) "Summer" = קיץ — מתאים בדיוק: התפרצות טמבורה ב-1815 גרמה ל"שנה ללא קיץ" (1816, עובדה היסטורית-אקלימית). (1),(3),(4) אינם נכונים עובדתית.'},
+  {sec:6,type:'completion',text:'The Lascaux cave paintings in France, created roughly seventeen thousand years ago, are remarkably well ______ considering their great age.',options:['hidden','preserved','painted','damaged'],answer:1,explanation:'(2) "Preserved" = משומרים — מתאים בדיוק: ציורי המערה בלאסקו השתמרו היטב למרות גילם (עובדה ארכאולוגית). (1) "Hidden" = מוסתרים — לא מתאים תחבירית ל"well". (3) "Painted" = צבועים — טאוטולוגי. (4) "Damaged" = פגומים — סותר "remarkably well".'}
+];
+
+// ---------- MOCK TEST 2 ----------
+const mockPassageVostok = {
+  id:'vostok',
+  paragraphs:[
+    'Beneath the immense ice sheet that covers Antarctica lies a hidden world that few people are aware of: a network of hundreds of lakes, sealed off from the surface by kilometres of solid ice. The largest of these is Lake Vostok, which lies roughly four kilometres beneath a Russian research station of the same name. Comparable in size to Lake Ontario in North America, it is one of the biggest lakes on the planet, yet no human eye has ever looked upon its waters directly.',
+    'The very existence of such a lake long seemed improbable. How could liquid water persist beneath so vast a weight of ice, in one of the coldest places on Earth? The answer lies in two factors. The first is geothermal heat rising from the rock below; the second is the colossal pressure of the overlying ice, which lowers the temperature at which water freezes. Although the lake\'s water hovers a few degrees below the ordinary freezing point, these conditions keep it liquid. The presence of the lake was first suspected from seismic readings taken in the mid-twentieth century, but it was confirmed only in 1996, when data gathered over two decades were combined and published.',
+    'What makes Lake Vostok so tantalising to scientists is that it has been sealed beneath the ice for an estimated fifteen million years, cut off entirely from light and from the atmosphere. Any organisms living in it would have been isolated for an almost unimaginable span of time, evolving in conditions of perpetual darkness, intense cold, and crushing pressure. For this reason, the lake is regarded as a natural laboratory for the study of life in extreme environments — and, more remarkably still, as a model for the kind of hidden oceans thought to lie beneath the icy crusts of distant moons such as Jupiter\'s Europa, where life, if it exists, might endure under comparable conditions.'
+  ]
+};
+
+const MOCK2_QUESTIONS = [
+  // ── SEC 1 — Sentence Completion (4) ──
+  {sec:1,type:'completion',text:'Launched in 1977, the spacecraft Voyager 1 is now the most distant human-made object from Earth, having ______ into interstellar space beyond the Sun\'s influence.',options:['returned','ventured','collapsed','sunk'],answer:1,explanation:'(2) "Ventured" = העז להיכנס, חדר — מתאים בדיוק: וויאג\'ר 1 חדר אל החלל הבין-כוכבי (עובדה מאומתת). (1) "Returned" = חזר — הפוך. (3) "Collapsed" = קרס — לא הגיוני. (4) "Sunk" = שקע — לא מתאים לחלל.'},
+  {sec:1,type:'completion',text:'The Komodo dragon, the largest living lizard, can ______ prey far heavier than itself, including water buffalo.',options:['avoid','overpower','resemble','release'],answer:1,explanation:'(2) "Overpower" = להכניע בכוח — מתאים בדיוק: דרקון הקומודו מסוגל להכניע טרף כבד ממנו (עובדה ביולוגית). (1) "Avoid" = להימנע — הפוך. (3) "Resemble" = להידמות — לא הגיוני. (4) "Release" = לשחרר — הפוך.'},
+  {sec:1,type:'completion',text:'When the Titanic sank in 1912, the disaster led to new international rules ______ the number of lifeboats that passenger ships were required to carry.',options:['reducing','governing','ignoring','hiding'],answer:1,explanation:'(2) "Governing" = המסדירות, הקובעות — מתאים בדיוק: התקנות הסדירו את מספר סירות ההצלה הנדרשות (עובדה היסטורית). (1) "Reducing" = מצמצמות — הפוך מהכוונה. (3) "Ignoring" = מתעלמות — לא הגיוני. (4) "Hiding" = מסתירות — לא מתאים.'},
+  {sec:1,type:'completion',text:'The ancient city of Pompeii was ______ in ash when Mount Vesuvius erupted in AD 79, which paradoxically preserved much of it for nearly two thousand years.',options:['cleansed','buried','decorated','emptied'],answer:1,explanation:'(2) "Buried" = נקברה, כוסתה — מתאים בדיוק: פומפיי נקברה תחת אפר וולקני, מה ששימר אותה (עובדה היסטורית). (1) "Cleansed" = נוקתה — לא מתאים. (3) "Decorated" = קושטה — לא הגיוני. (4) "Emptied" = רוקנה — לא מתאים להקשר.'},
+  // ── SEC 2 — Sentence Completion (4) — harder ──
+  {sec:2,type:'completion',text:'The naturalist Charles Darwin delayed publishing his theory of evolution for years, ______ of the controversy it was certain to provoke.',options:['ignorant','apprehensive','desirous','proud'],answer:1,explanation:'(2) "Apprehensive (of)" = חושש מ — מתאים בדיוק: דרווין חשש מהמחלוקת שתעורר תיאוריית האבולוציה (עובדה היסטורית). מילה ברמה גבוהה. (1) "Ignorant" = בור — לא הגיוני; הוא דווקא צפה זאת. (3) "Desirous" = משתוקק — הפוך. (4) "Proud" = גאה — אינו מסביר את העיכוב.'},
+  {sec:2,type:'completion',text:'The medieval manuscripts copied by monks were often so painstakingly decorated that a single volume could take years to ______.',options:['complete','discard','translate','sell'],answer:0,explanation:'(1) "Complete" = להשלים — מתאים בדיוק: כתב יד מעוטר בקפידה היה אורך שנים להשלמה (עובדה היסטורית). (2) "Discard" = להשליך — לא הגיוני. (3) "Translate" = לתרגם — אינו מתאים להקשר ההעתקה. (4) "Sell" = למכור — לא קשור למשך ההכנה.'},
+  {sec:2,type:'completion',text:'The discovery of penicillin by Alexander Fleming in 1928 is often described as ______, since he stumbled upon it by chance rather than by design.',options:['deliberate','accidental','inevitable','fraudulent'],answer:1,explanation:'(2) "Accidental" = מקרי — מתאים בדיוק: פלמינג גילה את הפניצילין במקרה ולא בכוונה (עובדה היסטורית). (1) "Deliberate" = מכוון — הפוך. (3) "Inevitable" = בלתי נמנע — אינו תואם ל"by chance". (4) "Fraudulent" = מזויף — לא קשור.'},
+  {sec:2,type:'completion',text:'For centuries the works of the playwright Sophocles were known only in ______ form, surviving as scattered quotations until fuller manuscripts came to light.',options:['fragmentary','complete','printed','illustrated'],answer:0,explanation:'(1) "Fragmentary" = מקוטע, חלקי — מתאים בדיוק: יצירות סופוקלס שרדו כציטוטים מפוזרים, כלומר בצורה מקוטעת. מילה ברמה גבוהה. (2) "Complete" = שלם — סותר "scattered quotations". (3) "Printed" = מודפס — אנכרוניזם. (4) "Illustrated" = מאויר — לא קשור.'},
+  // ── SEC 3 — Reading Comprehension (5) — Lake Vostok ──
+  {sec:3,type:'reading',passageId:'vostok',text:'An appropriate title for this text would be -',options:['A Hidden Lake Beneath the Antarctic Ice','How to Drill Through a Glacier','The Coldest Research Stations on Earth','The Moons of Jupiter'],answer:0,explanation:'הטקסט עוסק באגם ווסטוק החבוי מתחת לקרח האנטארקטי. (2),(3) פרטים שוליים. (4) שגוי — אירופה מוזכרת רק כהשוואה בסוף.'},
+  {sec:3,type:'reading',passageId:'vostok',text:'According to the second paragraph, the water of Lake Vostok remains liquid mainly because of -',options:['warm air from the surface','geothermal heat and the pressure of the ice','rivers flowing in from the ocean','the lake\'s great size'],answer:1,explanation:'הפסקה השנייה אומרת שהמים נשארים נוזליים בזכות חום גיאותרמי מהסלע והלחץ העצום של הקרח. (1) שגוי — האגם מנותק מהפני השטח. (3),(4) אינם הסיבות שניתנו.'},
+  {sec:3,type:'reading',passageId:'vostok',text:'In the second paragraph, "improbable" could best be replaced by -',options:['unlikely','expensive','dangerous','recent'],answer:0,explanation:'"Improbable" = בלתי סביר. (1) "Unlikely" = לא סביר — נרדף מדויק. (2),(3),(4) אינם מתאימים למשמעות.'},
+  {sec:3,type:'reading',passageId:'vostok',text:'According to the third paragraph, why is Lake Vostok of special interest to scientists?',options:['It is the warmest lake in Antarctica.','It has been sealed and isolated for about fifteen million years.','It can be reached easily from the surface.','It is connected to the open ocean.'],answer:1,explanation:'הפסקה השלישית אומרת שהאגם אטום ומבודד כ-15 מיליון שנה, ולכן מרתק את המדענים. (1) שגוי — הוא קר מאוד. (3) שגוי — הוא מתחת לקילומטרים של קרח. (4) שגוי — הוא מנותק.'},
+  {sec:3,type:'reading',passageId:'vostok',text:'It can be inferred from the last paragraph that studying Lake Vostok may help scientists to -',options:['predict the weather in Antarctica','understand whether life could exist on other worlds','design faster research stations','map the rivers of North America'],answer:1,explanation:'הפסקה האחרונה אומרת שהאגם משמש מודל לאוקיינוסים חבויים בירחים רחוקים כמו אירופה, ולכן עשוי לסייע להבין אם חיים יכולים להתקיים במקומות אחרים. (1),(3),(4) אינם נתמכים.'},
+  // ── SEC 4 — Restatement (3) ──
+  {sec:4,type:'restatement',text:'The giant panda feeds almost entirely on bamboo, even though its digestive system is that of a meat-eater.',options:['The giant panda eats both bamboo and meat in roughly equal amounts.','Although built to digest meat, the giant panda lives mainly on bamboo.','The giant panda\'s digestive system is perfectly suited to a diet of bamboo.','The giant panda eats meat far more often than it eats bamboo.'],answer:1,explanation:'(2) משמר את המשמעות: אף שמערכת העיכול שלו של אוכל-בשר, הפנדה ניזונה בעיקר מבמבוק. (1) שגוי — לא בכמויות שוות. (3) שגוי — ההפך; מערכת העיכול מתאימה לבשר. (4) שגוי — הוא ניזון בעיקר מבמבוק.'},
+  {sec:4,type:'restatement',text:'The Suez Canal, opened in 1869, dramatically shortened the sea route between Europe and Asia.',options:['Before 1869, the sea route between Europe and Asia was already very short.','The opening of the Suez Canal in 1869 greatly reduced the distance ships had to travel between Europe and Asia.','The Suez Canal lengthened the journey between Europe and Asia after 1869.','The Suez Canal had little effect on travel between Europe and Asia.'],answer:1,explanation:'(2) משמר את המשמעות: תעלת סואץ קיצרה מאוד את המרחק הימי בין אירופה לאסיה. (1) שגוי — הדרך הייתה ארוכה קודם. (3) שגוי — הפוך (קיצרה). (4) שגוי — הייתה לה השפעה דרמטית.'},
+  {sec:4,type:'restatement',text:'The poet Emily Dickinson published almost nothing during her lifetime, and her genius was recognized only after her death.',options:['Emily Dickinson was celebrated as a great poet throughout her life.','Recognition of Emily Dickinson\'s genius came mostly after she died, as she published little while alive.','Emily Dickinson published a great deal but was ignored after her death.','Emily Dickinson\'s poems were widely printed during her lifetime.'],answer:1,explanation:'(2) משמר את המשמעות: כמעט לא פרסמה בחייה, וגאונותה הוכרה רק לאחר מותה. (1) שגוי — לא זכתה להכרה בחייה. (3),(4) שגויים — היא פרסמה כמעט כלום בחייה.'},
+  // ── SEC 5 — Restatement (3) — harder ──
+  {sec:5,type:'restatement',text:'Far from weakening the structure, the architect\'s use of curved arches actually allowed the cathedral to bear far greater weight.',options:['The curved arches weakened the cathedral and reduced the weight it could bear.','Rather than weakening it, the curved arches enabled the cathedral to support much more weight.','The cathedral could bear little weight despite the architect\'s curved arches.','The architect avoided curved arches in order to strengthen the cathedral.'],answer:1,explanation:'(2) משמר את המשמעות: הקשתות המעוקלות לא החלישו אלא אפשרו לקתדרלה לשאת משקל רב יותר. (1) שגוי — הפוך. (3) שגוי — סותר. (4) שגוי — הוא דווקא השתמש בקשתות.'},
+  {sec:5,type:'restatement',text:'The decipherment of the ancient script was achieved not by a single scholar but through the combined efforts of many over several decades.',options:['One brilliant scholar deciphered the ancient script entirely on his own.','The ancient script was deciphered through the work of many scholars over many years, not by one alone.','The ancient script has never been successfully deciphered.','The ancient script was deciphered quickly, within just a few years.'],answer:1,explanation:'(2) משמר את המשמעות: הפענוח הושג במאמץ משולב של רבים לאורך עשורים, לא על ידי חוקר יחיד. (1) שגוי — לא חוקר אחד. (3) שגוי — הוא כן פוענח. (4) שגוי — ארך עשורים, לא שנים מעטות.'},
+  {sec:5,type:'restatement',text:'Whereas earlier explorers had assumed the interior of Africa to be barren, later expeditions revealed it to be rich in rivers, forests, and wildlife.',options:['Earlier and later explorers agreed that Africa\'s interior was barren.','Later expeditions found Africa\'s interior to be full of life, contrary to what earlier explorers had assumed.','Later expeditions confirmed the earlier view that Africa\'s interior was barren.','Earlier explorers correctly described Africa\'s interior as rich in wildlife.'],answer:1,explanation:'(2) משמר את המשמעות: בניגוד להנחת החוקרים המוקדמים, המשלחות המאוחרות גילו פנים עשיר חיים. (1) שגוי — הם לא הסכימו. (3) שגוי — הפריכו את ההנחה. (4) שגוי — המוקדמים סברו שהוא צחיח.'},
+  // ── SEC 6 — Sentence Completion (4) ──
+  {sec:6,type:'completion',text:'The Aztec capital Tenochtitlan was built on an island in a lake, connected to the mainland by long ______ that could be raised in times of attack.',options:['walls','causeways','towers','tunnels'],answer:1,explanation:'(2) "Causeways" = סוללות-דרך, גשרי יבשה — מתאים בדיוק: טנוצ\'טיטלאן חוברה ליבשה בסוללות-דרך (עובדה היסטורית). (1) "Walls" = חומות — לא מחברות ליבשה. (3) "Towers" = מגדלים — לא מתאים. (4) "Tunnels" = מנהרות — לא נכון עובדתית.'},
+  {sec:6,type:'completion',text:'The naturalist John James Audubon devoted much of his life to producing detailed ______ of the birds of North America.',options:['recordings','illustrations','recipes','sculptures'],answer:1,explanation:'(2) "Illustrations" = איורים — מתאים בדיוק: אודובון יצר איורים מפורטים של ציפורי צפון אמריקה (עובדה היסטורית). (1) "Recordings" = הקלטות — אנכרוניזם. (3) "Recipes" = מתכונים — לא קשור. (4) "Sculptures" = פסלים — לא נכון.'},
+  {sec:6,type:'completion',text:'The coelacanth, a fish once believed to have been ______ for millions of years, was found alive off the coast of South Africa in 1938.',options:['extinct','common','tiny','poisonous'],answer:0,explanation:'(1) "Extinct" = נכחד — מתאים בדיוק: הקואלקנת נחשב נכחד עד שנמצא חי ב-1938 (עובדה ביולוגית). (2) "Common" = נפוץ — סותר את ההפתעה מהמציאה. (3) "Tiny" = זעיר — לא קשור. (4) "Poisonous" = ארסי — לא רלוונטי.'},
+  {sec:6,type:'completion',text:'Although the Mona Lisa is among the most famous paintings in the world, it is surprisingly small, a fact that often ______ visitors who see it for the first time.',options:['delights','astonishes','bores','convinces'],answer:1,explanation:'(2) "Astonishes" = מפתיע מאוד — מתאים בדיוק: גודלה הקטן של המונה ליזה מפתיע מבקרים (עובדה ידועה). (1) "Delights" = משמח — אינו מדגיש את ההפתעה מהגודל. (3) "Bores" = משעמם — לא מתאים. (4) "Convinces" = משכנע — לא הגיוני.'}
+];
+
+// ---------- MOCK TEST 3 ----------
+const mockPassageGutenberg = {
+  id:'gutenberg',
+  paragraphs:[
+    'In the middle of the fifteenth century, a German craftsman named Johannes Gutenberg developed a method of printing that would transform the world. Books had existed for centuries, but each one had to be copied out by hand, a slow and costly process that put them beyond the reach of ordinary people. Gutenberg\'s great innovation was movable type: small metal pieces, each bearing a single letter, that could be arranged to form a page, used to print many copies, and then rearranged to print something entirely different.',
+    'The effect of this invention was enormous. Printed books could now be produced far more quickly and cheaply than handwritten ones, and as a result they spread rapidly across Europe. Ideas that had once travelled slowly, if at all, could now reach large numbers of readers in a short time. Literacy increased, and knowledge that had been confined to a small educated elite became available to a much broader public. Many historians regard the printing press as one of the most important inventions in human history.',
+    'Gutenberg himself, however, did not profit greatly from his creation. The work of building his press and producing his famous printed Bible was expensive, and he borrowed heavily to fund it. A legal dispute with the man who had lent him money eventually cost him control of his own workshop. Although he is now celebrated as one of the most influential figures of his age, Gutenberg appears to have spent his final years in relative obscurity, receiving little of the credit and wealth that his invention would later generate for others.'
+  ]
+};
+
+const mockPassagePenguins = {
+  id:'penguins',
+  paragraphs:[
+    'Penguins are among the most easily recognized of all birds, yet in several respects they are highly unusual. Although they are birds, they cannot fly. Over millions of years, their wings have evolved into stiff, narrow flippers that are useless for flight but superbly suited to swimming. In the water, penguins are fast and agile, "flying" through the sea in pursuit of fish and other prey, while on land they move with the awkward waddle for which they are well known.',
+    'Almost all penguins live in the Southern Hemisphere, and many are associated in the popular imagination with ice and snow. In fact, penguins inhabit a wide range of environments. Some species do live in the freezing conditions of Antarctica, but others are found on the temperate coasts of South America, southern Africa, and Australia. One species even lives near the Equator, on the Galápagos Islands, where the climate is far warmer than most people would expect for a penguin.',
+    'Penguins are also notable for their social behaviour. Many species gather in large colonies, sometimes containing tens of thousands of birds, which offers protection from predators and, in cold climates, valuable warmth. In some species the parents take turns caring for their eggs and young, with one guarding the chick while the other travels long distances to find food. This cooperation greatly improves the young birds\' chances of survival in environments that can be extremely harsh.'
+  ]
+};
+
+const MOCK3_QUESTIONS = [
+  // SEC 1
+  {sec:1,type:'completion',text:'The recipe was so ______ that even a child could prepare the dish without any help.',options:['complicated','straightforward','expensive','mysterious'],answer:1,explanation:'(2) "Straightforward" = פשוט וברור — מתאים: אם ילד יכול להכין ללא עזרה, המתכון פשוט. (1) "Complicated" = מסובך — הפוך. (3) "Expensive" = יקר — לא קשור. (4) "Mysterious" = מסתורי — לא מתאים.'},
+  {sec:1,type:'completion',text:'The doctor advised her patient to ______ from eating salty foods until his blood pressure improved.',options:['refrain','benefit','recover','depart'],answer:0,explanation:'(1) "Refrain" = להימנע — מתאים: "refrain from" = להימנע מ. (2) "Benefit" = להפיק תועלת — לא מתאים תחבירית. (3) "Recover" = להחלים — לא מתאים. (4) "Depart" = לעזוב — לא הגיוני.'},
+  {sec:1,type:'completion',text:'The explorers were amazed by the ______ variety of plants and animals they found in the rainforest.',options:['limited','enormous','artificial','temporary'],answer:1,explanation:'(2) "Enormous" = עצום — מתאים: מגוון עצום של צמחים ובעלי חיים ביער הגשם. (1) "Limited" = מוגבל — הפוך. (3) "Artificial" = מלאכותי — לא מתאים. (4) "Temporary" = זמני — לא הגיוני.'},
+  {sec:1,type:'completion',text:'After the long drought, the farmers ______ welcomed the first heavy rains of the season.',options:['reluctantly','gratefully','angrily','secretly'],answer:1,explanation:'(2) "Gratefully" = בהכרת תודה — מתאים: אחרי בצורת, חקלאים מקבלים גשם בהכרת תודה. (1) "Reluctantly" = בחוסר רצון — הפוך. (3) "Angrily" = בכעס — לא מתאים. (4) "Secretly" = בחשאי — לא הגיוני.'},
+  // SEC 2
+  {sec:2,type:'completion',text:'The manager\'s explanation was ______: it accounted for every detail without leaving any question unanswered.',options:['comprehensive','vague','brief','doubtful'],answer:0,explanation:'(1) "Comprehensive" = מקיף — מתאים: הסבר שמתייחס לכל פרט הוא מקיף. (2) "Vague" = מעורפל — הפוך. (3) "Brief" = קצר — לא מתאים לתיאור. (4) "Doubtful" = מוטל בספק — לא הגיוני.'},
+  {sec:2,type:'completion',text:'The two countries finally signed a treaty, bringing a long and bitter conflict to a peaceful ______.',options:['beginning','resolution','increase','mystery'],answer:1,explanation:'(2) "Resolution" = פתרון, סיום — מתאים: אמנה מביאה סכסוך לסיום בדרכי שלום. (1) "Beginning" = התחלה — הפוך. (3) "Increase" = עלייה — לא הגיוני. (4) "Mystery" = תעלומה — לא מתאים.'},
+  {sec:2,type:'completion',text:'Critics described the performance as ______, praising its energy, originality, and emotional power.',options:['disappointing','outstanding','ordinary','confusing'],answer:1,explanation:'(2) "Outstanding" = יוצא מן הכלל — מתאים: שבחים על אנרגיה ומקוריות מעידים על ביצוע מצוין. (1) "Disappointing" = מאכזב — הפוך. (3) "Ordinary" = רגיל — לא תואם לשבחים. (4) "Confusing" = מבלבל — לא מתאים.'},
+  {sec:2,type:'completion',text:'The ancient manuscript was so ______ that scholars could decipher only a few words on each page.',options:['legible','damaged','modern','colorful'],answer:1,explanation:'(2) "Damaged" = פגום — מתאים: אם ניתן לפענח רק מילים בודדות, כתב היד פגום. (1) "Legible" = קריא — הפוך. (3) "Modern" = מודרני — לא מתאים לכתב יד עתיק. (4) "Colorful" = צבעוני — לא קשור.'},
+  // SEC 3 — Reading: Gutenberg
+  {sec:3,type:'reading',passageId:'gutenberg',text:'An appropriate title for this text would be -',options:['The Invention That Spread Knowledge','The Bibles of the Middle Ages','How to Build a Printing Press','The Cities of Fifteenth-Century Germany'],answer:0,explanation:'הטקסט עוסק בהמצאת הדפוס של גוטנברג והשפעתה על הפצת הידע. (2),(3),(4) הם פרטים שוליים בלבד.'},
+  {sec:3,type:'reading',passageId:'gutenberg',text:'According to the first paragraph, before Gutenberg\'s invention, books were -',options:['printed with movable type','copied out by hand','cheap and widely available','unknown in Europe'],answer:1,explanation:'הפסקה אומרת שכל ספר היה צריך להיות מועתק ביד, תהליך איטי ויקר. (1) שגוי — האותיות הניידות היו חידושו של גוטנברג. (3) שגוי — היו יקרים ונדירים. (4) שגוי — ספרים היו קיימים.'},
+  {sec:3,type:'reading',passageId:'gutenberg',text:'According to the text, Gutenberg\'s key innovation was -',options:['inventing paper','movable type','translating the Bible','building the first library'],answer:1,explanation:'הפסקה הראשונה אומרת במפורש שחידושו הגדול היה האות הניידת. (1),(3),(4) אינם נתמכים בטקסט.'},
+  {sec:3,type:'reading',passageId:'gutenberg',text:'According to the second paragraph, one result of the printing press was that -',options:['books became rarer','literacy increased','ideas spread more slowly','only the elite could read'],answer:1,explanation:'הפסקה אומרת שהאוריינות גדלה והידע הפך נגיש לציבור רחב. (1) שגוי — ספרים נעשו נפוצים יותר. (3) שגוי — רעיונות התפשטו מהר יותר. (4) שגוי — ההפך, הידע יצא מהאליטה.'},
+  {sec:3,type:'reading',passageId:'gutenberg',text:'It can be understood from the last paragraph that Gutenberg -',options:['became very wealthy from his invention','lost control of his workshop because of debt','refused to print the Bible','never finished building his press'],answer:1,explanation:'הפסקה אומרת שסכסוך משפטי עם מי שהלווה לו כסף עלה לו בשליטה על סדנתו. (1) שגוי — לא התעשר. (3),(4) אינם נתמכים — הוא כן הדפיס את התנ"ך.'},
+  // SEC 4 — Restatement
+  {sec:4,type:'restatement',text:'Gutenberg did not become wealthy from the invention that made others rich.',options:['Gutenberg grew rich from his invention, just as others did.','The invention made many people wealthy, but not Gutenberg himself.','Gutenberg became wealthier than anyone else from his invention.','No one made any money from Gutenberg\'s invention.'],answer:1,explanation:'(2) משמר את המשמעות: ההמצאה העשירה אחרים אך לא את גוטנברג. (1) שגוי — הפוך. (3) שגוי — הוא לא התעשר. (4) שגוי — אחרים כן הרוויחו.'},
+  {sec:4,type:'restatement',text:'Printed books could be produced far more cheaply than handwritten ones.',options:['Handwritten books were much cheaper to make than printed ones.','Producing printed books cost far less than producing handwritten ones.','Printed and handwritten books cost about the same to produce.','Printed books were more expensive but quicker to make.'],answer:1,explanation:'(2) משמר את המשמעות: ספרים מודפסים היו זולים בהרבה לייצור מכתובים ביד. (1) שגוי — הפוך. (3) שגוי — לא עלו אותו דבר. (4) שגוי — היו זולים, לא יקרים.'},
+  {sec:4,type:'restatement',text:'The committee accepted nearly all of the recommendations, rejecting only one.',options:['The committee rejected almost all of the recommendations.','The committee accepted only one of the recommendations.','The committee approved all but one of the recommendations.','The committee neither accepted nor rejected the recommendations.'],answer:2,explanation:'(3) משמר את המשמעות: אישרה את כולן חוץ מאחת. (1) שגוי — הפוך. (2) שגוי — אישרה כמעט את כולן, לא רק אחת. (4) שגוי — היא כן הכריעה.'},
+  // SEC 5 — Restatement
+  {sec:5,type:'restatement',text:'Although penguins are birds, they are unable to fly.',options:['Penguins can fly, like most other birds.','Penguins are birds, but they cannot fly.','Penguins are not really birds because they cannot fly.','Most birds, including penguins, are unable to fly.'],answer:1,explanation:'(2) משמר את המשמעות: למרות שהם עופות, אינם יכולים לעוף. (1) שגוי — הפוך. (3) שגוי — הם כן עופות. (4) שגוי — רוב העופות כן עפים.'},
+  {sec:5,type:'restatement',text:'Not all penguins live in cold places; some are found in warm regions.',options:['All penguins live in cold places.','While some penguins live in the cold, others live in warm regions.','Penguins live only in warm regions, never in the cold.','Penguins cannot survive in warm regions.'],answer:1,explanation:'(2) משמר את המשמעות: חלק חיים בקור, אחרים באזורים חמים. (1),(3) שגויים — קיצוניים מדי. (4) שגוי — חלק כן חיים בחום.'},
+  {sec:5,type:'restatement',text:'The medicine works only if it is taken exactly as the doctor instructs.',options:['The medicine works no matter how it is taken.','For the medicine to work, it must be taken precisely as the doctor directs.','The doctor\'s instructions make little difference to how the medicine works.','The medicine never works, even when taken as instructed.'],answer:1,explanation:'(2) משמר את המשמעות: כדי שהתרופה תעבוד, יש לקחתה בדיוק לפי הוראות הרופא. (1) שגוי — הפוך. (3) שגוי — ההוראות חשובות מאוד. (4) שגוי — היא כן עובדת בתנאי הנכון.'},
+  // SEC 6 — Reading: Penguins
+];
+
+// ── Register the mock banks (separate from practice) ──
+const MOCK_QUESTION_BANK = [MOCK1_QUESTIONS, MOCK2_QUESTIONS, MOCK3_QUESTIONS];
+const MOCK_PASSAGE_BANK = [
+  {stradivari: mockPassageStradivari},
+  {vostok: mockPassageVostok},
+  {gutenberg: mockPassageGutenberg}
+];
+// AMIRNET structure (6 sections): Completion(4), Completion(4), Reading(5), Restatement(3), Restatement(3), Completion(4).
+const MOCK_SECTIONS = [
+  {id:1,type:'Sentence Completion',label:'השלמת משפטים',qCount:4,time:300},
+  {id:2,type:'Sentence Completion',label:'השלמת משפטים',qCount:4,time:300},
+  {id:3,type:'Reading Comprehension',label:'הבנת הנקרא',qCount:5,time:600},
+  {id:4,type:'Restatement',label:'ניסוח מחדש',qCount:3,time:240},
+  {id:5,type:'Restatement',label:'ניסוח מחדש',qCount:3,time:240},
+  {id:6,type:'Sentence Completion',label:'השלמת משפטים',qCount:4,time:300},
+];
+const MOCK_SECTION_OVERRIDES = {
+  0: MOCK_SECTIONS, 1: MOCK_SECTIONS, 2: MOCK_SECTIONS
+};
+
+
+
+// ============================================================
 // STATE
 // ============================================================
 let mode='practice',currentSec=0,currentQInSec=0,answers={},sectionPhase='intro',
@@ -2857,7 +3376,7 @@ async function saveScoreToSupabase(setNumber, correct, total) {
     });
 
     // Save individual answers
-    const qs = QUESTION_BANK[currentSet];
+    const qs = activeQuestions();
     const answerRows = qs.map((q, idx) => {
       const globalIdx = idx;
       const studentAnswer = answers[globalIdx];
@@ -2884,8 +3403,8 @@ async function saveScoreToSupabase(setNumber, correct, total) {
 
 initAuth();
 
-function secQuestions(si){const id=SECTIONS[si].id;return QUESTION_BANK[currentSet].filter(q=>q.sec===id)}
-function globalQIndex(si,qi){let o=0;for(let i=0;i<si;i++)o+=SECTIONS[i].qCount;return o+qi}
+function secQuestions(si){const id=getSections()[si].id;return activeQuestions().filter(q=>q.sec===id)}
+function globalQIndex(si,qi){let o=0;const S=getSections();for(let i=0;i<si;i++)o+=S[i].qCount;return o+qi}
 
 function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active')}
 function goHome(){clearInterval(timerInterval);showScreen('home')}
@@ -2896,6 +3415,7 @@ async function signOut(){
 }
 
 function showSetPicker(){showScreen('set-picker');}
+function showMockPicker(){showScreen('mock-picker');}
 
 function selectSetAndPractice(idx){
   currentSet=idx;
@@ -2917,13 +3437,20 @@ function selectSet(idx, btn){
 }
 
 function startPractice(){
+  usingMock=false;
   mode='practice';currentSec=0;currentQInSec=0;answers={};sectionScores=[];
   clearInterval(timerInterval);
   document.getElementById('timer').textContent='--:--';
   document.getElementById('btn-skip').style.display='';
   showScreen('quiz');renderSectionIntro();
 }
+function selectMockAndStart(idx){
+  currentMock=idx;
+  usingMock=true;
+  startMock();
+}
 function startMock(){
+  usingMock=true;
   mode='mock';currentSec=0;currentQInSec=0;answers={};sectionScores=[];
   clearInterval(timerInterval);
   document.getElementById('btn-skip').style.display='none';
@@ -2941,7 +3468,7 @@ function renderSectionIntro(){
   const prevBtn=document.getElementById('btn-prev');
   if(prevBtn){prevBtn.style.display='none';}
   updateSectionProgress();
-  const sec=SECTIONS[currentSec];
+  const sec=getSections()[currentSec];
   const mins=Math.floor(sec.time/60);
   const descs={
     'Sentence Completion':'בחר את המילה שמשלימה את המשפט בצורה הטובה ביותר.',
@@ -2982,7 +3509,7 @@ function skipQ(){
 }
 
 function startSectionTimer(){
-  timeLeft=SECTIONS[currentSec].time;updateTimerDisplay();
+  timeLeft=getSections()[currentSec].time;updateTimerDisplay();
   timerInterval=setInterval(()=>{
     timeLeft--;updateTimerDisplay();
     if(timeLeft<=30)document.getElementById('timer').classList.add('warn');
@@ -2996,7 +3523,7 @@ function updateTimerDisplay(){
 
 function startSection(){
   sectionPhase='question';currentQInSec=0;
-  sectionScores[currentSec]={secId:SECTIONS[currentSec].id,label:SECTIONS[currentSec].label,type:SECTIONS[currentSec].type,correct:0,wrong:0,total:SECTIONS[currentSec].qCount};
+  sectionScores[currentSec]={secId:getSections()[currentSec].id,label:getSections()[currentSec].label,type:getSections()[currentSec].type,correct:0,wrong:0,total:getSections()[currentSec].qCount};
   document.getElementById('btn-next').textContent='הבא';
   if(mode==='mock')startSectionTimer();
   renderQuestion();
@@ -3004,7 +3531,7 @@ function startSection(){
 
 function endSection(){
   clearInterval(timerInterval);
-  if(currentSec<SECTIONS.length-1){currentSec++;currentQInSec=0;renderSectionIntro()}
+  if(currentSec<getSections().length-1){currentSec++;currentQInSec=0;renderSectionIntro()}
   else showResults();
 }
 
@@ -3033,6 +3560,8 @@ function makeWordsClickable(html){
 }
 
 async function showWordTranslation(ev, word){
+  // In the mock test, translation is disabled (like the real exam) — only listen is allowed.
+  if(mode==='mock') return;
   ev.stopPropagation();
   closeWordPopup();
   const clean = word.toLowerCase().replace(/[^a-z']/g,'');
@@ -3186,7 +3715,7 @@ document.addEventListener('mousedown', function(e){
 function renderQuestion(){
   sectionPhase='question';
   _removeSegButton();
-  const sec=SECTIONS[currentSec];
+  const sec=getSections()[currentSec];
   const qs=secQuestions(currentSec);
   const q=qs[currentQInSec];
   const gIdx=globalQIndex(currentSec,currentQInSec);
@@ -3453,7 +3982,7 @@ function selectOpt(i){
 
 function updateSectionProgress(){
   let html='';
-  SECTIONS.forEach((s,i)=>{
+  getSections().forEach((s,i)=>{
     let cls='sec-dot';
     if(i<currentSec)cls+=' done';
     else if(i===currentSec)cls+=' current';
@@ -3467,9 +3996,11 @@ function showResults(){
   let totalCorrect=0,totalWrong=0;
   sectionScores.forEach(s=>{totalCorrect+=s.correct;totalWrong+=s.wrong});
   // Save to Supabase
-  const totalQs=QUESTION_BANK[currentSet].length;
-  saveScoreToSupabase(currentSet+1, totalCorrect, totalQs);
-  const total=ALL_QUESTIONS.length;
+  const totalQs=activeQuestions().length;
+  // Practice sets: 1..11. Mock tests: 101..103 (kept numeric for the DB column).
+  const setLabel = usingMock ? (101+currentMock) : (currentSet+1);
+  saveScoreToSupabase(setLabel, totalCorrect, totalQs);
+  const total=activeQuestions().length;
   const pct=Math.round((totalCorrect/total)*100);
   const score=Math.round(50+(pct/100)*100);
   document.getElementById('r-score').textContent=score;
@@ -3491,8 +4022,68 @@ function showResults(){
   sectionScores.forEach(s=>{tbl+=`<tr><td>חלק ${s.secId}</td><td style="font-size:12px;color:var(--gray-600)">${s.type}</td><td class="correct-cell">${s.correct}/${s.total}</td><td class="wrong-cell">${s.wrong}/${s.total}</td></tr>`});
   tbl+='</tbody>';
   document.getElementById('r-sec-table').innerHTML=tbl;
+
+  // ── Full question-by-question review ──
+  buildResultsReview();
+
   showScreen('results');
 }
+
+function buildResultsReview(){
+  const letters=['א','ב','ג','ד'];
+  const secs=getSections();
+  let html='';
+  let qNum=0;
+  for(let si=0; si<secs.length; si++){
+    const secQs=secQuestions(si);
+    const secLabel=secs[si].label;
+    html+=`<div style="font-weight:600;font-size:14px;color:var(--gray-700);margin:16px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--gray-200)">${secLabel} — חלק ${si+1}</div>`;
+    for(let qi=0; qi<secQs.length; qi++){
+      qNum++;
+      const q=secQs[qi];
+      const gIdx=globalQIndex(si,qi);
+      const student=answers[gIdx];
+      const correct=q.answer;
+      const isCorrect=student===correct;
+      const answered=student!==undefined;
+      const borderColor=isCorrect?'#10b981':(answered?'#ef4444':'#d1d5db');
+      const statusBadge=isCorrect
+        ? '<span style="background:#d1fae5;color:#065f46;font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px">✓ נכון</span>'
+        : (answered
+            ? '<span style="background:#fee2e2;color:#991b1b;font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px">✗ שגוי</span>'
+            : '<span style="background:#f3f4f6;color:#6b7280;font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px">לא נענתה</span>');
+
+      // Question text (for reading, prefix with a short note)
+      let qText=q.text;
+
+      // Options list with marking
+      let optsHtml='';
+      q.options.forEach((opt,i)=>{
+        let bg='', mark='', weight='400';
+        if(i===correct){ bg='background:#d1fae5;'; mark=' ✓'; weight='600'; }
+        if(i===student && student!==correct){ bg='background:#fee2e2;'; mark=' ✗'; }
+        optsHtml+=`<div style="${bg}padding:5px 10px;border-radius:6px;margin:3px 0;font-size:13px;direction:ltr;text-align:left;font-weight:${weight}">(${letters[i]}) ${opt}${mark}</div>`;
+      });
+
+      const studentLine = answered
+        ? (isCorrect?'':`<div style="font-size:12px;color:#991b1b;margin-top:6px">התשובה שלך: (${letters[student]})</div>`)
+        : `<div style="font-size:12px;color:#6b7280;margin-top:6px">לא ענית על שאלה זו</div>`;
+
+      html+=`<div style="border:1px solid var(--gray-200);border-right:4px solid ${borderColor};border-radius:10px;padding:12px 14px;margin-bottom:10px;background:#fff">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <span style="font-size:13px;font-weight:600;color:var(--gray-600)">שאלה ${qNum}</span>
+          ${statusBadge}
+        </div>
+        <div style="font-size:14px;color:var(--gray-800);margin-bottom:8px;direction:ltr;text-align:left">${qText}</div>
+        ${optsHtml}
+        ${studentLine}
+        <div style="background:#f8fafc;border-radius:8px;padding:10px;margin-top:10px;font-size:13px;color:var(--gray-700);line-height:1.7">${q.explanation||''}</div>
+      </div>`;
+    }
+  }
+  document.getElementById('r-review-list').innerHTML=html;
+}
+
 </script>
 </body>
 </html>
