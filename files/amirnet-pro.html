@@ -226,6 +226,10 @@ body{font-family:'Heebo',sans-serif;background:var(--gray-50);color:var(--text);
 </style>
 </head>
 <body>
+<div id="auth-gate" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#0a1628;z-index:99999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:1rem;">
+  <div style="font-family:'Heebo',sans-serif;font-size:1.8rem;font-weight:700;color:#fff;letter-spacing:-0.5px;">Amir<span style="color:#f59e0b">NET</span> Pro</div>
+  <div style="color:rgba(255,255,255,0.4);font-family:'Heebo',sans-serif;font-size:0.85rem;">בודק הרשאות...</div>
+</div>
 
 <!-- HOME -->
 <div id="home" class="screen active">
@@ -265,14 +269,16 @@ body{font-family:'Heebo',sans-serif;background:var(--gray-50);color:var(--text);
         <div style="font-size:16px;font-weight:600;margin-bottom:6px;color:#fff">תרגול מילים</div>
         <div style="font-size:13px;color:rgba(255,255,255,0.6);line-height:1.6">אלפי מילים · כרטיסיות · חזרה חכמה</div>
       </div>
-      <div class="mode-card" onclick="window.location.href='amirnet-lessons.html'" style="background:linear-gradient(135deg,#1a0a28,#3b1a6b);border:1.5px solid rgba(139,92,246,0.3)">
+
+      <div class="mode-card" onclick="window.location.href='amirnet-lessons.html'" style="background:linear-gradient(135deg,#0a1628,#1a3a6b);border:1.5px solid rgba(16,185,129,0.3)">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
-          <span style="font-size:12px;font-weight:600;padding:3px 10px;background:rgba(139,92,246,0.15);color:#a78bfa;border-radius:999px">בקרוב</span>
+          <span style="font-size:12px;font-weight:600;padding:3px 10px;background:rgba(16,185,129,0.15);color:#10b981;border-radius:999px">חדש!</span>
           <span style="font-size:22px">🎬</span>
         </div>
         <div style="font-size:16px;font-weight:600;margin-bottom:6px;color:#fff">שיעורים מוקלטים</div>
-        <div style="font-size:13px;color:rgba(255,255,255,0.6);line-height:1.6">שיעורי וידאו · אסטרטגיות · הכנה לבחינה</div>
+        <div style="font-size:13px;color:rgba(255,255,255,0.6);line-height:1.6">שיעורי הכנה · צפה בקצב שלך</div>
       </div>
+
       <div class="mode-card" onclick="showSetPicker()">
         <div class="mode-icon mode-icon-practice">📚</div>
         <div class="mode-name">מצב תרגול</div>
@@ -3677,16 +3683,22 @@ async function initAuth() {
     const { data } = await sb.auth.getSession();
     if (data.session) {
       currentUser = data.session.user;
+      // Auth passed — remove gate and show the app
+      const gate = document.getElementById('auth-gate');
+      if (gate) gate.remove();
       const nameEl = document.getElementById('user-name-display');
       if (nameEl) {
         const { data: profile } = await sb.from('profiles')
           .select('first_name,last_name').eq('id', currentUser.id).single();
         if (profile) nameEl.textContent = profile.first_name + ' ' + profile.last_name;
       }
+    } else {
+      // No valid session — send to login page
+      window.location.replace('index.html');
     }
-    // Not redirecting on load — only redirect on explicit protected actions
   } catch(e) {
     console.warn('Auth check failed:', e);
+    window.location.replace('index.html');
   }
 }
 
