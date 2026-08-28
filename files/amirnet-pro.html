@@ -224,10 +224,24 @@ body{font-family:'Heebo',sans-serif;background:var(--gray-50);color:var(--text);
 .q-text,.passage-text,.opt-text{-webkit-user-select:text;user-select:text}
 .q-text ::selection,.passage-text ::selection,.opt-text ::selection{background:rgba(245,158,11,0.4)}
 </style>
+<script>
+(function(){
+  if (window.location.hostname !== 'amirnetpro.netlify.app') return;
+  try {
+    var found = Object.keys(localStorage).find(function(k){
+      return k.startsWith('sb-') && k.endsWith('-auth-token');
+    });
+    var session = found ? JSON.parse(localStorage.getItem(found)) : null;
+    if (!session || !session.access_token) {
+      window.location.replace('index.html');
+    }
+  } catch(e) {
+    window.location.replace('index.html');
+  }
+})();
+</script>
 </head>
 <body>
-<div id="auth-gate" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#0a1628;z-index:99999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:1rem;">
-  <div style="font-family:'Heebo',sans-serif;font-size:1.8rem;font-weight:700;color:#fff;letter-spacing:-0.5px;">Amir<span style="color:#f59e0b">NET</span> Pro</div>
   <div style="color:rgba(255,255,255,0.4);font-family:'Heebo',sans-serif;font-size:0.85rem;">בודק הרשאות...</div>
 </div>
 
@@ -3679,13 +3693,12 @@ let currentUser = null;
 
 // Load session — non-blocking so app still works in preview
 async function initAuth() {
+  if (window.location.hostname !== 'amirnetpro.netlify.app') return;
   try {
     const { data } = await sb.auth.getSession();
     if (data.session) {
       currentUser = data.session.user;
       // Auth passed — remove gate and show the app
-      const gate = document.getElementById('auth-gate');
-      if (gate) gate.remove();
       const nameEl = document.getElementById('user-name-display');
       if (nameEl) {
         const { data: profile } = await sb.from('profiles')

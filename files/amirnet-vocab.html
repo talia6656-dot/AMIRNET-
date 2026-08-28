@@ -106,6 +106,23 @@ body { font-family: var(--font); background: var(--gray-50); min-height: 100vh; 
   body { overscroll-behavior-x: none; }
 }
 </style>
+<script>
+(function(){
+  // Only enforce auth on the live Netlify site
+  if (window.location.hostname !== 'amirnetpro.netlify.app') return;
+  try {
+    var found = Object.keys(localStorage).find(function(k){
+      return k.startsWith('sb-') && k.endsWith('-auth-token');
+    });
+    var session = found ? JSON.parse(localStorage.getItem(found)) : null;
+    if (!session || !session.access_token) {
+      window.location.replace('index.html');
+    }
+  } catch(e) {
+    window.location.replace('index.html');
+  }
+})();
+</script>
 </head>
 <body>
 
@@ -3822,6 +3839,16 @@ const VOCAB_BANK = [
 ];
 
 let currentUser = null;
+
+// Async session validation — redirect if session expired server-side
+(async function validateSession() {
+  if (window.location.hostname !== 'amirnetpro.netlify.app') return;
+  try {
+    const { data } = await sb.auth.getSession();
+    if (!data.session) { window.location.replace('index.html'); return; }
+    currentUser = data.session.user;
+  } catch(e) { window.location.replace('index.html'); }
+})();
 let userProgress = {};
 let currentLevel = 0;
 let showConnectorsOnly = false;
