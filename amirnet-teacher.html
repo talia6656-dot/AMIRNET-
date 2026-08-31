@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AmirNET Pro — לוח מורה</title>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700&family=DM+Serif+Display@400&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --navy: #0a1628; --navy-mid: #112040; --blue: #1a56db;
+    --accent: #f59e0b; --white: #fff; --gray-50: #f8fafc;
+    --gray-100: #f1f5f9; --gray-200: #e2e8f0; --gray-400: #94a3b8;
+    --gray-600: #475569; --gray-800: #1e293b; --green: #059669;
+    --red: #dc2626; --radius: 12px;
+  }
+  body { font-family: 'Heebo', sans-serif; background: var(--gray-50); min-height: 100vh; }
+
+  /* Login overlay */
+  .login-overlay {
+    position: fixed; inset: 0; background: var(--navy);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 100; padding: 1.5rem;
+  }
+  .login-overlay.hidden { display: none; }
+  .login-box {
+    background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 20px; padding: 2.5rem 2rem; width: 100%; max-width: 400px;
+    backdrop-filter: blur(20px);
+  }
+  .login-box .logo { font-family: 'DM Serif Display', serif; font-size: 2rem; color: #fff; text-align: center; margin-bottom: 0.25rem; }
+  .login-box .logo span { color: var(--accent); }
+  .login-box .sub { text-align: center; color: var(--gray-400); font-size: 13px; margin-bottom: 2rem; }
+  .login-box label { display: block; font-size: 13px; color: var(--gray-400); margin-bottom: 6px; }
+  .login-box input {
+    width: 100%; padding: 11px 13px; margin-bottom: 1rem;
+    background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 10px; font-family: 'Heebo', sans-serif; font-size: 15px;
+    color: #fff; outline: none; direction: ltr; text-align: left;
+  }
+  .login-box input:focus { border-color: var(--blue); }
+  .login-box .err { font-size: 12.5px; color: #fca5a5; margin-bottom: 0.75rem; display: none; }
+  .login-box .err.show { display: block; }
+  .btn { width: 100%; padding: 13px; background: var(--blue); border: none; border-radius: 10px; font-family: 'Heebo', sans-serif; font-size: 15px; font-weight: 600; color: #fff; cursor: pointer; transition: background 0.15s; }
+  .btn:hover { background: #1d4ed8; }
+  .btn.loading { opacity: 0.7; pointer-events: none; }
+
+  /* Header */
+  .header {
+    background: var(--navy); padding: 0 2rem; height: 60px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 10;
+  }
+  .header .logo { font-family: 'DM Serif Display', serif; font-size: 1.4rem; color: #fff; }
+  .header .logo span { color: var(--accent); }
+  .header .badge {
+    background: rgba(245,158,11,0.15); color: var(--accent);
+    border: 1px solid rgba(245,158,11,0.3); border-radius: 999px;
+    font-size: 12px; font-weight: 600; padding: 4px 12px;
+  }
+  .header .logout-btn {
+    background: none; border: 1px solid rgba(255,255,255,0.15); color: rgba(255,255,255,0.6);
+    border-radius: 8px; padding: 6px 14px; font-family: 'Heebo', sans-serif;
+    font-size: 13px; cursor: pointer; transition: all 0.15s;
+  }
+  .header .logout-btn:hover { color: #fff; border-color: rgba(255,255,255,0.4); }
+  .header-right { display: flex; align-items: center; gap: 12px; }
+
+  /* Main */
+  .main { max-width: 1200px; margin: 0 auto; padding: 2rem 1.5rem; }
+
+  /* Stats row */
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 2rem; }
+  .stat-card {
+    background: var(--white); border: 1px solid var(--gray-200);
+    border-radius: var(--radius); padding: 1.25rem;
+  }
+  .stat-card .label { font-size: 12px; color: var(--gray-400); font-weight: 500; margin-bottom: 6px; }
+  .stat-card .value { font-size: 28px; font-weight: 700; color: var(--navy); }
+  .stat-card .sub { font-size: 12px; color: var(--gray-400); margin-top: 2px; }
+
+  /* Invite code box */
+  .invite-box {
+    background: var(--white); border: 1px solid var(--gray-200);
+    border-radius: var(--radius); padding: 1.25rem 1.5rem;
+    display: flex; align-items: center; gap: 16px;
+    margin-bottom: 2rem; flex-wrap: wrap;
+  }
+  .invite-box .il { font-size: 13px; color: var(--gray-600); font-weight: 500; }
+  .invite-box .code {
+    font-size: 16px; font-weight: 700; color: var(--navy);
+    background: var(--gray-100); padding: 6px 16px; border-radius: 8px;
+    letter-spacing: 1px; font-family: monospace;
+  }
+  .invite-box .copy-btn {
+    background: none; border: 1px solid var(--gray-200); border-radius: 8px;
+    padding: 6px 14px; font-family: 'Heebo', sans-serif; font-size: 13px;
+    color: var(--gray-600); cursor: pointer; transition: all 0.15s;
+  }
+  .invite-box .copy-btn:hover { background: var(--gray-100); }
+  .change-code-row {
+    display: none; margin-top: 1rem; padding-top: 1rem;
+    border-top: 1px solid var(--gray-200);
+    align-items: center; gap: 10px; flex-wrap: wrap;
+  }
+  .change-code-row.open { display: flex; }
+  .change-code-row input {
+    flex: 1; min-width: 180px; padding: 8px 12px;
+    border: 1px solid var(--gray-200); border-radius: 8px;
+    font-family: 'Heebo', sans-serif; font-size: 14px; font-weight: 600;
+    color: var(--navy); outline: none; letter-spacing: 1px; direction: ltr;
+    text-transform: uppercase;
+  }
+  .change-code-row input:focus { border-color: var(--blue); }
+  .btn-change-save {
+    padding: 8px 18px; background: var(--blue); border: none;
+    border-radius: 8px; font-family: 'Heebo', sans-serif; font-size: 13px;
+    font-weight: 600; color: #fff; cursor: pointer;
+  }
+  .btn-change-save:hover { background: #1d4ed8; }
+  .btn-change-cancel {
+    padding: 8px 14px; background: none; border: 1px solid var(--gray-200);
+    border-radius: 8px; font-family: 'Heebo', sans-serif; font-size: 13px;
+    color: var(--gray-600); cursor: pointer;
+  }
+  .code-saved-msg { font-size: 12px; color: var(--green); display: none; }
+  .code-saved-msg.show { display: inline; }
+
+  /* Students table */
+  .section-title {
+    font-size: 16px; font-weight: 600; color: var(--navy);
+    margin-bottom: 1rem; display: flex; align-items: center; gap: 8px;
+  }
+  .students-table {
+    background: var(--white); border: 1px solid var(--gray-200);
+    border-radius: var(--radius); overflow: hidden;
+  }
+  .table-header {
+    display: grid; grid-template-columns: 2fr 2fr 1fr 1fr 1fr 1.5fr;
+    padding: 10px 16px; background: var(--gray-50);
+    border-bottom: 1px solid var(--gray-200);
+    font-size: 12px; font-weight: 600; color: var(--gray-400);
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .student-row {
+    display: grid; grid-template-columns: 2fr 2fr 1fr 1fr 1fr 1.5fr;
+    padding: 14px 16px; border-bottom: 1px solid var(--gray-100);
+    align-items: center; transition: background 0.1s; cursor: pointer;
+  }
+  .student-row:last-child { border-bottom: none; }
+  .student-row:hover { background: var(--gray-50); }
+  .student-name { font-weight: 500; color: var(--navy); font-size: 14px; }
+  .student-email { font-size: 13px; color: var(--gray-400); }
+  .sets-done {
+    font-size: 13px; color: var(--gray-600);
+    display: flex; align-items: center; gap: 4px;
+  }
+  .avg-score {
+    font-size: 14px; font-weight: 600;
+  }
+  .score-high { color: var(--green); }
+  .score-mid { color: var(--accent); }
+  .score-low { color: var(--red); }
+  .last-active { font-size: 12px; color: var(--gray-400); }
+  .btn-feedback {
+    background: var(--blue); color: #fff; border: none;
+    border-radius: 8px; padding: 6px 14px; font-family: 'Heebo', sans-serif;
+    font-size: 12px; font-weight: 500; cursor: pointer; transition: background 0.15s;
+  }
+  .btn-feedback:hover { background: #1d4ed8; }
+  .no-students {
+    padding: 3rem; text-align: center; color: var(--gray-400); font-size: 14px;
+  }
+
+  /* Feedback Modal */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 50; padding: 1.5rem; opacity: 0; pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+  .modal {
+    background: var(--white); border-radius: 18px;
+    padding: 2rem; width: 100%; max-width: 580px;
+    transform: translateY(20px); transition: transform 0.2s;
+    max-height: 85vh; overflow-y: auto;
+  }
+  .modal-overlay.open .modal { transform: translateY(0); }
+  .modal-title { font-size: 17px; font-weight: 600; color: var(--navy); margin-bottom: 0.25rem; }
+  .modal-sub { font-size: 13px; color: var(--gray-400); margin-bottom: 1.5rem; }
+  .modal label { display: block; font-size: 13px; font-weight: 500; color: var(--gray-600); margin-bottom: 6px; }
+  .modal input, .modal textarea {
+    width: 100%; padding: 10px 13px; border: 1px solid var(--gray-200);
+    border-radius: 10px; font-family: 'Heebo', sans-serif; font-size: 14px;
+    color: var(--navy); outline: none; transition: border-color 0.15s;
+    margin-bottom: 1rem; text-align: right; direction: rtl;
+  }
+  .modal input:focus, .modal textarea:focus { border-color: var(--blue); }
+  .modal textarea { resize: vertical; min-height: 100px; }
+  .modal-scores { margin-bottom: 1.25rem; }
+  .score-item {
+    padding: 10px 12px; background: var(--gray-50); border-radius: 8px;
+    margin-bottom: 6px; font-size: 13px; cursor: pointer;
+    transition: background 0.15s; border: 1px solid var(--gray-200);
+  }
+  .score-item:hover { background: var(--gray-100); }
+  .score-item-header { display: flex; justify-content: space-between; align-items: center; }
+  .score-item .set-name { color: var(--gray-600); font-weight: 500; }
+  .score-item .set-score { font-weight: 600; color: var(--navy); }
+  .score-item .expand-hint { font-size: 11px; color: var(--gray-400); margin-top: 3px; }
+  .answers-breakdown { display: none; margin-top: 12px; border-top: 1px solid var(--gray-200); padding-top: 12px; }
+  .answers-breakdown.open { display: block; }
+  .answer-card {
+    background: var(--white); border: 1px solid var(--gray-200);
+    border-radius: 10px; padding: 12px 14px; margin-bottom: 8px;
+  }
+  .answer-card.correct-card { border-right: 3px solid var(--green); }
+  .answer-card.wrong-card { border-right: 3px solid var(--red); }
+  .answer-card.skipped-card { border-right: 3px solid var(--gray-400); }
+  .answer-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .answer-card-qnum { font-size: 11px; font-weight: 600; color: var(--gray-400); }
+  .answer-card-status { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; }
+  .status-correct { background: rgba(5,150,105,0.1); color: var(--green); }
+  .status-wrong { background: rgba(220,38,38,0.1); color: var(--red); }
+  .status-skipped { background: var(--gray-100); color: var(--gray-400); }
+  .answer-card-question { font-size: 13px; color: var(--navy); font-weight: 500; margin-bottom: 10px; line-height: 1.5; }
+  .answer-options { display: flex; flex-direction: column; gap: 5px; }
+  .answer-option { font-size: 12px; padding: 6px 10px; border-radius: 7px; display: flex; align-items: center; gap: 8px; }
+  .answer-option.opt-correct { background: rgba(5,150,105,0.08); color: var(--green); font-weight: 600; }
+  .answer-option.opt-wrong { background: rgba(220,38,38,0.08); color: var(--red); font-weight: 600; }
+  .answer-option.opt-neutral { background: var(--gray-50); color: var(--gray-600); }
+  .answer-option .opt-icon { font-size: 13px; flex-shrink: 0; }
+  .modal-actions { display: flex; gap: 10px; }
+  .btn-save {
+    flex: 1; padding: 11px; background: var(--blue); border: none;
+    border-radius: 10px; font-family: 'Heebo', sans-serif; font-size: 14px;
+    font-weight: 600; color: #fff; cursor: pointer; transition: background 0.15s;
+  }
+  .btn-save:hover { background: #1d4ed8; }
+  .btn-cancel {
+    padding: 11px 20px; background: none; border: 1px solid var(--gray-200);
+    border-radius: 10px; font-family: 'Heebo', sans-serif; font-size: 14px;
+    color: var(--gray-600); cursor: pointer; transition: all 0.15s;
+  }
+  .btn-cancel:hover { background: var(--gray-100); }
+  .save-success {
+    display: none; color: var(--green); font-size: 13px;
+    text-align: center; margin-top: 8px;
+  }
+  .save-success.show { display: block; }
+
+  /* Modal tabs */
+  .modal-tabs { display: flex; gap: 8px; margin-bottom: 1.25rem; border-bottom: 2px solid var(--gray-200); padding-bottom: 0; }
+  .modal-tab {
+    padding: 8px 18px; font-family: var(--font); font-size: 14px; font-weight: 500;
+    color: var(--gray-400); background: none; border: none; cursor: pointer;
+    border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.15s;
+  }
+  .modal-tab.active { color: var(--blue); border-bottom-color: var(--blue); font-weight: 600; }
+  .modal-panel { display: none; }
+  .modal-panel.active { display: block; }
+
+  /* Vocab stats */
+  .vocab-stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-bottom: 1rem; }
+  .vocab-stat { background: var(--gray-50); border-radius: 10px; padding: 10px; text-align: center; }
+  .vocab-stat .val { font-size: 20px; font-weight: 700; color: var(--navy); }
+  .vocab-stat .lbl { font-size: 11px; color: var(--gray-400); margin-top: 2px; }
+  .vocab-progress-bar { height: 8px; background: var(--gray-200); border-radius: 999px; overflow: hidden; margin-bottom: 1rem; }
+  .vocab-progress-fill { height: 100%; background: linear-gradient(90deg, var(--blue), var(--green)); border-radius: 999px; transition: width 0.4s; }
+
+  /* Word category sections */
+  .word-category { margin-bottom: 10px; border: 1px solid var(--gray-200); border-radius: 10px; overflow: hidden; }
+  .word-category-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 14px; cursor: pointer; background: var(--gray-50);
+    font-size: 13px; font-weight: 600; transition: background 0.15s;
+  }
+  .word-category-header:hover { background: var(--gray-100); }
+  .word-category-header .cat-count { font-size: 12px; font-weight: 500; padding: 2px 8px; border-radius: 999px; }
+  .cat-known { color: var(--green); background: rgba(5,150,105,0.1); }
+  .cat-familiar { color: var(--accent); background: rgba(245,158,11,0.1); }
+  .cat-unknown { color: var(--red); background: rgba(220,38,38,0.1); }
+  .word-category-body { display: none; padding: 10px 14px; }
+  .word-category-body.open { display: block; }
+  .word-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .word-tag { font-size: 12px; padding: 4px 10px; border-radius: 999px; background: var(--gray-100); color: var(--gray-700); }
+
+  /* Vocab column in student table */
+  .vocab-mini-bar { height: 4px; background: var(--gray-200); border-radius: 999px; overflow: hidden; margin-top: 4px; width: 80px; }
+  .vocab-mini-fill { height: 100%; background: var(--green); border-radius: 999px; }
+
+  .loading-text { text-align: center; color: var(--gray-400); padding: 3rem; font-size: 14px; }
+</style>
+</head>
+<body>
+
+
+
+<!-- Header -->
+<header class="header">
+  <div class="logo">Amir<span>NET</span> Pro</div>
+  <div class="header-right">
+    <span class="badge">לוח מורה</span>
+    <button class="logout-btn" onclick="logout()">יציאה</button>
+  </div>
+</header>
+
+<!-- Main -->
+<main class="main">
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="label">סה"כ תלמידים</div>
+      <div class="value" id="stat-students">—</div>
+      <div class="sub">רשומים</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">סטים הושלמו</div>
+      <div class="value" id="stat-sets">—</div>
+      <div class="sub">סה"כ ניסיונות</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">ציון ממוצע</div>
+      <div class="value" id="stat-avg">—</div>
+      <div class="sub">מתוך 100</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">פעילים השבוע</div>
+      <div class="value" id="stat-active">—</div>
+      <div class="sub">תלמידים</div>
+    </div>
+  </div>
+
+  <!-- Invite code -->
+  <div class="invite-box">
+    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+      <span class="il">🔑 קוד הזמנה לתלמידים:</span>
+      <span class="code" id="invite-code-display">AMBITIONIST2026</span>
+      <button class="copy-btn" onclick="copyCode()">העתק</button>
+      <span id="copy-confirm" style="font-size:12px;color:var(--green);display:none">✓ הועתק!</span>
+      <button class="copy-btn" onclick="toggleChangeCode()" style="margin-right:auto">✏️ שנה קוד</button>
+      <span class="code-saved-msg" id="code-saved-msg">✓ הקוד עודכן בהצלחה!</span>
+    </div>
+    <div class="change-code-row" id="change-code-row">
+      <input type="text" id="new-code-input" placeholder="הזן קוד חדש (אנגלית וספרות בלבד)" maxlength="30"
+        oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9-]/g,'')">
+      <button class="btn-change-save" onclick="saveNewCode()">שמור קוד חדש</button>
+      <button class="btn-change-cancel" onclick="toggleChangeCode()">ביטול</button>
+    </div>
+  </div>
+
+  <!-- Students table -->
+  <div class="section-title">👥 רשימת תלמידים</div>
+  <div class="students-table">
+    <div class="table-header">
+      <div>שם</div>
+      <div>אימייל</div>
+      <div>סטים</div>
+      <div>ציון ממוצע</div>
+      <div>מילון</div>
+      <div>פידבק / ציון</div>
+    </div>
+    <div id="students-body">
+      <div class="loading-text">טוען נתונים...</div>
+    </div>
+  </div>
+
+</main>
+
+<!-- Feedback Modal -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-title" id="modal-name">שם התלמיד</div>
+    <div class="modal-tabs">
+      <button class="modal-tab active" onclick="switchTab('exercises',this)">תרגילים</button>
+      <button class="modal-tab" onclick="switchTab('vocab',this)">אוצר מילים</button>
+      <button class="modal-tab" onclick="switchTab('feedback',this)">משוב</button>
+    </div>
+
+    <!-- Exercises panel -->
+    <div class="modal-panel active" id="panel-exercises">
+      <div class="modal-scores" id="modal-scores"></div>
+    </div>
+
+    <!-- Vocab panel -->
+    <div class="modal-panel" id="panel-vocab">
+      <div class="vocab-stats">
+        <div class="vocab-stat"><div class="val" id="vocab-total">0</div><div class="lbl">נצפו</div></div>
+        <div class="vocab-stat"><div class="val" id="vocab-known" style="color:var(--green)">0</div><div class="lbl">שולט</div></div>
+        <div class="vocab-stat"><div class="val" id="vocab-familiar" style="color:var(--accent)">0</div><div class="lbl">מתרגל</div></div>
+        <div class="vocab-stat"><div class="val" id="vocab-pct" style="color:var(--blue)">0%</div><div class="lbl">אחוז שליטה</div></div>
+      </div>
+      <div class="vocab-progress-bar">
+        <div class="vocab-progress-fill" id="vocab-progress-fill" style="width:0%"></div>
+      </div>
+      <div id="vocab-categories"></div>
+    </div>
+
+    <!-- Feedback panel -->
+    <div class="modal-panel" id="panel-feedback">
+      <label>ציון מורה</label>
+      <input type="text" id="modal-grade" placeholder='למשל: 85, "מצוין", A+'>
+      <label>משוב אישי</label>
+      <textarea id="modal-feedback" placeholder="כתוב כאן את המשוב לתלמיד..."></textarea>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="document.getElementById('modal-overlay').classList.remove('open')">ביטול</button>
+        <button class="btn-save" onclick="saveFeedback()">שמור משוב</button>
+      </div>
+      <div class="save-success" id="save-success">✓ המשוב נשמר בהצלחה!</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://ivauncueyedwlthzylnt.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml2YXVuY3VleWVkd2x0aHp5bG50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5MzQ3MjgsImV4cCI6MjA5MzUxMDcyOH0.Fn7xittXNv8f25V3y_roMbrnGkre_BaunCNzC3hvSVo';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const WORD_LOOKUP = {"v001":"abundant","v002":"accurate","v003":"acquire","v004":"adequate","v005":"adjacent","v006":"allocate","v007":"alter","v008":"ambiguous","v009":"amplify","v010":"analyze","v011":"anticipate","v012":"apparent","v013":"assert","v014":"assign","v015":"assist","v016":"assume","v017":"attain","v018":"attribute","v019":"benefit","v020":"capable","v021":"cease","v022":"challenge","v023":"characteristic","v024":"circumstances","v025":"cite","v026":"clarify","v027":"commence","v028":"complex","v029":"component","v030":"concentrate","v031":"conclude","v032":"confirm","v033":"confront","v034":"consequently","v035":"consider","v036":"consist","v037":"constant","v038":"construct","v039":"contribute","v040":"controversial","v041":"convert","v042":"convey","v043":"cooperate","v044":"crucial","v045":"decline","v046":"define","v047":"demonstrate","v048":"derive","v049":"detect","v050":"determine","v051":"develop","v052":"devote","v053":"diminish","v054":"discover","v055":"dispute","v056":"distinct","v057":"distribute","v058":"diverse","v059":"dominate","v060":"dramatic","v061":"duration","v062":"elaborate","v063":"eliminate","v064":"emerge","v065":"emphasize","v066":"enable","v067":"enhance","v068":"enormous","v069":"ensure","v070":"establish","v071":"evaluate","v072":"evident","v073":"evolve","v074":"examine","v075":"exceed","v076":"expand","v077":"exploit","v078":"expose","v079":"extensive","v080":"facilitate","v081":"factor","v082":"feature","v083":"focus","v084":"found","v085":"generate","v086":"global","v087":"gradual","v088":"halt","v089":"identify","v090":"illustrate","v091":"impact","v092":"implement","v093":"imply","v094":"indicate","v095":"influence","v096":"initial","v097":"integrate","v098":"interpret","v099":"involve","v100":"isolate","v101":"abolish","v102":"accelerate","v103":"accumulate","v104":"acknowledge","v105":"adapt","v106":"advocate","v107":"aggravate","v108":"alleviate","v109":"ambivalent","v110":"analogous","v111":"apprehensive","v112":"arbitrary","v113":"arduous","v114":"articulate","v115":"aspire","v116":"astute","v117":"authentic","v118":"autonomy","v119":"benchmark","v120":"bolster","v121":"chronic","v122":"coherent","v123":"coincide","v124":"collaborate","v125":"compelling","v126":"comprehensive","v127":"concede","v128":"confine","v129":"consolidate","v130":"contemplate","v131":"contend","v132":"contradict","v133":"conviction","v134":"correlate","v135":"credible","v136":"culminate","v137":"curb","v138":"cynical","v139":"deficient","v140":"deliberate","v141":"depict","v142":"deplete","v143":"derive","v144":"detrimental","v145":"deviate","v146":"diligent","v147":"discrepancy","v148":"dismiss","v149":"disperse","v150":"disrupt","v151":"distort","v152":"diverge","v153":"durable","v154":"dynamic","v155":"eccentric","v156":"encompass","v157":"endorse","v158":"endure","v159":"enforce","v160":"erode","v161":"ethical","v162":"evident","v163":"exacerbate","v164":"exemplify","v165":"exhaustive","v166":"explicit","v167":"exploit","v168":"fluctuate","v169":"formidable","v170":"foster","v171":"fragile","v172":"fundamental","v173":"grasp","v174":"hamper","v175":"harbinger","v176":"harsh","v177":"hence","v178":"hierarchy","v179":"homogeneous","v180":"hypothesis","v181":"immense","v182":"impede","v183":"implicit","v184":"impose","v185":"incentive","v186":"inevitable","v187":"inhibit","v188":"innovate","v189":"insight","v190":"integral","v191":"intricate","v192":"invariably","v193":"ironic","v194":"justify","v195":"landmark","v196":"lenient","v197":"lucid","v198":"magnitude","v199":"marginal","v200":"meticulous","v201":"aberrant","v202":"abhor","v203":"acrimony","v204":"admonish","v205":"adroit","v206":"aesthetic","v207":"affable","v208":"alacrity","v209":"ameliorate","v210":"anachronism","v211":"ancillary","v212":"anomalous","v213":"antipathy","v214":"apathy","v215":"arcane","v216":"ardent","v217":"arid","v218":"articulate","v219":"ascertain","v220":"assiduous","v221":"atrophy","v222":"audacious","v223":"augment","v224":"auspicious","v225":"austere","v226":"banal","v227":"belligerent","v228":"benevolent","v229":"brevity","v230":"callous","v231":"candor","v232":"capricious","v233":"censure","v234":"circumspect","v235":"clandestine","v236":"coerce","v237":"cogent","v238":"complacent","v239":"conciliatory","v240":"condone","v241":"conjecture","v242":"contentious","v243":"contrite","v244":"convoluted","v245":"copious","v246":"corroborate","v247":"credulous","v248":"cryptic","v249":"curtail","v250":"debilitate","v251":"decry","v252":"deference","v253":"deft","v254":"delineate","v255":"demagogue","v256":"denounce","v257":"deplorable","v258":"deride","v259":"desiccate","v260":"despondent","v261":"diffident","v262":"digress","v263":"diligence","v264":"discern","v265":"disdain","v266":"dismantle","v267":"disparate","v268":"disseminate","v269":"dogmatic","v270":"dubious","v271":"ebullient","v272":"efficacious","v273":"elusive","v274":"emulate","v275":"enigmatic","v276":"equivocate","v277":"erudite","v278":"esoteric","v279":"estrange","v280":"exacerbate","v281":"exonerate","v282":"expedient","v283":"explicit","v284":"fallacious","v285":"fastidious","v286":"flagrant","v287":"flounder","v288":"fortuitous","v289":"frugal","v290":"garrulous","v291":"gregarious","v292":"guile","v293":"hackneyed","v294":"hasten","v295":"haughty","v296":"hegemony","v297":"heretical","v298":"hubris","v299":"hypocritical","v300":"iconoclast","v301":"maintain","v302":"majority","v303":"manipulate","v304":"mechanism","v305":"migrate","v306":"minimize","v307":"modify","v308":"monitor","v309":"motivate","v310":"negative","v311":"neglect","v312":"neutral","v313":"numerous","v314":"obtain","v315":"occur","v316":"oppose","v317":"outcome","v318":"overcome","v319":"perceive","v320":"persist","v321":"predict","v322":"predominant","v323":"preserve","v324":"primary","v325":"principle","v326":"proceed","v327":"prohibit","v328":"promote","v329":"proportion","v330":"pursue","v331":"reject","v332":"relevant","v333":"reluctant","v334":"require","v335":"resolve","v336":"restrict","v337":"retain","v338":"reveal","v339":"significant","v340":"simulate","v341":"stability","v342":"substitute","v343":"sufficient","v344":"sustain","v345":"tradition","v346":"transform","v347":"transmit","v348":"undermine","v349":"uniform","v350":"utilize","v351":"valid","v352":"vary","v353":"verify","v354":"widespread","v355":"yield","v356":"mitigate","v357":"mundane","v358":"negligible","v359":"notorious","v360":"novel","v361":"nuance","v362":"obsolete","v363":"omit","v364":"ominous","v365":"ongoing","v366":"optimistic","v367":"oscillate","v368":"paradox","v369":"paramount","v370":"partisan","v371":"passive","v372":"perceive","v373":"peripheral","v374":"plausible","v375":"polarize","v376":"postulate","v377":"pragmatic","v378":"precede","v379":"precipitate","v380":"precise","v381":"premise","v382":"prescribe","v383":"prevalent","v384":"profound","v385":"proliferate","v386":"pronounced","v387":"propriety","v388":"provoke","v389":"proximity","v390":"prudent","v391":"rationale","v392":"reconcile","v393":"redundant","v394":"reinforce","v395":"relentless","v396":"resilient","v397":"resonate","v398":"restrain","v399":"revert","v400":"rigorous","v401":"robust","v402":"rudimentary","v403":"scrutinize","v404":"skeptical","v405":"sparse","v406":"specify","v407":"spontaneous","v408":"stagnant","v409":"stimulus","v410":"straightforward","v411":"stringent","v412":"subsequent","v413":"subtle","v414":"supplement","v415":"suppress","v416":"surge","v417":"susceptible","v418":"tangible","v419":"tedious","v420":"thrive","v421":"trigger","v422":"underestimate","v423":"unprecedented","v424":"unravel","v425":"vague","v426":"validate","v427":"vanish","v428":"viable","v429":"vigorous","v430":"volatile","v431":"vulnerable","v432":"wane","v433":"widespread","v434":"impetuous","v435":"impugn","v436":"incisive","v437":"indifferent","v438":"indignant","v439":"indolent","v440":"inept","v441":"inexorable","v442":"ingenious","v443":"inimical","v444":"innocuous","v445":"insidious","v446":"insipid","v447":"intransigent","v448":"inveterate","v449":"irascible","v450":"laconic","v451":"languid","v452":"laud","v453":"lethargic","v454":"levity","v455":"loquacious","v456":"lucrative","v457":"malevolent","v458":"malleable","v459":"mendacious","v460":"mercurial","v461":"meticulous","v462":"misanthrope","v463":"mitigate","v464":"mollify","v465":"morose","v466":"munificent","v467":"nefarious","v468":"nonchalant","v469":"obdurate","v470":"obfuscate","v471":"oblique","v472":"obsequious","v473":"obstinate","v474":"obtuse","v475":"onerous","v476":"opaque","v477":"ostracize","v478":"outmoded","v479":"overwrought","v480":"painstaking","v481":"palpable","v482":"parochial","v483":"partisan","v484":"pedantic","v485":"penchant","v486":"penurious","v487":"perfidious","v488":"perfunctory","v489":"pernicious","v490":"pertinacious","v491":"pervasive","v492":"petulant","v493":"placate","v494":"platitude","v495":"plethora","v496":"polemical","v497":"pompous","v498":"ponderous","v499":"precipitous","v500":"presumptuous","v501":"prevaricate","v502":"pristine","v503":"probity","v504":"prodigal","v505":"prodigious","v506":"profligate","v507":"propitious","v508":"proscribe","v509":"provincial","v510":"prudish","v511":"pugnacious","v512":"pusillanimous","v513":"quandary","v514":"querulous","v515":"quixotic","v516":"rancor","v517":"recalcitrant","v518":"reclusive","v519":"redoubtable","v520":"refractory","v521":"reprehensible","v522":"repudiate","v523":"reticent","v524":"reverent","v525":"ribald","v526":"sagacious","v527":"salient","v528":"sanctimonious","v529":"sardonic","v530":"scrupulous","v531":"sedulous","v532":"sordid","v533":"specious","v534":"spurious","v535":"stolid","v536":"strident","v537":"subjugate","v538":"sycophant","v539":"taciturn","v540":"temerity","v541":"tenuous","v542":"terse","v543":"timorous","v544":"torpid","v545":"tractable","v546":"transient","v547":"truculent","v548":"turbulent","v549":"ubiquitous","v550":"vacillate","v551":"vapid","v552":"vehement","v553":"venerate","v554":"verbose","v555":"vicarious","v556":"vindictive","v557":"virulent","v558":"volatile","v559":"voracious","v560":"wary","v561":"whimsical","v562":"wistful","v563":"zealous","v564":"zenith","v565":"zeal","v566":"allegiance","v567":"amiable","v568":"aptitude","v569":"barren","v570":"biased","v571":"campaign","v572":"catastrophic","v573":"cautious","v574":"cemented","v575":"chronicling","v576":"coincidence","v577":"competence","v578":"compliant","v579":"concealed","v580":"contingent","v581":"controversy","v582":"correspondence","v583":"defiance","v584":"dejected","v585":"demolished","v586":"deprived","v587":"deterioration","v588":"devious","v589":"dismantled","v590":"dormant","v591":"embroiled","v592":"endorsing","v593":"enduring","v594":"excavation","v595":"exacerbated","v596":"extinct","v597":"extravagance","v598":"fabrication","v599":"forbid","v600":"frigid","v601":"frivolous","v602":"fulfill","v603":"galvanized","v604":"guarantee","v605":"hastened","v606":"heralding","v607":"hostile","v608":"implications","v609":"indulging","v610":"inhibited","v611":"interrupted","v612":"intimidation","v613":"invoked","v614":"isolated","v615":"jubilant","v616":"liberated","v617":"magnified","v618":"majestic","v619":"measured","v620":"mounting","v621":"naive","v622":"nocturnal","v623":"nutritious","v624":"obligation","v625":"obstacle","v626":"oppressive","v627":"orations","v628":"phenomenon","v629":"pilgrimage","v630":"placid","v631":"plunged","v632":"ponders","v633":"precedent","v634":"prolonged","v635":"remedy","v636":"remote","v637":"renovations","v638":"replicated","v639":"reputation","v640":"restriction","v641":"sacred","v642":"scarce","v643":"scorching","v644":"slain","v645":"smoldering","v646":"sprawling","v647":"struck","v648":"supervision","v649":"suspicion","v650":"tenacious","v651":"tentative","v652":"tirelessly","v653":"toiled","v654":"trance","v655":"transparent","v656":"trivial","v657":"unearthed","v658":"unified","v659":"upheaval","v660":"versatile","v661":"vindicated","v662":"withstand","v663":"abundance","v664":"acclaimed","v665":"ambitious","v666":"assumption","v667":"barrier","v668":"blunder","v669":"cautious","v670":"channel","v671":"conflict","v672":"decisive","v673":"designated","v674":"destination","v675":"dismiss","v676":"dominant","v677":"durable","v678":"extinct","v679":"formal","v680":"fortune","v681":"guided","v682":"ignore","v683":"inspire","v684":"massive","v685":"merchants","v686":"modest","v687":"navigable","v688":"negligent","v689":"negotiation","v690":"obscure","v691":"obvious","v692":"ordinary","v693":"permanent","v694":"protection","v695":"reckless","v696":"regulation","v697":"remarkable","v698":"restore","v699":"temporary","v700":"threat","v701":"absorbed","v702":"delicacy","v703":"refuted","v704":"script","v705":"diverted","v706":"disproportionately","v707":"hybrid","v708":"ritual","v709":"creed","v710":"feat","v711":"endeavor","v712":"philanthropic","v713":"proficiency","v714":"commendable","v715":"reconstructive","v716":"subordinate","v717":"grudge","v718":"enchanted","v719":"revival","v720":"allocation","v721":"distorted","v722":"dismissive","v723":"banished","v724":"contribution","v725":"contemplation","v726":"persuasion","v727":"fulfilled","v728":"advent","v729":"adversity","v730":"aesthetic","v731":"aggregate","v732":"albeit","v733":"aloof","v734":"altruistic","v735":"ambiguity","v736":"amend","v737":"ample","v738":"anarchy","v739":"appease","v740":"apt","v741":"archaic","v742":"avert","v743":"benign","v744":"blatant","v745":"buoyant","v746":"candid","v747":"capitulate","v748":"catalyst","v749":"caustic","v750":"privileges","v751":"clarity","v752":"clemency","v753":"cognizant","v754":"commemorate","v755":"compassion","v756":"compliance","v757":"concise","v758":"confound","v759":"conscientious","v760":"consensus","v761":"conspicuous","v762":"contraband","v763":"counterpart","v764":"covert","v765":"credence","v766":"criterion","v767":"cursory","v768":"cynicism","v769":"debunk","v770":"decipher","v771":"deduce","v772":"deficiency","v773":"defunct","v774":"delegate","v775":"demise","v776":"deterrent","v777":"devout","v778":"discrepancy","v779":"disdain","v780":"dissent","v781":"consensus","v782":"incentive","v783":"disparity","v784":"infrastructure","v785":"curriculum","v786":"transparency","v787":"biodiversity","v788":"skepticism","v789":"ambition","v790":"dilemma","v791":"perseverance","v792":"paradigm","v793":"rhetoric","v794":"simultaneously","v795":"catastrophe","v796":"momentum","v797":"obsolescence","v798":"phenomenon","v799":"speculation","v800":"confrontation","v801":"affluence","v802":"proficiency","v803":"commendable","v804":"overruled","v805":"extort","v806":"garment","v807":"caption","v808":"retractable","v809":"enchanted","v810":"contentious","v811":"irreconcilable","v812":"autonomous","v813":"egalitarian","v814":"hierarchy","v815":"imposing","v816":"edifice","v817":"specimen","v818":"expedition","v819":"commemorate","v820":"antiquity","v821":"medieval","v822":"nomadic","v823":"excavate","v824":"artifact","v825":"chronicle","v826":"momentum","v827":"catastrophic","v828":"innovative","v829":"resilience","v830":"sustainable","v831":"accountability","v832":"coherent","v833":"conviction","v834":"inevitable","v835":"misconception","v836":"unanimous","v837":"implication","v838":"simultaneously","v839":"consequently","v840":"ordinarily","v841":"controversial","v842":"ideology","v843":"abolition","v844":"colonial","v845":"prevalent","v846":"impartial","v847":"speculation","v848":"advocate","v849":"catastrophe","v850":"phenomenon","v851":"bacteria","v852":"crude","v853":"depict","v854":"detour","v855":"fertilizer","v856":"flatter","v857":"glide","v858":"hilarious","v859":"imitate","v860":"inversion","v861":"marsh","v862":"mock","v863":"neutralize","v864":"objection","v865":"pardon","v866":"plummet","v867":"recitation","v868":"replenish","v869":"resolution","v870":"staple","v871":"strict","v872":"sworn","v873":"conviction","v874":"concede","v875":"envious","v876":"fasten","v877":"flung","v878":"grind","v879":"haul","v880":"recollection","v881":"reconcile","v882":"rehearse","v883":"scrape","v884":"shrink","v885":"conviction","v886":"chant","v887":"deplete","v888":"distract","v889":"expansion","v890":"exploitation","v891":"extensively","v892":"fortunately","v893":"narrate","v894":"protruding","v895":"provoke","v896":"residual","v897":"rinse","v898":"scroll","v899":"shelter","v900":"sworn","v901":"installed","v902":"manuscript","v903":"fraction","v904":"tranquil","v905":"treacherous","v906":"colony","v907":"pigment","v908":"renown","v909":"courageous","v910":"dissolved","v911":"reflexes","v912":"coordination","v913":"disability","v914":"perfected","v916":"inspiring","v918":"correspondent","v919":"district","v920":"voyage","v921":"flee","v922":"beam","v923":"lethal","v924":"adept","v926":"amorous","v927":"ostentatious","v929":"evacuation","v930":"allotrope","v931":"provisions","v932":"iconic","v933":"mammoth","v934":"coveted","v935":"tenure","v937":"imperceptibly","v938":"pendulum","v939":"counterweight","v940":"sturdy","v941":"seismic","v942":"embody","v944":"anthropology","v945":"impenetrable","v946":"secluded","v947":"influx","v948":"suppressed","v949":"beneficial","v950":"drivel","v951":"acclaim","v952":"backdrop","v953":"portrayal","v955":"protagonist","v957":"multifaceted","v958":"quirky","v959":"rebellious","v960":"prestigious","v961":"uncanny","v962":"prized","v963":"skyscraper","v964":"absorb","v965":"accompanied","v966":"accomplished","v967":"adapted","v968":"bamboo","v969":"chamber","v970":"comparable","v971":"components","v972":"concrete","v973":"countless","v974":"crystalline","v975":"damper","v976":"daring","v977":"densely","v978":"distrust","v979":"engineering","v980":"exploits","v981":"extraordinary","v982":"flexible","v983":"foundations","v984":"gigantic","v985":"gruff","v986":"influential","v987":"intense","v988":"interior","v990":"loner","v991":"maiden","v992":"mandatory","v993":"minority","v994":"missionaries","v995":"observation","v996":"recipient","v997":"reinforced","v998":"revolutionary","v999":"scattered","v1000":"structural","v1001":"abbreviated","v1002":"aboriginal","v1003":"absence","v1004":"abrupt","v1005":"accent","v1006":"accommodate","v1007":"accolade","v1008":"accreditation","v1009":"adhere","v1010":"adhesive","v1011":"adverse","v1012":"aerodynamic","v1013":"affectionate","v1014":"agricultural","v1015":"alchemist","v1016":"alliance","v1017":"allure","v1018":"allusion","v1019":"amassed","v1020":"amateur","v1021":"amphibian","v1022":"ancestors","v1023":"anonymous","v1024":"antithetical","v1025":"appalled","v1026":"apparatus","v1027":"aristocratic","v1028":"aspirations","v1029":"assassinated","v1030":"assertion","v1031":"assertive","v1032":"assimilate","v1033":"astonishment","v1034":"asylum","v1035":"attire","v1036":"authority","v1037":"bizarre","v1038":"bureau","v1039":"circulation","v1040":"classification","v1041":"coherence","v1042":"collided","v1043":"compensate","v1044":"complexity","v1045":"compromise","v1046":"conscience","v1047":"consecutive","v1048":"consequence","v1049":"conservation","v1050":"contaminate","v1051":"credibility","v1052":"curiosity","v1053":"currency","v1054":"cultivated","v1055":"culpability","v1056":"debris","v1057":"defied","v1058":"depicts","v1059":"deteriorate","v1060":"devised","v1061":"diction","v1062":"diplomatically","v1063":"disadvantage","v1064":"discrimination","v1065":"disposal","v1066":"dissolution","v1067":"distinction","v1068":"distinguish","v1069":"drought","v1070":"ecotourism","v1071":"edible","v1072":"efficiency","v1073":"eloquent","v1074":"emigration","v1075":"eminent","v1076":"empathetic","v1077":"endangered","v1078":"epidemic","v1079":"escalate","v1080":"etiquette","v1081":"evolution","v1082":"exceptional","v1083":"exclusive","v1084":"expertise","v1085":"fabricated","v1086":"fascinating","v1087":"ferocious","v1088":"fictitious","v1089":"flammable","v1090":"flourish","v1091":"forecast","v1092":"foraging","v1093":"friction","v1094":"fugitive","v1095":"fungi","v1096":"futile","v1097":"genetic","v1098":"graceful","v1099":"habitat","v1100":"heritage","v1101":"hesitant","v1102":"hoard","v1103":"humorous","v1104":"hypocrite","v1105":"ignorant","v1106":"illumination","v1107":"imbalance","v1108":"impairment","v1109":"inadequate","v1110":"indigenous","v1111":"indispensable","v1112":"inferior","v1113":"ingredient","v1114":"inscription","v1115":"instrumental","v1116":"intolerant","v1117":"intrigued","v1118":"invasion","v1119":"irate","v1120":"isthmus","v1121":"keratin","v1122":"landscape","v1123":"legible","v1124":"liberate","v1125":"lingo","v1126":"loathe","v1127":"luster","v1128":"magnificent","v1129":"manifestation","v1130":"matrilineal","v1131":"medicinally","v1132":"milestone","v1133":"mindset","v1134":"monarch","v1135":"monument","v1136":"mystery","v1137":"narrated","v1138":"navigation","v1139":"negotiate","v1140":"neurological","v1141":"nomad","v1142":"notion","v1143":"nutrients","v1144":"objective","v1145":"obscurity","v1146":"odor","v1147":"optimal","v1148":"orchard","v1149":"outcry","v1150":"pacify","v1151":"particularly","v1152":"peasant","v1153":"persistence","v1154":"perspective","v1155":"persuasive","v1156":"pivotal","v1157":"plateau","v1158":"poaching","v1159":"posterity","v1160":"potent","v1161":"preamble","v1162":"precedence","v1163":"predicament","v1164":"prejudice","v1165":"premature","v1166":"presumed","v1167":"primitive","v1168":"prism","v1169":"prominent","v1170":"prowess","v1171":"pseudonym","v1172":"quest","v1173":"realm","v1174":"recuperate","v1175":"redeem","v1176":"refuge","v1177":"regenerate","v1178":"reiterated","v1179":"resemblance","v1180":"reside","v1181":"respiratory","v1182":"restraint","v1183":"rituals","v1184":"rival","v1185":"rural","v1186":"safeguards","v1187":"salvage","v1188":"sanctuary","v1189":"scarcely","v1190":"scourge","v1191":"secular","v1192":"settlement","v1193":"siblings","v1194":"situated","v1195":"slender","v1196":"slogan","v1197":"sovereign","v1198":"spectacle","v1199":"spectrum","v1200":"spiritual","v1201":"splendid","v1202":"stature","v1203":"stimulating","v1204":"submerged","v1205":"superfluous","v1206":"superstition","v1207":"surplus","v1208":"surreal","v1209":"synthesis","v1210":"systematically","v1211":"tact","v1212":"terminology","v1213":"theorem","v1214":"tolerance","v1215":"transactions","v1216":"translucent","v1217":"transpired","v1218":"treatise","v1219":"tremendous","v1220":"triumph","v1221":"undaunted","v1222":"undertaking","v1223":"uninhabited","v1224":"unparalleled","v1225":"unscrupulous","v1226":"uprising","v1227":"vacant","v1228":"vast","v1229":"vibrations","v1230":"vicinity","v1231":"virtue","v1232":"voluntary","v1233":"wanderlust","v1234":"warfare","v1235":"wholesome","v1236":"wither","v1237":"woeful","v1238":"wrongdoing","v1239":"abrasive","v1240":"admonished","v1241":"adored","v1242":"alchemists","v1243":"aptly","v1244":"ascend","v1245":"attested","v1246":"bandage","v1247":"barred","v1248":"bequest","v1249":"bestow","v1250":"bibliophile","v1251":"botanically","v1252":"cackle","v1253":"canteen","v1254":"carved","v1255":"cataracts","v1256":"ceded","v1257":"certify","v1258":"chlorophyll","v1259":"clasps","v1260":"clutch","v1261":"compiled","v1262":"compositions","v1263":"concurred","v1264":"condemn","v1265":"confederacy","v1266":"conical","v1267":"conquistadores","v1268":"continuity","v1269":"contradiction","v1270":"convened","v1271":"counterfeiting","v1272":"counterparts","v1273":"cryptologist","v1274":"deciphering","v1275":"decrypt","v1276":"deduct","v1277":"defective","v1278":"delve","v1279":"denounced","v1280":"deported","v1281":"depressive","v1282":"derived","v1283":"designate","v1284":"desperately","v1285":"detected","v1286":"determining","v1287":"detract","v1288":"diminishes","v1289":"dismissal","v1290":"disregarded","v1291":"domesticated","v1292":"dominating","v1293":"dwell","v1294":"abhorred","v1295":"administered","v1296":"allotted","v1297":"anniversary","v1298":"assimilation","v1299":"backward","v1300":"banned","v1301":"behaviorist","v1302":"captured","v1303":"categories","v1304":"cleared","v1305":"command","v1306":"committed","v1307":"condemned","v1308":"elevation","v1309":"acquired","v1310":"airspeed","v1311":"allocated","v1312":"anticipation","v1313":"archaeological","v1314":"archaeologist","v1315":"arithmetic","v1316":"associated","v1317":"attached","v1318":"attributes","v1319":"bankroll","v1320":"blunders","v1321":"blurs","v1322":"chanted","v1323":"classified","v1324":"coast","v1325":"collaboration","v1326":"concentrated","v1327":"concerns","v1328":"congregates","v1329":"considerably","v1330":"consonants","v1331":"constructive","v1332":"contemplative","v1333":"conveniently","v1334":"convinced","v1335":"creased","v1336":"cured","v1337":"debuted","v1338":"decent","v1339":"denied","v1340":"discarded","v1341":"discerned","v1342":"discriminatory","v1343":"dismay","v1344":"dismissed","v1345":"disproportionate","v1346":"dissolve","v1347":"embarked","v1348":"embodies","v1349":"emit","v1350":"emphasized","v1351":"enchanting","v1352":"encountered","v1353":"encroached","v1354":"endeavors","v1355":"engraving","v1356":"enhances","v1357":"ensued","v1358":"enthusiastic","v1359":"equalizing","v1360":"eradicating","v1361":"escalated","v1362":"essence","v1363":"estimated","v1364":"evacuate","v1365":"exaggeration","v1366":"expansive","v1367":"extant","v1368":"facilitating","v1369":"faded","v1370":"falsely","v1371":"feigned","v1372":"fermented","v1373":"flipped","v1374":"fluctuates","v1375":"foreign","v1376":"formerly","v1377":"forsaken","v1378":"fulfilling","v1379":"fundamentally","v1380":"gauged","v1381":"gifted","v1382":"gradually","v1383":"grasped","v1384":"gratify","v1385":"gravely","v1386":"graze","v1387":"grief","v1388":"grim","v1389":"hemisphere","v1390":"heresy","v1391":"hindered","v1392":"honoured","v1393":"hurdle","v1394":"hypothesized","v1395":"ignites","v1396":"ill-fated","v1397":"illicit","v1398":"impromptu","v1399":"incorporated","v1400":"indicator","v1401":"indisputably","v1402":"inducing","v1403":"indulged","v1404":"inferred","v1405":"infiltrate","v1406":"inhale","v1407":"inherited","v1408":"inimitable","v1409":"initiate","v1410":"inscribed","v1411":"insecticide","v1412":"instinctively","v1413":"instructive","v1414":"insured","v1415":"interdependence","v1416":"internal","v1417":"interrogated","v1418":"intersection","v1419":"intervals","v1420":"intruder","v1421":"invaders","v1422":"invasive","v1423":"invested","v1424":"issued","v1425":"kernel","v1426":"knack","v1427":"landmass","v1428":"lavishly","v1429":"linger","v1430":"linguist","v1431":"literal","v1432":"lodged","v1433":"malnourished","v1434":"manipulating","v1435":"margins","v1436":"masterpiece","v1437":"materialized","v1438":"meanders","v1439":"mechanisms","v1440":"medium","v1441":"merely","v1442":"methodologies","v1443":"migration","v1444":"mild","v1445":"minimum","v1446":"minute","v1447":"migration","v1448":"nailed","v1449":"navigator","v1450":"nobleman","v1451":"nonstop","v1452":"notwithstanding","v1453":"numbness","v1454":"nutritionist","v1455":"obedient","v1456":"obstacles","v1457":"occasionally","v1458":"occupied","v1459":"offbeat","v1460":"official","v1461":"offset","v1462":"orator","v1463":"outdated","v1464":"outlawed","v1465":"outnumber","v1466":"outrageous","v1467":"overgrown","v1468":"overrule","v1469":"parallel","v1470":"patiently","v1471":"penned","v1472":"perils","v1473":"periodically","v1474":"perished","v1475":"persecuted","v1476":"peruse","v1477":"pharmaceuticals","v1478":"philanthropist","v1479":"physiology","v1480":"pillaging","v1481":"pioneering","v1482":"pious","v1483":"plagued","v1484":"pleasant","v1485":"pledged","v1486":"plucky","v1487":"portrait","v1488":"posited","v1489":"postponed","v1490":"potential","v1491":"precisely","v1492":"predictions","v1493":"preferably","v1494":"preposterous","v1495":"previous","v1496":"privately","v1497":"probability","v1498":"processed","v1499":"procession","v1500":"promoting","v1501":"prone","v1502":"proposition","v1503":"prose","v1504":"prospect","v1505":"protesting","v1506":"proverb","v1507":"provision","v1508":"purchased","v1509":"pursued","v1510":"quackery","v1511":"radiance","v1512":"raids","v1513":"ratified","v1514":"recalls","v1515":"recognition","v1516":"reconciled","v1517":"rectify","v1518":"reflection","v1519":"regret","v1520":"reinstated","v1521":"relieve","v1522":"reproduction","v1523":"rescued","v1524":"resist","v1525":"restoration","v1526":"retained","v1527":"reversed","v1528":"reviled","v1529":"revive","v1530":"ridiculed","v1531":"routinely","v1532":"salvaged","v1533":"seafarers","v1534":"secession","v1535":"sect","v1536":"secure","v1537":"self-sufficient","v1538":"sensor","v1539":"severely","v1540":"sharpshooter","v1541":"shortcomings","v1542":"sift","v1543":"smuggled","v1544":"solo","v1545":"spanned","v1546":"spontaneously","v1547":"sported","v1548":"staggered","v1549":"stalks","v1550":"stocky","v1551":"stripped","v1552":"subscribed","v1553":"substances","v1554":"substituting","v1555":"surfacing","v1556":"surmise","v1557":"swollen","v1558":"symbolized","v1559":"sympathetic","v1560":"tampered","v1561":"taper","v1562":"territories","v1563":"thaw","v1564":"thicket","v1565":"thrived","v1566":"tight","v1567":"timeless","v1568":"tinkering","v1569":"tormented","v1570":"trace","v1571":"tragedy","v1572":"transatlantic","v1573":"tuberculosis","v1574":"unconscious","v1575":"unconventional","v1576":"undervalued","v1577":"unfolding","v1578":"unhindered","v1579":"unnavigable","v1580":"unrivaled","v1581":"unsettling","v1582":"unsophisticated","v1583":"unstable","v1584":"untamed","v1585":"urgent","v1586":"utilizing","v1587":"valued","v1588":"vandals","v1589":"vehemently","v1590":"virtually","v1591":"vocal","v1592":"volumes","v1593":"vowels","v1594":"waned","v1595":"watermark","v1596":"welding","v1597":"well-balanced","v1598":"abiding","v1599":"abstained","v1600":"academic","v1601":"accessibility","v1602":"accessible","v1603":"accommodated","v1604":"accorded","v1605":"accelerates","v1606":"assisting","v1607":"attained","v1608":"awkwardly","v1609":"architect","v1610":"arguably","v1611":"arranged","v1612":"auction","v1613":"adorn","v1614":"ancestral","v1615":"anticipating","v1616":"akin","v1617":"antibodies","v1618":"artifacts","v1619":"agreement","v1620":"admission","v1621":"astounded","v1622":"adopted","v1623":"awareness","v1624":"aviators","v1625":"assault","v1626":"agronomic","v1627":"avid","v1628":"adamant","v1629":"bundles","v1630":"bidder","v1631":"blight","v1632":"breeding","v1633":"biodegradable","v1634":"brainstorm","v1635":"bait","v1636":"boundaries","v1637":"boost","v1638":"brilliant","v1639":"communal","v1640":"commentary","v1641":"contradicted","v1642":"currents","v1643":"commanded","v1644":"convenience","v1645":"cholesterol","v1646":"consulted","v1647":"critique","v1648":"comprising","v1649":"capabilities","v1650":"innovations","v1651":"concocted","v1652":"collaborators","v1653":"constituents","v1654":"correspondents","v1655":"crave","v1656":"confined","v1657":"cyclical","v1658":"compel","v1659":"customary","v1660":"cautioned","v1661":"contrary","v1662":"confessed","v1663":"conceded","v1664":"cluster","v1665":"chronological","v1666":"cognitive","v1667":"capacity","v1668":"convicted","v1669":"composer","v1670":"conductor","v1671":"conversion","v1672":"conducted","v1673":"conquest","v1674":"contested","v1675":"concluded","v1676":"distracted","v1677":"denote","v1678":"dissatisfied","v1679":"deceived","v1680":"defy","v1681":"drastically","v1682":"depictions","v1683":"dictator","v1684":"diversity","v1685":"demand","v1686":"depletion","v1687":"deteriorated","v1688":"dispatch","v1689":"decadence","v1690":"disintegration","v1691":"dissemination","v1692":"deluge","v1693":"discontinued","v1694":"dwindling","v1695":"decomposes","v1696":"dissidents","v1697":"demonstrated","v1698":"dramatically","v1699":"diagnostic","v1700":"disorders","v1701":"discomfort","v1702":"devastation","v1703":"escorting","v1704":"exhales","v1705":"expelled","v1706":"equivalent","v1707":"embroidered","v1708":"explorer","v1709":"exhibited","v1710":"efficient","v1711":"eminence","v1712":"epic","v1713":"engulfed","v1714":"experimental","v1715":"employment","v1716":"enlisted","v1717":"ensues","v1718":"emblematic","v1719":"elaborately","v1720":"exaggerated","v1721":"embellished","v1722":"emissions","v1723":"epitomized","v1724":"entails","v1725":"ethos","v1726":"equipped","v1727":"equilibrium","v1728":"encouraging","v1729":"essential","v1730":"flawed","v1731":"formulated","v1732":"fossils","v1733":"fond","v1734":"flourishing","v1735":"futuristic","v1736":"envisioned","v1737":"furious","v1738":"fluctuations","v1739":"feudal","v1740":"fragrance","v1741":"fatigue","v1742":"foundation","v1743":"fiction","v1744":"fugitives","v1745":"gallery","v1746":"groundbreaking","v1747":"granting","v1748":"graduate","v1749":"geological","v1750":"glimmer","v1751":"hauls","v1752":"hiatus","v1753":"hardships","v1754":"hazards","v1755":"horrified","v1756":"hostility","v1757":"herd","v1758":"harmful","v1759":"hitherto","v1760":"heightened","v1761":"incorporate","v1762":"initially","v1763":"intending","v1764":"informed","v1765":"insulted","v1766":"invaded","v1767":"inherently","v1768":"initiated","v1769":"invaluable","v1770":"independently","v1771":"indestructible","v1772":"impetus","v1773":"inflammatory","v1774":"immortalized","v1775":"irrigation","v1776":"infidelity","v1777":"inexplicable","v1778":"ignited","v1779":"inhospitable","v1780":"inventory","v1781":"inseparable","v1782":"inspector","v1783":"intimidate","v1784":"idealistic","v1785":"impassioned","v1786":"incalculable","v1787":"lauded","v1788":"latitude","v1789":"legacy","v1790":"lenience","v1791":"lurk","v1792":"leadership","v1793":"looted","v1794":"manually","v1795":"marvelous","v1796":"menace","v1797":"modernist","v1798":"memorized","v1799":"minimal","v1800":"metaphor","v1801":"municipality","v1802":"methane","v1803":"myriad","v1804":"measurable","v1805":"merge","v1806":"morality","v1807":"materialistic","v1808":"maintained","v1809":"martyrs","v1810":"manufacturing","v1811":"meaningful","v1812":"narratives","v1813":"nationwide","v1814":"nonsensical","v1815":"nurture","v1816":"negligence","v1817":"noteworthy","v1818":"nanotechnology","v1819":"overwhelming","v1820":"outreach","v1821":"orchestra","v1822":"ordinance","v1823":"prohibited","v1824":"offshore","v1825":"outraged","v1826":"outbreak","v1827":"objections","v1828":"organisms","v1829":"obtained","v1830":"ownership","v1831":"particles","v1832":"pledge","v1833":"portable","v1834":"postures","v1835":"pursuing","v1836":"praised","v1837":"preserving","v1838":"prevalence","v1839":"preceding","v1840":"properties","v1841":"promptly","v1842":"popularized","v1843":"prominence","v1844":"perishable","v1845":"priceless","v1846":"painstakingly","v1847":"puzzling","v1848":"precipitated","v1849":"prosperous","v1850":"prevailed","v1851":"prestige","v1852":"persuaded","v1853":"prophet","v1854":"portfolio","v1855":"prey","v1856":"pests","v1857":"production","v1858":"perception","v1859":"portrays","v1860":"predicted","v1861":"pastures","v1862":"perilous","v1863":"predators","v1864":"patrol","v1865":"pacifists","v1866":"promotional","v1867":"participated","v1868":"poised","v1869":"prosperity","v1870":"possession","v1871":"protracted","v1872":"plunder","v1873":"qualifications","v1874":"quantifiable","v1875":"rephrase","v1876":"reproductive","v1877":"retreat","v1878":"recovered","v1879":"reproductions","v1880":"radiation","v1881":"radically","v1882":"resembles","v1883":"remnants","v1884":"riddled","v1885":"reverse","v1886":"restricted","v1887":"replenished","v1888":"revolutionized","v1889":"revoked","v1890":"repute","v1891":"regulate","v1892":"revelations","v1893":"resolutions","v1894":"recollections","v1895":"reliance","v1896":"recall","v1897":"supplier","v1898":"repressive","v1899":"reciprocal","v1900":"recognizable","v1901":"rewarding","v1902":"residue","v1903":"relinquish","v1904":"repatriation","v1905":"resisted","v1906":"restitution","v1907":"scattering","v1908":"sensibly","v1909":"sophisticated","v1910":"staples","v1911":"subsequently","v1912":"suited","v1913":"sculptures","v1914":"subscription","v1915":"steer","v1916":"suburb","v1917":"stunned","v1918":"skilled","v1919":"scurvy","v1920":"securing","v1921":"singular","v1922":"startling","v1923":"surveillance","v1924":"sufficiently","v1925":"severe","v1926":"stimulated","v1927":"seldom","v1928":"sacrificing","v1929":"scribes","v1930":"scrutinized","v1931":"synthesized","v1932":"scarcity","v1933":"sustenance","v1934":"supplanted","v1935":"stripping","v1936":"speculative","v1937":"scholarship","v1938":"subsidize","v1939":"stance","v1940":"sanitary","v1941":"spectacles","v1942":"survive","v1943":"seething","v1944":"species","v1945":"striking","v1946":"stagnation","v1947":"stimulate","v1948":"standstill","v1949":"tramples","v1950":"thread","v1951":"transformed","v1952":"thriving","v1953":"thwart","v1954":"trek","v1955":"toxic","v1956":"transmitter","v1957":"therapeutic","v1958":"troops","v1959":"treasures","v1960":"testimony","v1961":"tracing","v1962":"tuition","v1963":"tireless","v1964":"underestimated","v1965":"unmistakably","v1966":"utilization","v1967":"unorthodox","v1968":"utilized","v1969":"undermined","v1970":"visibility","v1971":"violating","v1972":"visions","v1973":"vibrant","v1974":"vendors","v1975":"veritable","v1976":"virtuous","v1977":"variations","v1978":"webbed","v1979":"wrongly","v1980":"wonders","v1981":"witness","v1982":"weave","v1983":"winding","v1984":"zoning","v1985":"abstention","v1986":"acceded","v1987":"actionable","v1988":"aesthetics","v1989":"affirm","v1990":"affliction","v1991":"affixing","v1992":"algorithms","v1993":"annually","v1994":"anticipated","v1995":"antioxidants","v1996":"appendage","v1997":"appropriating","v1998":"arable","v1999":"architecture","v2000":"archive","v2001":"array","v2002":"articulates","v2003":"aspired","v2004":"assassination","v2005":"assumed","v2006":"attributed","v2007":"auditory","v2008":"austerity","v2009":"authoritarian","v2010":"authorization","v2011":"battlements","v2012":"behold","v2013":"benevolence","v2014":"bleaching","v2015":"bustling","v2016":"calculations","v2017":"catapulted","v2018":"catalyzed","v2019":"celebrated","v2020":"chronicled","v2021":"clarifying","v2022":"cleaved","v2023":"clenched","v2024":"coffers","v2025":"colloquialisms","v2026":"commensalism","v2027":"compliment","v2028":"confided","v2029":"confiscated","v2030":"confines","v2031":"confronted","v2032":"consequential","v2033":"constrained","v2034":"contemporaries","v2035":"conventions","v2036":"convene","v2037":"corpus","v2038":"craftsmanship","v2039":"crimson","v2040":"crustaceans","v2041":"deficiencies","v2042":"degradation","v2043":"deliberation","v2044":"delineated","v2045":"delegation","v2046":"depicted","v2047":"depleted","v2048":"despair","v2049":"detractors","v2050":"devise","v2051":"devouring","v2052":"diminished","v2053":"discriminating","v2054":"displaced","v2055":"disruption","v2056":"dizzying","v2057":"dramatist","v2058":"drifts","v2059":"drudgery","v2060":"ecosystems","v2061":"edifices","v2062":"elongated","v2063":"emergence","v2064":"encompassing","v2065":"endurance","v2066":"enhanced","v2067":"entrust","v2068":"epiphytes","v2069":"epitome","v2070":"ethnic","v2071":"evictions","v2072":"exertion","v2073":"exotic","v2074":"expenditure","v2075":"extension","v2076":"extravagant","v2077":"fad","v2078":"fanfare","v2079":"forefront","v2080":"formations","v2081":"fostering","v2082":"fizzled","v2083":"fracture","v2084":"fragments","v2085":"genre","v2086":"glimmered","v2087":"glory","v2088":"gnarled","v2089":"grave","v2090":"hallmarks","v2091":"harbored","v2092":"heralded","v2093":"hibernating","v2094":"hypnosis","v2095":"idleness","v2096":"identified","v2097":"illiterate","v2098":"illustrious","v2099":"impairments","v2100":"inaction","v2101":"inclusivity","v2102":"incompetence","v2103":"inconspicuous","v2104":"indecisiveness","v2105":"indicative","v2106":"indifference","v2107":"inexhaustible","v2108":"inflexible","v2109":"infuriated","v2110":"inhabitants","v2111":"inspirational","v2112":"insurgent","v2113":"intact","v2114":"intertwined","v2115":"intrigue","v2116":"irrespective","v2117":"isolation","v2118":"juncture","v2119":"justifiable","v2120":"legibly","v2121":"linear","v2122":"lithophytes","v2123":"literary","v2124":"longevity","v2125":"mainstay","v2126":"manipulated","v2127":"manufacture","v2128":"maritime","v2129":"martyrdom","v2130":"mediocre","v2131":"membranes","v2132":"merit","v2133":"mesmerized","v2134":"meticulously","v2135":"militaristic","v2136":"minimalist","v2137":"mocked","v2138":"modified","v2139":"monologue","v2140":"mutations","v2141":"mutualism","v2142":"neighboring","v2143":"nestled","v2144":"neutralise","v2145":"nourishing","v2146":"offsets","v2147":"onset","v2148":"optimism","v2149":"opulent","v2150":"oratorical","v2151":"ostensibly","v2152":"overlap","v2153":"overshadowed","v2154":"pace","v2155":"parasitism","v2156":"perpetuate","v2157":"persists","v2158":"philanthropy","v2159":"pillars","v2160":"pioneered","v2161":"plentiful","v2162":"ponder","v2163":"positing","v2164":"postpone","v2165":"precautions","v2166":"preface","v2167":"preside","v2168":"presumably","v2169":"proceedings","v2170":"procedure","v2171":"proclaimed","v2172":"prolific","v2173":"prop","v2174":"proportionate","v2175":"protestations","v2176":"punctuation","v2177":"receptive","v2178":"recited","v2179":"refined","v2180":"refugees","v2181":"regrettably","v2182":"regime","v2183":"reimburse","v2184":"relapse","v2185":"renaissance","v2186":"rendered","v2187":"renouncing","v2188":"repercussions","v2189":"representatives","v2190":"resided","v2191":"retail","v2192":"retaliate","v2193":"retroactively","v2194":"revealed","v2195":"revered","v2196":"rhetorical","v2197":"ridiculous","v2198":"rigid","v2199":"ripples","v2200":"rivaled","v2201":"seamlessly","v2202":"sedentary","v2203":"self-sufficiency","v2204":"sentiments","v2205":"sequence","v2206":"shuffle","v2207":"simmering","v2208":"slump","v2209":"specimens","v2210":"spurned","v2211":"strategist","v2212":"streamlined","v2213":"sturdier","v2214":"subjugation","v2215":"substitutions","v2216":"substantiated","v2217":"succulent","v2218":"symbiotic","v2219":"synthetic","v2220":"terrain","v2221":"traitor","v2222":"transgress","v2223":"tranquility","v2224":"tribute","v2225":"trove","v2226":"undetectable","v2227":"understated","v2228":"utility","v2229":"vertebrates","v2230":"venture","v2231":"vie","v2232":"vitality","v2233":"wakefulness","v2234":"warmongering","v2235":"abduction","v2236":"abounded","v2237":"accompaniment","v2238":"accumulation","v2239":"acclimatization","v2240":"acquaintance","v2241":"addressed","v2242":"adherence","v2243":"admirers","v2244":"adorns","v2245":"adjusted","v2246":"advanced","v2247":"affectation","v2248":"aggressive","v2249":"alleged","v2250":"alternatively","v2251":"ancestor","v2252":"ancient","v2253":"animated","v2254":"anthropologist","v2255":"apocalypse","v2256":"appointed","v2257":"applauded","v2258":"approach","v2259":"apprentice","v2260":"applications","v2261":"arrogant","v2262":"articulated","v2263":"artificial","v2264":"assembled","v2265":"asset","v2266":"astronomers","v2267":"atmosphere","v2268":"awkward","v2269":"beholder","v2270":"bygone","v2271":"blissful","v2272":"boasts","v2273":"brainchild","v2274":"bred","v2275":"business","v2276":"calligrapher","v2277":"captivated","v2278":"captivity","v2279":"cardiovascular","v2280":"casually","v2281":"certified","v2282":"chairman","v2283":"chemosynthesis","v2284":"citrus","v2285":"climatic","v2286":"clumsy","v2287":"colleague","v2288":"commenced","v2289":"commended","v2290":"commotion","v2291":"compensated","v2292":"competitors","v2293":"complication","v2294":"comprises","v2295":"conceited","v2296":"concealing","v2297":"concentrations","v2298":"concur","v2299":"condoned","v2300":"confidence","v2301":"confounded","v2302":"conspired","v2303":"consistently","v2304":"consumption","v2305":"contamination","v2306":"contemplated","v2307":"continuous","v2308":"contraction","v2309":"conventional","v2310":"cooperation","v2311":"corruption","v2312":"countenance","v2313":"cowardice","v2314":"credited","v2315":"crippling","v2316":"cultivating","v2317":"curative","v2318":"cylinder","v2319":"decay","v2320":"defeated","v2321":"dehydration","v2322":"deliberately","v2323":"dependencies","v2324":"deposits","v2325":"descendants","v2326":"devoted","v2327":"devour","v2328":"diagnose","v2329":"diploma","v2330":"diplomacy","v2331":"disarmed","v2332":"disapproved","v2333":"discerning","v2334":"disclosed","v2335":"discontinue","v2336":"discreet","v2337":"disfigured","v2338":"disqualified","v2339":"disputes","v2340":"distinctive","v2341":"distinguished","v2342":"diverged","v2343":"doodles","v2344":"doomed","v2345":"dreaded","v2346":"dwellers","v2347":"dwindled","v2348":"ecosystem","v2349":"effective","v2350":"embedded","v2351":"embraced","v2352":"emerged","v2353":"increase","v2354":"endearing","v2355":"endorsed","v2356":"engraver","v2357":"enigma","v2358":"enraged","v2359":"enthusiastically","v2360":"entity","v2361":"equator","v2362":"erected","v2363":"erratic","v2364":"erroneously","v2365":"eschew","v2366":"espoused","v2367":"esteem","v2368":"establishments","v2369":"evading","v2370":"evoked","v2371":"evolved","v2372":"exaggerate","v2373":"exceeded","v2374":"excellence","v2375":"exceptionally","v2376":"excessive","v2377":"expanse","v2378":"extinction","v2379":"extracted","v2380":"extinguished","v2381":"exterior","v2382":"exuberant","v2383":"fanatic","v2384":"fascinated","v2385":"features","v2386":"feudalism","v2387":"fierce","v2388":"flank","v2389":"flatters","v2390":"flourished","v2391":"foes","v2392":"fonts","v2393":"formalize","v2394":"formulating","v2395":"fortress","v2396":"fractures","v2397":"fraud","v2398":"gauge","v2399":"geologists","v2400":"geopolitical","v2401":"glorification","v2402":"gravitated","v2403":"gratifying","v2404":"grotesque","v2405":"habitats","v2406":"hatched","v2407":"haunt","v2408":"headstrong","v2409":"hesitate","v2410":"heyday","v2411":"hieroglyphics","v2412":"hinder","v2413":"humble","v2414":"humid","v2415":"hydrated","v2416":"hydrothermal","v2417":"hygiene","v2418":"identical","v2419":"illustrations","v2420":"implicated","v2421":"implemented","v2422":"impoverished","v2423":"impulses","v2424":"importing","v2425":"inaccurate","v2426":"inappropriate","v2427":"incidence","v2428":"indications","v2429":"indefinitely","v2430":"indistinguishable","v2431":"individualism","v2432":"indulge","v2433":"influenced","v2434":"ingests","v2435":"inhabitant","v2436":"inheritance","v2437":"initiatives","v2438":"injustice","v2439":"inscriptions","v2440":"insists","v2441":"instability","v2442":"instincts","v2443":"interactive","v2444":"interrogation","v2445":"intimidated","v2446":"irritate","v2447":"launched","v2448":"legislature","v2449":"likelihood","v2450":"likenesses","v2451":"lithography","v2452":"literacy","v2453":"location","v2454":"loathed","v2455":"loyal","v2456":"malice","v2457":"manipulative","v2458":"materialism","v2459":"meddling","v2460":"melting","v2461":"merchandise","v2462":"meridian","v2463":"merits","v2464":"metropolitan","v2465":"mined","v2466":"minted","v2467":"misfortune","v2468":"mistrustful","v2469":"modesty","v2470":"molars","v2471":"monarchs","v2472":"monsoon","v2473":"morbid","v2474":"mournful","v2475":"multitude","v2476":"mysterious","v2477":"naivete","v2478":"navigates","v2479":"noble","v2480":"notation","v2481":"notoriously","v2482":"nominating","v2483":"nuisance","v2484":"obligations","v2485":"obscured","v2486":"observant","v2487":"occurrences","v2488":"odors","v2489":"omen","v2490":"opinionated","v2491":"opposition","v2492":"opportunities","v2493":"organizations","v2494":"outlandish","v2495":"outstanding","v2496":"outspoken","v2497":"overestimate","v2498":"partition","v2499":"patent","v2500":"pathetic","v2501":"patrons","v2502":"paved","v2503":"peculiar","v2504":"penetrate","v2505":"perspiration","v2506":"pertain","v2507":"perturbed","v2508":"pharmaceutical","v2509":"photosynthesis","v2510":"pillaged","v2511":"plundered","v2512":"pinnacle","v2513":"plantation","v2514":"playwright","v2515":"plummeted","v2516":"pollution","v2517":"preoccupied","v2518":"principles","v2519":"problematic","v2520":"profitable","v2521":"proposal","v2522":"prophetic","v2523":"provoked","v2524":"pursuit","v2525":"quarantining","v2526":"quarrelling","v2527":"quotation","v2528":"rational","v2529":"receptors","v2530":"rebelled","v2531":"reforms","v2532":"regal","v2533":"reigned","v2534":"rekindling","v2535":"reliable","v2536":"reluctance","v2537":"remnant","v2538":"remarkably","v2539":"renowned","v2540":"represented","v2541":"reserve","v2542":"resentful","v2543":"retard","v2544":"retreating","v2545":"retrieving","v2546":"revenue","v2547":"revitalized","v2548":"revolution","v2549":"riddle","v2550":"rinsed","v2551":"rowing","v2552":"scandals","v2553":"scenic","v2554":"scholars","v2555":"scripts","v2556":"sculptor","v2557":"secrecy","v2558":"secretive","v2559":"secured","v2560":"sought","v2561":"self-assurance","v2562":"senesce","v2563":"sensory","v2564":"sewing","v2565":"shaker","v2566":"shipwrecked","v2567":"siege","v2568":"significance","v2569":"similar","v2570":"skirmishes","v2571":"snobbish","v2572":"sober","v2573":"solitude","v2574":"sophistication","v2575":"spectacular","v2576":"speculate","v2577":"sphere","v2578":"spotlight","v2579":"standardized","v2580":"sterile","v2581":"stretches","v2582":"subdue","v2583":"succumbed","v2584":"survivor","v2585":"susceptibility","v2586":"sweeping","v2587":"switched","v2588":"symbol","v2589":"tableware","v2590":"tendency","v2591":"tenets","v2592":"theoretical","v2593":"thermodynamics","v2594":"thwarted","v2595":"traditional","v2596":"transcend","v2597":"transgressed","v2598":"transmitted","v2599":"transports","v2600":"triggered","v2601":"unanimously","v2602":"uncertainty","v2603":"underwent","v2604":"unfounded","v2605":"unimpeded","v2606":"unique","v2607":"unions","v2608":"unprepossessing","v2609":"unqualified","v2610":"unsung","v2611":"unwavering","v2612":"uttered","v2613":"value","v2614":"verse","v2615":"vigor","v2616":"visible","v2617":"vivid","v2618":"wasting","v2619":"whereas","v2620":"whiskers","v2621":"wince","v2622":"wrath","v2623":"abandoned","v2624":"abstract","v2625":"accolades","v2626":"accomplishment","v2627":"accord","v2628":"accurately","v2629":"accused","v2630":"acquires","v2631":"acupuncture","v2632":"acute","v2633":"adaptations","v2634":"addicted","v2635":"adequately","v2636":"adolescents","v2637":"adorned","v2638":"adversary","v2639":"advantageous","v2640":"advocates","v2641":"affluent","v2642":"affordable","v2643":"aggravated","v2644":"agony","v2645":"alert","v2646":"aliases","v2647":"alternative","v2648":"amputated","v2649":"annual","v2650":"antagonized","v2651":"antarctica","v2652":"anthropologists","v2653":"antislavery","v2654":"applauding","v2655":"applicable","v2656":"arbitration","v2657":"artisans","v2658":"astonished","v2659":"astounding","v2660":"attended","v2661":"autobiography","v2662":"aviation","v2663":"awakened","v2664":"backbone","v2665":"banquets","v2666":"barriers","v2667":"bauxite","v2668":"benefactors","v2669":"bestselling","v2670":"bestowed","v2671":"beverage","v2672":"biological","v2673":"biographer","v2674":"blaze","v2675":"boldly","v2676":"bounce","v2677":"breaching","v2678":"capitalist","v2679":"captives","v2680":"ceased","v2681":"celestial","v2682":"centrality","v2683":"census","v2684":"ceremonies","v2685":"champion","v2686":"cherished","v2687":"chiefly","v2688":"chuckle","v2689":"civilized","v2690":"cling","v2691":"coined","v2692":"collision","v2693":"colonists","v2694":"collectively","v2695":"commemorative","v2696":"completed","v2697":"comply","v2698":"composite","v2699":"compulsory","v2700":"concave","v2701":"conceived","v2702":"concept","v2703":"concerned","v2704":"condensed","v2705":"condescending","v2706":"conform","v2707":"confused","v2708":"confirms","v2709":"congregate","v2710":"connected","v2711":"conclusively","v2712":"consequences","v2713":"conscious","v2714":"consumes","v2715":"contagious","v2716":"contaminated","v2717":"contemporary","v2718":"controlled","v2719":"convincing","v2720":"countered","v2721":"coup","v2722":"craze","v2723":"creativity","v2724":"critics","v2725":"culmination","v2726":"currently","v2727":"deceiving","v2728":"deflects","v2729":"defused","v2730":"delicate","v2731":"dementia","v2732":"dentistry","v2733":"deployment","v2734":"deprivation","v2735":"destruction","v2736":"deter","v2737":"devastating","v2738":"dictates","v2739":"dictionary","v2740":"diet","v2741":"dignify","v2742":"dimensions","v2743":"diplomat","v2744":"dire","v2745":"discipline","v2746":"discernible","v2747":"discouraged","v2748":"disillusioned","v2749":"dispenser","v2750":"disposed","v2751":"distilled","v2752":"distracting","v2753":"distorting","v2754":"downtrodden","v2755":"drastic","v2756":"duplicated","v2757":"dwellings","v2758":"edict","v2759":"elite","v2760":"empire","v2761":"enacted","v2762":"endemic","v2763":"endeavour","v2764":"endures","v2765":"enforced","v2766":"engraved","v2767":"enlightening","v2768":"enterprise","v2769":"enthusiasm","v2770":"enthralled","v2771":"ephemeral","v2772":"established","v2773":"exclusively","v2774":"executed","v2775":"exhibition","v2776":"existence","v2777":"expel","v2778":"experimenting","v2779":"explicates","v2780":"facet","v2781":"faculties","v2782":"famine","v2783":"fantasy","v2784":"fatally","v2785":"featured","v2786":"fertilize","v2787":"fiber","v2788":"figurative","v2789":"filthiest","v2790":"findings","v2791":"flawlessly","v2792":"fledgling","v2793":"fleeting","v2794":"flexibility","v2795":"fluctuated","v2796":"follicle","v2797":"forbidden","v2798":"forage","v2799":"forecaster","v2800":"forerunner","v2801":"foregone","v2802":"fortitude","v2803":"fragrances","v2804":"frosty","v2805":"functioning","v2806":"furthermore","v2807":"garments","v2808":"gender","v2809":"generated","v2810":"genus","v2811":"gnawed","v2812":"gothic","v2813":"guarantors","v2814":"hampered","v2815":"hardship","v2816":"hazard","v2817":"hesitation","v2818":"homage","v2819":"hormone","v2820":"howls","v2821":"icon","v2822":"identity","v2823":"idealizing","v2824":"illustrated","v2825":"immortal","v2826":"immune","v2827":"imitated","v2828":"implantation","v2829":"improbable","v2830":"impressive","v2831":"improvisation","v2832":"incompatible","v2833":"independent","v2834":"inevitably","v2835":"infected","v2836":"ingestion","v2837":"ingested","v2838":"innovation","v2839":"innumerable","v2840":"insignificant","v2841":"insights","v2842":"installation","v2843":"instinctive","v2844":"intellectual","v2845":"interwoven","v2846":"intriguing","v2847":"invention","v2848":"irresistible","v2849":"irritable","v2850":"journeys","v2851":"jovial","v2852":"jurist","v2853":"lamented","v2854":"lifespan","v2855":"legislated","v2856":"legions","v2857":"lingered","v2858":"linguistic","v2859":"livelihood","v2860":"ludicrous","v2861":"luminescence","v2862":"luxuries","v2863":"mainstream","v2864":"mandarin","v2865":"manners","v2866":"marine","v2867":"maturity","v2868":"maximize","v2869":"mechanized","v2870":"melanin","v2871":"memoir","v2872":"mesoamerican","v2873":"microbes","v2874":"migrating","v2875":"milliseconds","v2876":"miraculous","v2877":"misperception","v2878":"mob","v2879":"mobility","v2880":"moistened","v2881":"monitored","v2882":"mountainous","v2883":"motive","v2884":"mystical","v2885":"narrator","v2886":"native","v2887":"naturalist","v2888":"navigational","v2889":"necessity","v2890":"neglecting","v2891":"neophyte","v2892":"neural","v2893":"nevertheless","v2894":"nobility","v2895":"normally","v2896":"notable","v2897":"nuanced","v2898":"obnoxious","v2899":"offended","v2900":"offensive","v2901":"omitted","v2902":"operation","v2903":"orally","v2904":"origami","v2905":"origin","v2906":"oriented","v2907":"obsessive","v2908":"outbreaks","v2909":"overthrew","v2910":"pastime","v2911":"pauper","v2912":"peasants","v2913":"performance","v2914":"perishing","v2915":"perpetuates","v2916":"perspectives","v2917":"perspiring","v2918":"pessimistic","v2919":"phenomena","v2920":"phobias","v2921":"phosphorescence","v2922":"pioneer","v2923":"plague","v2924":"plainly","v2925":"playfulness","v2926":"plight","v2927":"popularity","v2928":"population","v2929":"portraiture","v2930":"possesses","v2931":"preceded","v2932":"preconceptions","v2933":"preeminent","v2934":"prehistoric","v2935":"prejudices","v2936":"prevailing","v2937":"predicated","v2938":"premiere","v2939":"precision","v2940":"prohibits","v2941":"profiting","v2942":"prophecy","v2943":"pseudonyms","v2944":"punitive","v2945":"purport","v2946":"quantities","v2947":"radical","v2948":"rally","v2949":"ravaged","v2950":"reciprocated","v2951":"reclining","v2952":"reconstruction","v2953":"recoup","v2954":"recounts","v2955":"recovering","v2956":"reenacting","v2957":"refrain","v2958":"reimbursed","v2959":"reigniting","v2960":"rejected","v2961":"relent","v2962":"reminiscent","v2963":"remorseful","v2964":"renditions","v2965":"renovated","v2966":"repertoire","v2967":"representative","v2968":"reproach","v2969":"reptile","v2970":"resigns","v2971":"restored","v2972":"resurgence","v2973":"retired","v2974":"revealing","v2975":"revere","v2976":"revolt","v2977":"ricocheting","v2978":"rivalry","v2979":"romanticize","v2980":"sanctuaries","v2981":"sap","v2982":"scanty","v2983":"scholarly","v2984":"secretion","v2985":"seemingly","v2986":"self-conscious","v2987":"sensation","v2988":"sentiment","v2989":"settlements","v2990":"signifies","v2991":"simultaneous","v2992":"skillful","v2993":"slopes","v2994":"soared","v2995":"sociable","v2996":"soliloquy","v2997":"soothing","v2998":"soundproof","v2999":"souvenir","v3000":"spawn","v3001":"specialised","v3002":"speculated","v3003":"sporadic","v3004":"stale","v3005":"stately","v3006":"stimulant","v3007":"strands","v3008":"strategy","v3009":"strife","v3010":"subordinated","v3011":"substantial","v3012":"subtropical","v3013":"success","v3014":"suggestive","v3015":"sultry","v3016":"sumptuary","v3017":"supposedly","v3018":"surrounding","v3019":"survival","v3020":"suspended","v3021":"sustained","v3022":"synonymous","v3023":"technical","v3024":"theologian","v3025":"theorist","v3026":"thought-provoking","v3027":"threatened","v3028":"transaction","v3029":"transcends","v3030":"transformations","v3031":"transfusion","v3032":"trauma","v3033":"trembling","v3034":"trillion","v3035":"trust","v3036":"turbulence","v3037":"twisted","v3038":"tycoon","v3039":"underlying","v3040":"undergoing","v3041":"underline","v3042":"undisturbed","v3043":"useless","v3044":"utmost","v3045":"various","v3046":"vehicle","v3047":"vernaculars","v3048":"versatility","v3049":"veteran","v3050":"veterinarians","v3051":"vetoed","v3052":"vines","v3053":"virtues","v3054":"visualize","v3055":"vocabularies","v3056":"vocalists","v3057":"vociferous","v3058":"voluntarily","v3059":"wandered","v3060":"war-torn","v3061":"wasteland","v3062":"whack","v3063":"witchcraft","v3064":"withdrawal","v3065":"witnessed","v3066":"wizards","v3067":"abstinence","v3068":"accelerated","v3069":"acceleration","v3070":"accidental","v3071":"acutely","v3072":"adjust","v3073":"advertised","v3074":"affinity","v3075":"afflictions","v3076":"allusion to (phr.)","v3077":"alphabets","v3078":"ameliorated","v3079":"anthem","v3080":"appeal","v3081":"ascension to (phr.)","v3082":"asserted","v3083":"astonishes","v3084":"attentively","v3085":"attest","v3086":"audiences","v3087":"authorize","v3088":"avoid","v3089":"awe-inspiring","v3090":"background","v3091":"balk at (phr.)","v3092":"basking","v3093":"blend","v3094":"bores","v3095":"burdened","v3096":"buried","v3097":"burst","v3098":"by means of (phr.)","v3099":"calculated","v3100":"called up for (phr.)","v3101":"causeways","v3102":"caution","v3103":"cautiously","v3104":"cheerful","v3105":"circumstantial","v3106":"clan","v3107":"cleansed","v3108":"close","v3109":"collapse","v3110":"collapsed","v3111":"colonialist","v3112":"common","v3113":"compatible","v3114":"complacency","v3115":"complete","v3116":"complicated","v3117":"composed","v3118":"confined to (phr.)","v3119":"consumed","v3120":"contempt","v3121":"contest","v3122":"convent","v3123":"convention","v3124":"conveyed","v3125":"convict","v3126":"convinces","v3127":"corporations","v3128":"corroborated","v3129":"courts","v3130":"crane","v3131":"cultivate","v3132":"damaged","v3133":"deceptive","v3134":"decimated","v3135":"decorated","v3136":"deferred","v3137":"delay","v3138":"delayed","v3139":"delights","v3140":"deplored","v3141":"deposit","v3142":"desirous","v3143":"detached","v3144":"determined","v3145":"discard","v3146":"disguise","v3147":"dislodge","v3148":"disparaged","v3149":"disprove","v3150":"disputed","v3151":"distraction","v3152":"disturbance","v3153":"dive","v3154":"doctrines","v3155":"don","v3156":"doubtful","v3157":"draft","v3158":"dramatize","v3159":"drape","v3160":"drawback","v3161":"dread","v3162":"drenching","v3163":"drift","v3164":"drifted","v3165":"drown","v3166":"dump","v3167":"efficiently","v3168":"eke out (phr.)","v3169":"elaborated","v3170":"embodiment","v3171":"emptied","v3172":"ended","v3173":"endured","v3174":"engagement","v3175":"enrollment","v3176":"ensnares","v3177":"ensured","v3178":"entitled","v3179":"exemplified","v3180":"expedite","v3181":"exploited","v3182":"faithful","v3183":"fend off (phr.)","v3184":"finished","v3185":"fled","v3186":"fleet","v3187":"float","v3188":"forfeit","v3189":"forks","v3190":"fragmentary","v3191":"fraudulent","v3192":"frozen","v3193":"fund","v3194":"furiously","v3195":"gives in (phr.)","v3196":"goes by (phr.)","v3197":"governing","v3198":"haze","v3199":"held","v3200":"hidden","v3201":"hiding","v3202":"hospitable","v3203":"hue","v3204":"ignite","v3205":"ignoring","v3206":"illumination of (phr.)","v3207":"imagined","v3208":"imminent","v3209":"immunity","v3210":"impair","v3211":"impeded","v3212":"implements","v3213":"in spite of (phr.)","v3214":"indifferent to (phr.)","v3215":"indolence","v3216":"indulgence of (phr.)","v3217":"instead of (phr.)","v3218":"instilled","v3219":"institution","v3220":"intended","v3221":"irrelevant","v3222":"junction","v3223":"kinship","v3224":"labels","v3225":"lamps","v3226":"language","v3227":"league","v3228":"loads","v3229":"lobbyist","v3230":"lore","v3231":"makes up (phr.)","v3232":"maneuvered","v3233":"margin","v3234":"meek","v3235":"missing","v3236":"mnemonics","v3237":"mode","v3238":"mounted","v3239":"mourned","v3240":"mutual","v3241":"name","v3242":"negated","v3243":"nourishes","v3244":"object","v3245":"oblige","v3246":"oblivious","v3247":"obstruct","v3248":"obstructed","v3249":"on behalf of (phr.)","v3250":"organic","v3251":"ornaments","v3252":"overpower","v3253":"oversight","v3254":"overturn","v3255":"painted","v3256":"paw","v3257":"perplexed","v3258":"pillared","v3259":"pluralist","v3260":"pointed out to (phr.)","v3261":"poisonous","v3262":"poles","v3263":"pollinates","v3264":"possessively","v3265":"precursor","v3266":"preserved","v3267":"pressing","v3268":"printed","v3269":"promoted","v3270":"propagated","v3271":"proud","v3272":"prove","v3273":"pry","v3274":"publish","v3275":"punctuated","v3276":"put out of (phr.)","v3277":"rallied","v3278":"rash","v3279":"ray","v3280":"reaped","v3281":"recipes","v3282":"recommendation","v3283":"recordings","v3284":"recuperated","v3285":"recurring","v3286":"reducing","v3287":"refine","v3288":"refusal","v3289":"relapses","v3290":"release","v3291":"renounce","v3292":"repeat","v3293":"repels","v3294":"reprimand","v3295":"request","v3296":"resemble","v3297":"retrieve","v3298":"returned","v3299":"reverted","v3300":"rewarded","v3301":"rippled","v3302":"risks","v3303":"river","v3304":"rod","v3305":"rumors","v3306":"safeguarded","v3307":"scathing","v3308":"sell","v3309":"sent","v3310":"shadows","v3311":"shrill","v3312":"silenced","v3313":"simplified","v3314":"singled out for (phr.)","v3315":"slight","v3316":"soak","v3317":"spark","v3318":"squander","v3319":"stamina","v3320":"stands for (phr.)","v3321":"stem from (phr.)","v3322":"struggle","v3323":"stun","v3324":"submerge","v3325":"subscriptions","v3326":"substantiate","v3327":"suggestive of (phr.)","v3328":"summer","v3329":"summon","v3330":"sunk","v3331":"suppression","v3332":"swore","v3333":"symmetry","v3334":"tails","v3335":"teeming","v3336":"temperaments","v3337":"theoretically","v3338":"tilt","v3339":"timid","v3340":"tiny","v3341":"towers","v3342":"translate","v3343":"treaty","v3344":"trim","v3345":"truncated","v3346":"tunnels","v3347":"unfamiliar","v3348":"vacillated","v3349":"vein","v3350":"venom","v3351":"ventured","v3352":"vertical","v3353":"walls","v3354":"wary of (phr.)","v3355":"wasted","v3356":"weariness","v3357":"welcomed","v3358":"wit","v3359":"withheld","v3360":"young","v3361":"zone","v3362":"moreover","v3363":"additionally","v3364":"in addition","v3365":"what's more","v3366":"besides","v3367":"as well as","v3368":"likewise","v3369":"not to mention","v3370":"however","v3371":"nonetheless","v3372":"yet","v3373":"on the other hand","v3374":"conversely","v3375":"by contrast","v3376":"although","v3377":"even though","v3378":"though","v3379":"despite","v3380":"while","v3381":"unlike","v3382":"on the contrary","v3383":"in contrast","v3384":"admittedly","v3385":"granted","v3386":"even so","v3387":"all the same","v3388":"that said","v3389":"therefore","v3390":"thus","v3391":"as a result","v3392":"owing to","v3393":"due to","v3394":"accordingly","v3395":"thereby","v3396":"so that","v3397":"in order to","v3398":"as a consequence","v3399":"for this reason","v3400":"it follows that","v3401":"provided that","v3402":"unless","v3403":"as long as","v3404":"on condition that","v3405":"in the event that","v3406":"assuming that","v3407":"should","v3408":"lest","v3409":"provided","v3410":"if only","v3411":"indeed","v3412":"in fact","v3413":"above all","v3414":"notably","v3415":"it should be noted that","v3416":"significantly","v3417":"in particular","v3418":"most importantly","v3419":"for example","v3420":"for instance","v3421":"such as","v3422":"namely","v3423":"to illustrate","v3424":"including","v3425":"a case in point","v3426":"as exemplified by","v3427":"firstly","v3428":"secondly","v3429":"thereafter","v3430":"meanwhile","v3431":"in the meantime","v3432":"finally","v3433":"eventually","v3434":"prior to","v3435":"in the first instance","v3436":"at this point","v3437":"to begin with","v3438":"in other words","v3439":"that is to say","v3440":"to put it another way","v3441":"more precisely","v3442":"that is","v3443":"similarly","v3444":"in the same way","v3445":"just as","v3446":"by comparison","v3447":"as opposed to","v3448":"rather than","v3449":"compared to","v3450":"by the same token","v3451":"in conclusion","v3452":"to sum up","v3453":"in summary","v3454":"overall","v3455":"on balance","v3456":"in short","v3457":"to conclude","v3458":"taking everything into account","v3459":"hereby","v3460":"whereby","v3461":"therein","v3462":"henceforth","v3463":"inasmuch as","v3464":"insofar as","v3465":"in lieu of","v3466":"by virtue of","v3467":"to that end","v3468":"with regard to","v3469":"in light of","v3470":"with respect to","v3471":"be","v3472":"bring","v3473":"build","v3474":"buy","v3475":"catch","v3476":"choose","v3477":"do","v3478":"drink","v3479":"drive","v3480":"eat","v3481":"fall","v3482":"feel","v3483":"find","v3484":"fly","v3485":"forget","v3486":"get","v3487":"give","v3488":"go","v3489":"grow","v3490":"have","v3491":"hear","v3492":"hold","v3493":"keep","v3494":"know","v3495":"leave","v3496":"lose","v3497":"make","v3498":"mean","v3499":"meet","v3500":"pay","v3501":"ride","v3502":"ring","v3503":"say","v3504":"see","v3505":"sell","v3506":"send","v3507":"sing","v3508":"sit","v3509":"sleep","v3510":"speak","v3511":"spend","v3512":"stand","v3513":"steal","v3514":"swim","v3515":"take","v3516":"teach","v3517":"tell","v3518":"think","v3519":"throw","v3520":"understand","v3521":"wake","v3522":"wear","v3523":"win","v3524":"write","v3525":"begin","v3526":"bite","v3527":"blow","v3528":"break","v3529":"deal","v3530":"dig","v3531":"draw","v3532":"feed","v3533":"fight","v3534":"flee","v3535":"forgive","v3536":"freeze","v3537":"hang","v3538":"hide","v3539":"lay","v3540":"lead","v3541":"lend","v3542":"light","v3543":"rise","v3544":"seek","v3545":"shake","v3546":"show","v3547":"shrink","v3548":"sink","v3549":"swing","v3550":"tear","v3551":"weep","v3552":"withdraw","v3553":"arise","v3554":"bear","v3555":"bend","v3556":"bind","v3557":"creep","v3558":"forbid","v3559":"grind","v3560":"kneel","v3561":"lie","v3562":"sting","v3563":"strive","v3564":"swear","v3565":"sweep","v3566":"undergo","v3567":"uphold","v3568":"weave","v3569":"withhold","v3570":"withstand","v3571":"wind","v3572":"awake","v3573":"dream","v3574":"lean","v3575":"leap","v3576":"spin","v3577":"swell","v3578":"cling","v3579":"fling","v3580":"mislead","v3581":"mistake","v3582":"outdo","v3583":"oversee","v3584":"overtake","v3585":"overthrow","v3586":"rebuild","v3587":"rewrite","v3588":"sew","v3589":"slay","v3590":"spell","v3591":"spill","v3592":"spoil","v3593":"spring","v3594":"string","v3595":"tread","v3596":"undertake","v3597":"undo","v3598":"misunderstand","v3599":"wring","v3600":"outsell","v3601":"abide","v3602":"dwell","v3603":"foresee","v3604":"foretell","v3605":"forsake","v3606":"hamstring","v3607":"overdo","v3608":"partake","v3609":"sow","v3610":"stride","v3611":"underlie","v3612":"unwind"};
+
+let currentStudentId = null;
+let studentsData = [];
+
+// ── Auth ─────────────────────────────────────────────────────
+async function init() {
+  try {
+    const { data } = await sb.auth.getSession();
+    // Whether logged in or not, always load dashboard
+    // (session check is just to personalize, not to gate access here)
+    loadDashboard();
+  } catch(e) {
+    console.warn('Session check failed:', e);
+    loadDashboard();
+  }
+}
+
+async function logout() {
+  await sb.auth.signOut();
+  window.location.href = 'index.html';
+}
+
+// ── Dashboard ────────────────────────────────────────────────
+async function loadDashboard() {
+  await loadCurrentCode();
+  // Load all profiles
+  const { data: profiles } = await sb.from('profiles').select('*').order('created_at', { ascending: false });
+  // Load all scores
+  const { data: scores } = await sb.from('scores').select('*');
+  // Load all feedback
+  const { data: feedbacks } = await sb.from('feedback').select('*');
+  // Load all answer details
+  const { data: allAnswers } = await sb.from('answer_details').select('*');
+  window._allAnswers = allAnswers || [];
+  // Load all vocab progress
+  const { data: vocabProgress } = await sb.from('vocab_progress').select('*');
+  window._vocabProgress = vocabProgress || [];
+
+  studentsData = (profiles || []).map(p => {
+    const studentScores = (scores || []).filter(s => s.user_id === p.id);
+    const studentFeedback = (feedbacks || []).find(f => f.user_id === p.id);
+    const avgScore = studentScores.length
+      ? Math.round(studentScores.reduce((a,b) => a + Math.round(b.score/b.total_questions*100), 0) / studentScores.length)
+      : null;
+    const lastActive = studentScores.length
+      ? new Date(Math.max(...studentScores.map(s => new Date(s.completed_at)))).toLocaleDateString('he-IL')
+      : null;
+    const studentVocab = (window._vocabProgress || []).filter(v => v.user_id === p.id);
+    const vocabKnown = studentVocab.filter(v => v.status === 'known').length;
+    const vocabFamiliar = studentVocab.filter(v => v.status === 'familiar').length;
+    const vocabUnknown = studentVocab.filter(v => v.status === 'unknown').length;
+    const vocabPct = Math.round((vocabKnown / 992) * 100);
+    return { ...p, scores: studentScores, feedback: studentFeedback, avgScore, lastActive, studentVocab, vocabKnown, vocabFamiliar, vocabUnknown, vocabPct };
+  });
+
+  // Stats
+  const totalSets = (scores || []).length;
+  const allAvgs = studentsData.filter(s => s.avgScore !== null).map(s => s.avgScore);
+  const overallAvg = allAvgs.length ? Math.round(allAvgs.reduce((a,b)=>a+b,0)/allAvgs.length) : null;
+  const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate()-7);
+  const activeThisWeek = studentsData.filter(s => s.scores.some(sc => new Date(sc.completed_at) > weekAgo)).length;
+
+  document.getElementById('stat-students').textContent = studentsData.length || '0';
+  document.getElementById('stat-sets').textContent = totalSets || '0';
+  document.getElementById('stat-avg').textContent = overallAvg !== null ? overallAvg + '%' : '—';
+  document.getElementById('stat-active').textContent = activeThisWeek || '0';
+
+  renderStudents();
+}
+
+function renderStudents() {
+  const body = document.getElementById('students-body');
+  if (!studentsData.length) {
+    body.innerHTML = '<div class="no-students">אין תלמידים רשומים עדיין. שלח את קוד ההזמנה כדי להתחיל!</div>';
+    return;
+  }
+  body.innerHTML = studentsData.map(s => {
+    const scoreClass = s.avgScore === null ? '' : s.avgScore >= 75 ? 'score-high' : s.avgScore >= 50 ? 'score-mid' : 'score-low';
+    const scoreText = s.avgScore !== null ? s.avgScore + '%' : '—';
+    const hasFeedback = s.feedback && (s.feedback.grade || s.feedback.teacher_note);
+    const vocabBar = `<div style="font-size:12px;color:var(--gray-600)">${s.vocabKnown} מילים (${s.vocabPct}%)</div>
+      <div class="vocab-mini-bar"><div class="vocab-mini-fill" style="width:${s.vocabPct}%"></div></div>`;
+    return `<div class="student-row" onclick="openModal('${s.id}')">
+      <div class="student-name">${s.first_name} ${s.last_name}</div>
+      <div class="student-email">${s.email}</div>
+      <div class="sets-done">${s.scores.length} סטים</div>
+      <div class="avg-score ${scoreClass}">${scoreText}</div>
+      <div class="last-active">${vocabBar}</div>
+      <div><button class="btn-feedback" onclick="event.stopPropagation();openModal('${s.id}')">${hasFeedback ? '✏️ עדכן' : '+ הוסף'} משוב</button></div>
+    </div>`;
+  }).join('');
+}
+
+function openModal(userId) {
+  currentStudentId = userId;
+  const s = studentsData.find(x => x.id === userId);
+  document.getElementById('modal-name').textContent = s.first_name + ' ' + s.last_name;
+  document.getElementById('modal-grade').value = s.feedback?.grade || '';
+  document.getElementById('modal-feedback').value = s.feedback?.teacher_note || '';
+  document.getElementById('save-success').classList.remove('show');
+
+  const studentAnswers = (window._allAnswers || []).filter(a => a.user_id === userId);
+  
+  const scoresHtml = s.scores.length
+    ? s.scores.map(sc => {
+        const setAnswers = studentAnswers.filter(a => a.set_number === sc.set_number);
+        const answersHtml = setAnswers.length ? setAnswers.map((a, i) => {
+          const qText = a.question_text || '';
+          const isCorrect = a.is_correct;
+          const isSkipped = a.student_answer === -1;
+          const cardClass = isCorrect ? 'correct-card' : (isSkipped ? 'skipped-card' : 'wrong-card');
+          const statusClass = isCorrect ? 'status-correct' : (isSkipped ? 'status-skipped' : 'status-wrong');
+          const statusText = isCorrect ? '✓ נכון' : (isSkipped ? '— דולג' : '✗ שגוי');
+          
+          // Build options display - show actual answer text
+          const correctText = a.correct_answer_text || `אפשרות ${a.correct_answer + 1}`;
+          const studentText = a.student_answer_text || (a.student_answer !== -1 ? `אפשרות ${a.student_answer + 1}` : null);
+          
+          let optionsHtml = '';
+          if (!isCorrect && !isSkipped) {
+            optionsHtml = `
+              <div class="answer-options">
+                <div class="answer-option opt-wrong">
+                  <span class="opt-icon">✗</span>
+                  <span><strong>תשובת התלמיד:</strong> ${studentText}</span>
+                </div>
+                <div class="answer-option opt-correct">
+                  <span class="opt-icon">✓</span>
+                  <span><strong>תשובה נכונה:</strong> ${correctText}</span>
+                </div>
+              </div>`;
+          } else if (isCorrect) {
+            optionsHtml = `
+              <div class="answer-options">
+                <div class="answer-option opt-correct">
+                  <span class="opt-icon">✓</span>
+                  <span><strong>תשובה נכונה:</strong> ${correctText}</span>
+                </div>
+              </div>`;
+          } else {
+            optionsHtml = `
+              <div class="answer-options">
+                <div class="answer-option opt-neutral">
+                  <span class="opt-icon">—</span>
+                  <span>השאלה דולגה</span>
+                </div>
+              </div>`;
+          }
+
+          return `<div class="answer-card ${cardClass}">
+            <div class="answer-card-header">
+              <span class="answer-card-qnum">שאלה ${i + 1}</span>
+              <span class="answer-card-status ${statusClass}">${statusText}</span>
+            </div>
+            <div class="answer-card-question">${qText}</div>
+            ${optionsHtml}
+          </div>`;
+        }).join('') : '<div style="font-size:12px;color:var(--gray-400);padding:6px">אין פירוט זמין לסט זה</div>';
+        
+        return `<div class="score-item" onclick="toggleAnswers(this)">
+          <div class="score-item-header">
+            <span class="set-name">סט ${sc.set_number}</span>
+            <span class="set-score">${Math.round(sc.score/sc.total_questions*100)}% (${sc.score}/${sc.total_questions})</span>
+          </div>
+          <div class="expand-hint">לחץ לפירוט תשובות ▼</div>
+          <div class="answers-breakdown">${answersHtml}</div>
+        </div>`;
+      }).join('')
+    : '<div style="font-size:13px;color:var(--gray-400);padding:8px">התלמיד טרם השלים סטים.</div>';
+  document.getElementById('modal-scores').innerHTML = scoresHtml;
+
+  // Render vocab panel
+  const studentVocab = (window._vocabProgress || []).filter(v => v.user_id === userId);
+  renderVocabPanel(studentVocab);
+
+  document.getElementById('modal-overlay').classList.add('open');
+  // Reset to first tab
+  document.querySelectorAll('.modal-tab').forEach((t,i) => t.classList.toggle('active', i===0));
+  document.querySelectorAll('.modal-panel').forEach((p,i) => p.classList.toggle('active', i===0));
+}
+
+function closeModal(e) {
+  if (e.target === document.getElementById('modal-overlay'))
+    document.getElementById('modal-overlay').classList.remove('open');
+}
+
+function toggleAnswers(el) {
+  const breakdown = el.querySelector('.answers-breakdown');
+  const hint = el.querySelector('.expand-hint');
+  if (breakdown) {
+    breakdown.classList.toggle('open');
+    if (hint) hint.textContent = breakdown.classList.contains('open') ? 'לחץ לסגירה ▲' : 'לחץ לפירוט תשובות ▼';
+  }
+}
+
+function switchTab(tab, btn) {
+  document.querySelectorAll('.modal-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.modal-panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('panel-' + tab).classList.add('active');
+}
+
+function toggleWordCategory(el) {
+  const body = el.nextElementSibling;
+  if (body) body.classList.toggle('open');
+  const arrow = el.querySelector('.cat-arrow');
+  if (arrow) arrow.textContent = body.classList.contains('open') ? '▲' : '▼';
+}
+
+function renderVocabPanel(studentVocab) {
+  const known = studentVocab.filter(v => v.status === 'known');
+  const familiar = studentVocab.filter(v => v.status === 'familiar');
+  const unknown = studentVocab.filter(v => v.status === 'unknown');
+  const total = studentVocab.length;
+  const pct = Math.round((known.length / 992) * 100);
+
+  document.getElementById('vocab-total').textContent = total;
+  document.getElementById('vocab-known').textContent = known.length;
+  document.getElementById('vocab-familiar').textContent = familiar.length;
+  document.getElementById('vocab-pct').textContent = pct + '%';
+  document.getElementById('vocab-progress-fill').style.width = pct + '%';
+
+  const categories = [
+    { label: '✓ שולט', words: known, cls: 'cat-known' },
+    { label: '↺ מתרגל', words: familiar, cls: 'cat-familiar' },
+    { label: '✗ לא יודע', words: unknown, cls: 'cat-unknown' },
+  ];
+
+  document.getElementById('vocab-categories').innerHTML = categories.map(cat => {
+    if (cat.words.length === 0) return '';
+    const tags = cat.words.map(v => `<span class="word-tag">${WORD_LOOKUP[v.word_id] || v.word_id}</span>`).join('');
+    return `<div class="word-category">
+      <div class="word-category-header" onclick="toggleWordCategory(this)">
+        <span>${cat.label}</span>
+        <span style="display:flex;align-items:center;gap:8px">
+          <span class="cat-count ${cat.cls}">${cat.words.length} מילים</span>
+          <span class="cat-arrow">▼</span>
+        </span>
+      </div>
+      <div class="word-category-body">
+        <div class="word-tags">${tags}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function saveFeedback() {
+  const grade = document.getElementById('modal-grade').value.trim();
+  const note = document.getElementById('modal-feedback').value.trim();
+  const s = studentsData.find(x => x.id === currentStudentId);
+
+  if (s.feedback) {
+    await sb.from('feedback').update({ grade, teacher_note: note, updated_at: new Date() }).eq('user_id', currentStudentId);
+  } else {
+    await sb.from('feedback').insert({ user_id: currentStudentId, grade, teacher_note: note });
+  }
+
+  // Update local data
+  const idx = studentsData.findIndex(x => x.id === currentStudentId);
+  studentsData[idx].feedback = { grade, teacher_note: note };
+  renderStudents();
+
+  document.getElementById('save-success').classList.add('show');
+  setTimeout(() => document.getElementById('modal-overlay').classList.remove('open'), 1500);
+}
+
+let currentInviteCode = 'AMBITIONIST2026';
+
+async function loadCurrentCode() {
+  try {
+    const { data, error } = await sb.from('invite_codes').select('code').is('used_by', null).order('created_at', { ascending: false }).limit(1);
+    if (data && data.length > 0) {
+      currentInviteCode = data[0].code;
+      document.getElementById('invite-code-display').textContent = currentInviteCode;
+    }
+  } catch(e) {
+    console.warn('Could not load invite code:', e);
+  }
+}
+
+function toggleChangeCode() {
+  const row = document.getElementById('change-code-row');
+  row.classList.toggle('open');
+  if (row.classList.contains('open')) {
+    document.getElementById('new-code-input').value = '';
+    document.getElementById('new-code-input').focus();
+  }
+}
+
+async function saveNewCode() {
+  const newCode = document.getElementById('new-code-input').value.trim();
+  if (!newCode || newCode.length < 4) {
+    alert('הקוד חייב להכיל לפחות 4 תווים.');
+    return;
+  }
+  try {
+    // 1. Delete all unused old codes so only new code works
+    const { error: delError } = await sb.from('invite_codes').delete().is('used_by', null);
+    if (delError) { alert('שגיאה במחיקת קוד ישן: ' + delError.message); return; }
+    // 2. Insert the new code
+    const { error: insError } = await sb.from('invite_codes').insert({ code: newCode });
+    if (insError) { alert('שגיאה בשמירת קוד חדש: ' + insError.message); return; }
+    currentInviteCode = newCode;
+    document.getElementById('invite-code-display').textContent = newCode;
+    document.getElementById('change-code-row').classList.remove('open');
+    const msg = document.getElementById('code-saved-msg');
+    msg.classList.add('show');
+    setTimeout(() => msg.classList.remove('show'), 3000);
+  } catch(e) {
+    alert('שגיאה בשמירת הקוד: ' + e.message);
+  }
+}
+
+function copyCode() {
+  navigator.clipboard.writeText(currentInviteCode);
+  const el = document.getElementById('copy-confirm');
+  el.style.display = 'inline';
+  setTimeout(() => el.style.display = 'none', 2000);
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !document.getElementById('login-overlay').classList.contains('hidden'))
+    teacherLogin();
+});
+
+init();
+</script>
+</body>
+</html>
