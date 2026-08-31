@@ -444,6 +444,7 @@ async function logout() {
 
 // ── Dashboard ────────────────────────────────────────────────
 async function loadDashboard() {
+  await loadCurrentCode();
   // Load all profiles
   const { data: profiles } = await sb.from('profiles').select('*').order('created_at', { ascending: false });
   // Load all scores
@@ -687,6 +688,18 @@ async function saveFeedback() {
 
 let currentInviteCode = 'AMBITIONIST2026';
 
+async function loadCurrentCode() {
+  try {
+    const { data, error } = await sb.from('invite_codes').select('code').is('used_by', null).order('created_at', { ascending: false }).limit(1);
+    if (data && data.length > 0) {
+      currentInviteCode = data[0].code;
+      document.getElementById('invite-code-display').textContent = currentInviteCode;
+    }
+  } catch(e) {
+    console.warn('Could not load invite code:', e);
+  }
+}
+
 function toggleChangeCode() {
   const row = document.getElementById('change-code-row');
   row.classList.toggle('open');
@@ -703,10 +716,12 @@ async function saveNewCode() {
     return;
   }
   try {
-    // 1. Delete all unused old codes (used_by is null) so only new code works
-    await sb.from('invite_codes').delete().is('used_by', null);
+    // 1. Delete all unused old codes so only new code works
+    const { error: delError } = await sb.from('invite_codes').delete().is('used_by', null);
+    if (delError) { alert('שגיאה במחיקת קוד ישן: ' + delError.message); return; }
     // 2. Insert the new code
-    await sb.from('invite_codes').insert({ code: newCode });
+    const { error: insError } = await sb.from('invite_codes').insert({ code: newCode });
+    if (insError) { alert('שגיאה בשמירת קוד חדש: ' + insError.message); return; }
     currentInviteCode = newCode;
     document.getElementById('invite-code-display').textContent = newCode;
     document.getElementById('change-code-row').classList.remove('open');
@@ -714,7 +729,7 @@ async function saveNewCode() {
     msg.classList.add('show');
     setTimeout(() => msg.classList.remove('show'), 3000);
   } catch(e) {
-    alert('שגיאה בשמירת הקוד. אנא נסה שנית.');
+    alert('שגיאה בשמירת הקוד: ' + e.message);
   }
 }
 
