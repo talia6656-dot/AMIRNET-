@@ -99,6 +99,33 @@
     color: var(--gray-600); cursor: pointer; transition: all 0.15s;
   }
   .invite-box .copy-btn:hover { background: var(--gray-100); }
+  .change-code-row {
+    display: none; margin-top: 1rem; padding-top: 1rem;
+    border-top: 1px solid var(--gray-200);
+    align-items: center; gap: 10px; flex-wrap: wrap;
+  }
+  .change-code-row.open { display: flex; }
+  .change-code-row input {
+    flex: 1; min-width: 180px; padding: 8px 12px;
+    border: 1px solid var(--gray-200); border-radius: 8px;
+    font-family: 'Heebo', sans-serif; font-size: 14px; font-weight: 600;
+    color: var(--navy); outline: none; letter-spacing: 1px; direction: ltr;
+    text-transform: uppercase;
+  }
+  .change-code-row input:focus { border-color: var(--blue); }
+  .btn-change-save {
+    padding: 8px 18px; background: var(--blue); border: none;
+    border-radius: 8px; font-family: 'Heebo', sans-serif; font-size: 13px;
+    font-weight: 600; color: #fff; cursor: pointer;
+  }
+  .btn-change-save:hover { background: #1d4ed8; }
+  .btn-change-cancel {
+    padding: 8px 14px; background: none; border: 1px solid var(--gray-200);
+    border-radius: 8px; font-family: 'Heebo', sans-serif; font-size: 13px;
+    color: var(--gray-600); cursor: pointer;
+  }
+  .code-saved-msg { font-size: 12px; color: var(--green); display: none; }
+  .code-saved-msg.show { display: inline; }
 
   /* Students table */
   .section-title {
@@ -309,10 +336,20 @@
 
   <!-- Invite code -->
   <div class="invite-box">
-    <span class="il">🔑 קוד הזמנה לתלמידים:</span>
-    <span class="code">AMBITIONIST2026</span>
-    <button class="copy-btn" onclick="copyCode()">העתק</button>
-    <span id="copy-confirm" style="font-size:12px;color:var(--green);display:none">✓ הועתק!</span>
+    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+      <span class="il">🔑 קוד הזמנה לתלמידים:</span>
+      <span class="code" id="invite-code-display">AMBITIONIST2026</span>
+      <button class="copy-btn" onclick="copyCode()">העתק</button>
+      <span id="copy-confirm" style="font-size:12px;color:var(--green);display:none">✓ הועתק!</span>
+      <button class="copy-btn" onclick="toggleChangeCode()" style="margin-right:auto">✏️ שנה קוד</button>
+      <span class="code-saved-msg" id="code-saved-msg">✓ הקוד עודכן בהצלחה!</span>
+    </div>
+    <div class="change-code-row" id="change-code-row">
+      <input type="text" id="new-code-input" placeholder="הזן קוד חדש (אנגלית וספרות בלבד)" maxlength="30"
+        oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9-]/g,'')">
+      <button class="btn-change-save" onclick="saveNewCode()">שמור קוד חדש</button>
+      <button class="btn-change-cancel" onclick="toggleChangeCode()">ביטול</button>
+    </div>
   </div>
 
   <!-- Students table -->
@@ -648,8 +685,41 @@ async function saveFeedback() {
   setTimeout(() => document.getElementById('modal-overlay').classList.remove('open'), 1500);
 }
 
+let currentInviteCode = 'AMBITIONIST2026';
+
+function toggleChangeCode() {
+  const row = document.getElementById('change-code-row');
+  row.classList.toggle('open');
+  if (row.classList.contains('open')) {
+    document.getElementById('new-code-input').value = '';
+    document.getElementById('new-code-input').focus();
+  }
+}
+
+async function saveNewCode() {
+  const newCode = document.getElementById('new-code-input').value.trim();
+  if (!newCode || newCode.length < 4) {
+    alert('הקוד חייב להכיל לפחות 4 תווים.');
+    return;
+  }
+  try {
+    // 1. Delete all unused old codes (used_by is null) so only new code works
+    await sb.from('invite_codes').delete().is('used_by', null);
+    // 2. Insert the new code
+    await sb.from('invite_codes').insert({ code: newCode });
+    currentInviteCode = newCode;
+    document.getElementById('invite-code-display').textContent = newCode;
+    document.getElementById('change-code-row').classList.remove('open');
+    const msg = document.getElementById('code-saved-msg');
+    msg.classList.add('show');
+    setTimeout(() => msg.classList.remove('show'), 3000);
+  } catch(e) {
+    alert('שגיאה בשמירת הקוד. אנא נסה שנית.');
+  }
+}
+
 function copyCode() {
-  navigator.clipboard.writeText('AMBITIONIST2026');
+  navigator.clipboard.writeText(currentInviteCode);
   const el = document.getElementById('copy-confirm');
   el.style.display = 'inline';
   setTimeout(() => el.style.display = 'none', 2000);
