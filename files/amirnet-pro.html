@@ -251,7 +251,7 @@ body{font-family:'Heebo',sans-serif;background:var(--gray-50);color:var(--text);
     <div class="logo">Amir<span>NET</span> Pro</div>
     <div style="display:flex;align-items:center;gap:12px">
       <span id="user-name-display" style="font-size:13px;color:rgba(255,255,255,0.7);font-family:var(--font-sans)"></span>
-      <button onclick="signOut()" style="font-family:var(--font-sans);font-size:12px;background:transparent;border:1px solid rgba(255,255,255,0.25);color:rgba(255,255,255,0.6);padding:5px 12px;border-radius:999px;cursor:pointer;">יציאה</button>
+      <a id="teacher-dash-btn" href="amirnet-teacher.html" style="display:none;align-items:center;gap:6px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);color:#f59e0b;padding:6px 14px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;margin-left:8px">לוח מורה ←</a><button onclick="signOut()" style="font-family:var(--font-sans);font-size:12px;background:transparent;border:1px solid rgba(255,255,255,0.25);color:rgba(255,255,255,0.6);padding:5px 12px;border-radius:999px;cursor:pointer;">יציאה</button>
     </div>
     <span class="header-badge">מבוסס על מבנה הבחינה הרשמי</span>
   </header>
@@ -3699,6 +3699,7 @@ async function initAuth() {
     if (data.session) {
       currentUser = data.session.user;
       // Auth passed — remove gate and show the app
+      checkTeacherRole();
       const nameEl = document.getElementById('user-name-display');
       if (nameEl) {
         const { data: profile } = await sb.from('profiles')
@@ -3752,6 +3753,7 @@ async function saveScoreToSupabase(setNumber, correct, total) {
         is_correct: isCorrect,
         student_answer_text: (studentAnswer !== undefined && studentAnswer !== -1) ? q.options[studentAnswer] : null,
         correct_answer_text: q.options[q.answer],
+        options_json: JSON.stringify(q.options),
       };
     });
 
@@ -3769,6 +3771,18 @@ function globalQIndex(si,qi){let o=0;const S=getSections();for(let i=0;i<si;i++)
 
 function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active')}
 function goHome(){clearInterval(timerInterval);showScreen('home')}
+
+async function checkTeacherRole() {
+  try {
+    const { data } = await sb.auth.getSession();
+    if (!data.session) return;
+    const { data: profile } = await sb.from('profiles').select('role').eq('id', data.session.user.id).single();
+    if (profile && profile.role === 'teacher') {
+      const btn = document.getElementById('teacher-dash-btn');
+      if (btn) btn.style.display = 'inline-flex';
+    }
+  } catch(e) {}
+}
 
 async function signOut(){
   await sb.auth.signOut();
