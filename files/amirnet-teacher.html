@@ -229,6 +229,18 @@
   .answer-option.opt-wrong { background: rgba(220,38,38,0.08); color: var(--red); font-weight: 600; }
   .answer-option.opt-neutral { background: var(--gray-50); color: var(--gray-600); }
   .answer-option .opt-icon { font-size: 13px; flex-shrink: 0; }
+  .passage-toggle {
+    width: 100%; text-align: right; background: #f0f7ff; border: 1px solid #bfdbfe;
+    border-radius: 8px; padding: 8px 14px; font-family: 'Heebo', sans-serif;
+    font-size: 13px; font-weight: 600; color: #1d4ed8; cursor: pointer;
+    margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;
+  }
+  .passage-body {
+    display: none; background: #f8fafc; border: 1px solid #e2e8f0;
+    border-radius: 8px; padding: 14px 16px; margin-bottom: 10px;
+    font-size: 13px; line-height: 1.75; color: #334155; direction: ltr; text-align: left;
+  }
+  .passage-body.open { display: block; }
   .modal-actions { display: flex; gap: 10px; }
   .btn-save {
     flex: 1; padding: 11px; background: var(--blue); border: none;
@@ -524,7 +536,21 @@ function openModal(userId) {
   const scoresHtml = s.scores.length
     ? s.scores.map(sc => {
         const setAnswers = studentAnswers.filter(a => a.set_number === sc.set_number);
+        // Group reading questions and prepend passage once per unique passage
+        let lastPassageText = null;
         const answersHtml = setAnswers.length ? setAnswers.map((a, i) => {
+          let passageHtml = '';
+          if (a.passage_text && a.passage_text !== lastPassageText) {
+            lastPassageText = a.passage_text;
+            const paraId = 'passage_' + sc.set_number + '_' + i;
+            const paras = a.passage_text.split('|||').map(function(p) {
+              return '<p style="margin-bottom:10px">' + p + '</p>';
+            }).join('');
+            const togFn = "var b=this.nextElementSibling;b.classList.toggle('open');this.querySelector('.arr').textContent=b.classList.contains('open')?'\u25b2':'\u25bc'";
+            passageHtml = '<button class="passage-toggle" onclick="' + togFn + '">' +
+              '<span>📖 קטע הקריאה</span><span class="arr">▼</span></button>' +
+              '<div class="passage-body">' + paras + '</div>';
+          }
           const qText = a.question_text || '';
           const isCorrect = a.is_correct;
           const isSkipped = a.student_answer === -1;
@@ -562,7 +588,7 @@ function openModal(userId) {
               }
             }
           } catch(e) { optionsHtml = ''; }
-          return `<div class="answer-card ${cardClass}">
+          return passageHtml + `<div class="answer-card ${cardClass}">
             <div class="answer-card-header">
               <span class="answer-card-qnum">שאלה ${i + 1}</span>
               <span class="answer-card-status ${statusClass}">${statusText}</span>
