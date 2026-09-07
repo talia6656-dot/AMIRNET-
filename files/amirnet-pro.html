@@ -1591,6 +1591,40 @@ let usingMock = false;      // true when taking a mock test (separate content)
 function activeQuestions(){
   return usingMock ? MOCK_QUESTION_BANK[currentMock] : QUESTION_BANK[currentSet];
 }
+
+let _shuffledQCache = null;
+
+function shuffleOptions(q) {
+  if (!q.options || q.options.length !== 4) return q;
+  // Fisher-Yates shuffle of [0,1,2,3]
+  const idx = [0,1,2,3];
+  for (let i = 3; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i+1));
+    const tmp = idx[i]; idx[i] = idx[j]; idx[j] = tmp;
+  }
+  const newOptions = idx.map(function(i){ return q.options[i]; });
+  const newAnswer = idx.indexOf(q.answer);
+  // Remap option numbers in explanation to match new positions
+  let exp = q.explanation || '';
+  if (exp) {
+    const posMap = {};
+    for (let np = 0; np < 4; np++) posMap[idx[np] + 1] = np + 1;
+    exp = exp.replace(/\(1\)/g,'[[P1]]').replace(/\(2\)/g,'[[P2]]')
+             .replace(/\(3\)/g,'[[P3]]').replace(/\(4\)/g,'[[P4]]')
+             .replace(/\[\[P1\]\]/g,'('+posMap[1]+')')
+             .replace(/\[\[P2\]\]/g,'('+posMap[2]+')')
+             .replace(/\[\[P3\]\]/g,'('+posMap[3]+')')
+             .replace(/\[\[P4\]\]/g,'('+posMap[4]+')');
+  }
+  return Object.assign({}, q, {options: newOptions, answer: newAnswer, explanation: exp});
+}
+
+function getActiveQuestions() {
+  if (!_shuffledQCache) {
+    _shuffledQCache = activeQuestions().map(shuffleOptions);
+  }
+  return _shuffledQCache;
+}
 function activePassages(){
   return usingMock ? MOCK_PASSAGE_BANK[currentMock] : PASSAGE_BANK[currentSet];
 }
@@ -3782,7 +3816,7 @@ function getPassageText(passageId) {
   return null;
 }
 
-function secQuestions(si){const id=getSections()[si].id;return activeQuestions().filter(q=>q.sec===id)}
+function secQuestions(si){const id=getSections()[si].id;return getActiveQuestions().filter(q=>q.sec===id)}
 function globalQIndex(si,qi){let o=0;const S=getSections();for(let i=0;i<si;i++)o+=S[i].qCount;return o+qi}
 
 function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active')}
@@ -3828,6 +3862,7 @@ function selectSet(idx, btn){
 }
 
 function startPractice(){
+  _shuffledQCache=null;
   usingMock=false;
   mode='practice';currentSec=0;currentQInSec=0;answers={};sectionScores=[];
   clearInterval(timerInterval);
@@ -3841,6 +3876,7 @@ function selectMockAndStart(idx){
   startMock();
 }
 function startMock(){
+  _shuffledQCache=null;
   usingMock=true;
   mode='mock';currentSec=0;currentQInSec=0;answers={};sectionScores=[];
   clearInterval(timerInterval);
@@ -4396,11 +4432,11 @@ function showResults(){
   let totalCorrect=0,totalWrong=0;
   sectionScores.forEach(s=>{totalCorrect+=s.correct;totalWrong+=s.wrong});
   // Save to Supabase
-  const totalQs=activeQuestions().length;
+  const totalQs=getActiveQuestions().length;
   // Practice sets: 1..11. Mock tests: 101..103 (kept numeric for the DB column).
   const setLabel = usingMock ? (101+currentMock) : (currentSet+1);
   saveScoreToSupabase(setLabel, totalCorrect, totalQs);
-  const total=activeQuestions().length;
+  const total=getActiveQuestions().length;
   // Equal weight per question: base 50 + up to 100 spread evenly across all questions.
   const pct=total?Math.round((totalCorrect/total)*100):0;
   let score=Math.round(50+(pct/100)*100);
