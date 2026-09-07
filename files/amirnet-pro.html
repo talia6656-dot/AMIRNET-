@@ -3770,7 +3770,11 @@ initAuth();
 function getPassageText(passageId) {
   if (!passageId) return null;
   try {
-    for (const entry of MOCK_PASSAGE_BANK) {
+    const banks = [
+      ...(typeof PASSAGE_BANK !== 'undefined' ? PASSAGE_BANK : []),
+      ...(typeof MOCK_PASSAGE_BANK !== 'undefined' ? MOCK_PASSAGE_BANK : [])
+    ];
+    for (const entry of banks) {
       const p = entry[passageId];
       if (p && p.paragraphs) return p.paragraphs.join('|||');
     }
