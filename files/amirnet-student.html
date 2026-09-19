@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AmirNET Pro — אזור אישי</title>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#0a1628;--navy-mid:#152340;--blue:#1a56db;--blue-light:#3b82f6;
+  --accent:#f59e0b;--accent-light:#fbbf24;--green:#059669;--green-light:#d1fae5;
+  --red:#dc2626;--red-light:#fee2e2;--purple:#7c3aed;
+  --white:#fff;--gray-50:#f8fafc;--gray-100:#f1f5f9;--gray-200:#e2e8f0;
+  --gray-300:#cbd5e1;--gray-400:#94a3b8;--gray-600:#475569;--gray-700:#334155;
+  --text:#0f172a;--radius:12px;--radius-lg:18px;
+}
+body{font-family:'Heebo',sans-serif;background:var(--gray-50);color:var(--text);min-height:100vh;direction:rtl;}
+
+/* AUTH GUARD */
+#auth-guard{position:fixed;inset:0;background:var(--navy);z-index:999;display:flex;align-items:center;justify-content:center;}
+#auth-guard.hidden{display:none;}
+.guard-logo{font-family:'DM Serif Display',serif;font-size:2rem;color:#fff;text-align:center;}
+.guard-logo span{color:var(--accent);}
+.guard-sub{color:var(--gray-400);font-size:13px;margin-top:8px;text-align:center;}
+
+/* HEADER */
+.header{background:linear-gradient(135deg,var(--navy) 0%,var(--navy-mid) 100%);height:60px;padding:0 1.5rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;box-shadow:0 2px 12px rgba(0,0,0,0.2);}
+.logo{font-family:'DM Serif Display',serif;font-size:1.4rem;color:#fff;}
+.logo span{color:var(--accent);}
+.header-right{display:flex;align-items:center;gap:12px;}
+.student-name{font-size:13px;color:rgba(255,255,255,0.7);font-weight:500;}
+.btn-back{background:none;border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.7);padding:6px 14px;border-radius:8px;font-family:'Heebo',sans-serif;font-size:13px;cursor:pointer;text-decoration:none;transition:all 0.15s;}
+.btn-back:hover{color:#fff;border-color:rgba(255,255,255,0.5);}
+
+/* TABS */
+.tabs-bar{background:var(--white);border-bottom:1px solid var(--gray-200);padding:0 1.5rem;display:flex;gap:0;overflow-x:auto;}
+.tab-btn{padding:14px 20px;font-family:'Heebo',sans-serif;font-size:14px;font-weight:500;color:var(--gray-400);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap;transition:all 0.15s;}
+.tab-btn.active{color:var(--blue);border-bottom-color:var(--blue);}
+.tab-btn:hover{color:var(--text);}
+
+/* MAIN */
+.main{max-width:1100px;margin:0 auto;padding:2rem 1.5rem 4rem;}
+.tab-panel{display:none;}
+.tab-panel.active{display:block;}
+
+/* STATS ROW */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:1.75rem;}
+.stat-card{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius);padding:1.25rem;text-align:center;}
+.stat-card .sv{font-size:2rem;font-weight:800;line-height:1;}
+.stat-card .sl{font-size:12px;color:var(--gray-400);margin-top:4px;}
+.stat-card.blue .sv{color:var(--blue);}
+.stat-card.green .sv{color:var(--green);}
+.stat-card.accent .sv{color:var(--accent);}
+.stat-card.purple .sv{color:var(--purple);}
+
+/* GRID 2 COLS */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:1.75rem;}
+
+/* CARDS */
+.card{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius-lg);padding:1.5rem;}
+.card-title{font-size:15px;font-weight:700;color:var(--text);margin-bottom:1.25rem;display:flex;align-items:center;gap:8px;}
+
+/* SCORE CHART */
+.chart-wrap{position:relative;width:100%;height:160px;}
+.chart-wrap svg{width:100%;height:100%;}
+.chart-empty{display:flex;align-items:center;justify-content:center;height:160px;color:var(--gray-400);font-size:13px;}
+
+/* SECTION BARS */
+.section-bar{margin-bottom:14px;}
+.section-bar .sb-label{display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px;}
+.section-bar .sb-name{color:var(--gray-700);font-weight:500;}
+.section-bar .sb-pct{font-weight:700;}
+.sb-track{background:var(--gray-100);border-radius:999px;height:10px;overflow:hidden;}
+.sb-fill{height:100%;border-radius:999px;transition:width 0.6s ease;}
+
+/* RECOMMENDATIONS */
+.rec-card{background:linear-gradient(135deg,#eff6ff 0%,#f0fdf4 100%);border:1px solid var(--gray-200);border-radius:var(--radius-lg);padding:1.5rem;margin-bottom:1.75rem;}
+.rec-title{font-size:15px;font-weight:700;color:var(--navy);margin-bottom:1rem;display:flex;align-items:center;gap:8px;}
+.rec-item{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;font-size:13.5px;color:var(--gray-700);line-height:1.55;}
+.rec-icon{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;margin-top:1px;}
+.rec-icon.good{background:#dcfce7;color:#166534;}
+.rec-icon.warn{background:#fef9c3;color:#854d0e;}
+.rec-icon.info{background:#dbeafe;color:#1e40af;}
+
+/* FEEDBACK CARD */
+.feedback-card{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius-lg);padding:1.5rem;margin-bottom:1.75rem;}
+.feedback-grade{font-size:2.5rem;font-weight:800;color:var(--blue);margin-bottom:6px;}
+.feedback-note{font-size:14px;color:var(--gray-700);line-height:1.6;white-space:pre-line;}
+.feedback-date{font-size:12px;color:var(--gray-400);margin-top:8px;}
+.no-feedback{color:var(--gray-400);font-size:13px;font-style:italic;}
+
+/* HISTORY */
+.history-set{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius);margin-bottom:10px;overflow:hidden;}
+.history-set-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;cursor:pointer;transition:background 0.1s;}
+.history-set-header:hover{background:var(--gray-50);}
+.hs-left{display:flex;align-items:center;gap:12px;}
+.hs-badge{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--blue-light));color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.hs-name{font-size:14px;font-weight:600;color:var(--text);}
+.hs-date{font-size:12px;color:var(--gray-400);margin-top:1px;}
+.hs-score{font-size:18px;font-weight:800;}
+.hs-body{display:none;padding:0 18px 16px;border-top:1px solid var(--gray-100);}
+.hs-body.open{display:block;}
+
+/* ANSWER CARDS */
+.answer-card{border-radius:10px;padding:12px 14px;margin-top:10px;border:1px solid transparent;}
+.answer-card.correct-card{background:#f0fdf4;border-color:#86efac;}
+.answer-card.wrong-card{background:#fff1f2;border-color:#fca5a5;}
+.answer-card.skipped-card{background:var(--gray-50);border-color:var(--gray-200);}
+.ac-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;gap:8px;}
+.ac-qnum{font-size:12px;color:var(--gray-400);}
+.ac-status{font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;}
+.ac-status.correct{background:#dcfce7;color:#166534;}
+.ac-status.wrong{background:#fee2e2;color:#991b1b;}
+.ac-status.skipped{background:var(--gray-200);color:var(--gray-600);}
+.ac-qtext{font-size:13px;color:var(--gray-700);margin-bottom:8px;line-height:1.5;}
+.answer-options{display:flex;flex-direction:column;gap:5px;}
+.answer-option{display:flex;align-items:flex-start;gap:8px;padding:7px 10px;border-radius:8px;font-size:13px;background:var(--white);border:1px solid var(--gray-200);}
+.answer-option.opt-correct{background:#dcfce7;border-color:#86efac;color:#166534;font-weight:600;}
+.answer-option.opt-wrong{background:#fee2e2;border-color:#fca5a5;color:#991b1b;font-weight:600;}
+.opt-icon{font-size:12px;flex-shrink:0;min-width:16px;}
+
+/* PASSAGE TOGGLE */
+.passage-toggle{width:100%;text-align:right;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:7px 12px;font-family:'Heebo',sans-serif;font-size:12px;font-weight:600;color:var(--blue);cursor:pointer;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;}
+.passage-body{display:none;background:var(--gray-50);border:1px solid var(--gray-200);border-radius:8px;padding:12px 14px;margin-bottom:8px;font-size:13px;line-height:1.75;color:var(--gray-700);direction:ltr;text-align:left;}
+.passage-body.open{display:block;}
+
+/* VOCAB TAB */
+.vocab-cats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:1.5rem;}
+.vocab-cat{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius);padding:1.25rem;text-align:center;}
+.vocab-cat .vc-num{font-size:2rem;font-weight:800;margin-bottom:4px;}
+.vocab-cat .vc-label{font-size:12px;color:var(--gray-400);}
+.vocab-cat.known .vc-num{color:var(--green);}
+.vocab-cat.familiar .vc-num{color:var(--accent);}
+.vocab-cat.unknown .vc-num{color:var(--red);}
+.vocab-ring-wrap{display:flex;justify-content:center;margin-bottom:1.5rem;}
+.words-list{display:flex;flex-wrap:wrap;gap:6px;}
+.word-pill{padding:4px 10px;border-radius:999px;font-size:12px;font-weight:500;}
+.wp-known{background:#dcfce7;color:#166534;}
+.wp-familiar{background:#fef9c3;color:#854d0e;}
+
+/* LESSONS TAB */
+.lesson-row{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius);padding:14px 18px;display:flex;align-items:center;gap:14px;margin-bottom:10px;}
+.lesson-watch-icon{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.lesson-watch-icon.watched{background:var(--green-light);}
+.lesson-watch-icon.unwatched{background:var(--gray-100);}
+.lesson-info{flex:1;}
+.lesson-title-s{font-size:14px;font-weight:600;color:var(--text);}
+.lesson-meta-s{font-size:12px;color:var(--gray-400);margin-top:2px;}
+.btn-watch{padding:6px 14px;background:var(--blue);border:none;border-radius:8px;font-family:'Heebo',sans-serif;font-size:12px;font-weight:600;color:#fff;cursor:pointer;transition:background 0.15s;white-space:nowrap;}
+.btn-watch:hover{background:#1d4ed8;}
+.btn-watch.done{background:var(--green);cursor:default;}
+
+/* LOADING */
+.loading-state{text-align:center;padding:3rem;color:var(--gray-400);font-size:14px;}
+.empty-state{text-align:center;padding:2rem;color:var(--gray-400);font-size:13px;}
+
+@media(max-width:640px){
+  .stats-row{grid-template-columns:repeat(2,1fr);}
+  .grid-2{grid-template-columns:1fr;}
+  .vocab-cats{grid-template-columns:repeat(2,1fr);}
+  .tab-btn{padding:12px 14px;font-size:13px;}
+}
+</style>
+</head>
+<body>
+
+<div id="auth-guard">
+  <div>
+    <div class="guard-logo">Amir<span>NET</span> Pro</div>
+    <div class="guard-sub">בודק הרשאות...</div>
+  </div>
+</div>
+
+<header class="header">
+  <div class="logo">Amir<span>NET</span> Pro</div>
+  <div class="header-right">
+    <span class="student-name" id="student-name"></span>
+    <a class="btn-back" href="amirnet-pro.html">← חזרה לאתר</a>
+  </div>
+</header>
+
+<div class="tabs-bar">
+  <button class="tab-btn active" onclick="switchTab('overview',this)">📊 סקירה כללית</button>
+  <button class="tab-btn" onclick="switchTab('history',this)">📋 היסטוריה מלאה</button>
+  <button class="tab-btn" onclick="switchTab('vocab',this)">📚 מילים</button>
+  <button class="tab-btn" onclick="switchTab('lessons',this)">🎬 שיעורים</button>
+</div>
+
+<main class="main">
+
+  <!-- ── TAB 1: OVERVIEW ─────────────────────────────────────── -->
+  <div class="tab-panel active" id="tab-overview">
+
+    <div class="stats-row">
+      <div class="stat-card blue"><div class="sv" id="ov-sets">—</div><div class="sl">סטים הושלמו</div></div>
+      <div class="stat-card green"><div class="sv" id="ov-avg">—</div><div class="sl">ציון ממוצע</div></div>
+      <div class="stat-card accent"><div class="sv" id="ov-words">—</div><div class="sl">מילים שנלמדו</div></div>
+      <div class="stat-card purple"><div class="sv" id="ov-streak">—</div><div class="sl">ימים פעיל</div></div>
+    </div>
+
+    <!-- RECOMMENDATIONS -->
+    <div class="rec-card">
+      <div class="rec-title">💡 המלצות אישיות</div>
+      <div id="rec-body"><div class="loading-state">מנתח את הביצועים שלך...</div></div>
+    </div>
+
+    <div class="grid-2">
+      <!-- SCORE TREND -->
+      <div class="card">
+        <div class="card-title">📈 מגמת ציונים</div>
+        <div id="chart-wrap" class="chart-wrap">
+          <div class="chart-empty">אין עדיין מספיק נתונים</div>
+        </div>
+      </div>
+
+      <!-- SECTION ANALYSIS -->
+      <div class="card">
+        <div class="card-title">🎯 ביצועים לפי סוג שאלה</div>
+        <div id="section-bars"><div class="loading-state">טוען...</div></div>
+      </div>
+    </div>
+
+    <!-- TEACHER FEEDBACK -->
+    <div class="feedback-card">
+      <div class="card-title">💬 משוב מהמורה</div>
+      <div id="feedback-body"><div class="loading-state">טוען...</div></div>
+    </div>
+
+  </div>
+
+  <!-- ── TAB 2: HISTORY ──────────────────────────────────────── -->
+  <div class="tab-panel" id="tab-history">
+    <div id="history-body"><div class="loading-state">טוען היסטוריה...</div></div>
+  </div>
+
+  <!-- ── TAB 3: VOCAB ────────────────────────────────────────── -->
+  <div class="tab-panel" id="tab-vocab">
+    <div class="vocab-cats">
+      <div class="vocab-cat known"><div class="vc-num" id="v-known">—</div><div class="vc-label">✓ שולט</div></div>
+      <div class="vocab-cat familiar"><div class="vc-num" id="v-familiar">—</div><div class="vc-label">↻ מתרגל</div></div>
+      <div class="vocab-cat unknown"><div class="vc-num" id="v-unknown">—</div><div class="vc-label">✗ לא יודע</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">מילים שאתה שולט בהן</div>
+      <div id="known-words-list" class="words-list"><div class="empty-state">אין עדיין מילים מסומנות כנלמדות</div></div>
+    </div>
+  </div>
+
+  <!-- ── TAB 4: LESSONS ──────────────────────────────────────── -->
+  <div class="tab-panel" id="tab-lessons">
+    <div id="lessons-body"><div class="loading-state">טוען שיעורים...</div></div>
+  </div>
+
+</main>
+
+<script>
+const SUPABASE_URL = 'https://ivauncueyedwlthzylnt.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_BbdQ2HYYKcO4uxJbFT0JWw_k5nqO39G';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const LESSONS = [
+  { id: 'intro', title: 'מבוא לבחינת AMIRNET', meta: 'מבנה הבחינה · סוגי השאלות · אסטרטגיית פתרון' },
+  { id: 'tour',  title: 'סיור באתר — כל הפיצ׳רים', meta: 'הסבר על כל חלקי האתר · איך לתרגל · איך להתכונן' },
+];
+
+let currentUser = null;
+let allScores = [], allAnswers = [], feedbackData = null, vocabData = [], watchedData = [];
+
+// ── AUTH ───────────────────────────────────────────────────────────────────
+async function init() {
+  if (window.location.hostname === 'amirnetpro.netlify.app') {
+    const { data } = await sb.auth.getSession();
+    if (!data.session) { window.location.replace('index.html'); return; }
+    currentUser = data.session.user;
+  }
+  document.getElementById('auth-guard').classList.add('hidden');
+  await loadAll();
+}
+
+// ── LOAD ALL DATA ─────────────────────────────────────────────────────────
+async function loadAll() {
+  const uid = currentUser ? currentUser.id : null;
+  if (!uid) { renderEmpty(); return; }
+
+  // Profile
+  const { data: profile } = await sb.from('profiles').select('first_name,last_name').eq('id', uid).single();
+  if (profile) document.getElementById('student-name').textContent = profile.first_name + ' ' + profile.last_name;
+
+  // Scores
+  const { data: scores } = await sb.from('scores').select('*').eq('user_id', uid).order('completed_at', { ascending: true });
+  allScores = scores || [];
+
+  // Answer details
+  const { data: answers } = await sb.from('answer_details').select('*').eq('user_id', uid).order('created_at', { ascending: true });
+  allAnswers = answers || [];
+
+  // Feedback
+  const { data: fb } = await sb.from('feedback').select('*').eq('user_id', uid).single();
+  feedbackData = fb || null;
+
+  // Vocab progress
+  const { data: vocab } = await sb.from('vocab_progress').select('*').eq('user_id', uid);
+  vocabData = vocab || [];
+
+  // Watched lessons
+  const { data: watched } = await sb.from('watched_lessons').select('*').eq('user_id', uid);
+  watchedData = watched || [];
+
+  renderAll();
+}
+
+function renderAll() {
+  renderOverview();
+  renderHistory();
+  renderVocab();
+  renderLessons();
+}
+
+// ── OVERVIEW ──────────────────────────────────────────────────────────────
+function renderOverview() {
+  // Stats
+  document.getElementById('ov-sets').textContent = allScores.length || '0';
+  const avgs = allScores.map(s => Math.round(s.score / s.total_questions * 100));
+  const avg = avgs.length ? Math.round(avgs.reduce((a,b)=>a+b,0)/avgs.length) : null;
+  document.getElementById('ov-avg').textContent = avg !== null ? avg + '%' : '—';
+  const known = vocabData.filter(v => v.status === 'known').length;
+  document.getElementById('ov-words').textContent = known || '0';
+  // Active days
+  const days = new Set(allScores.map(s => s.completed_at ? s.completed_at.slice(0,10) : null).filter(Boolean));
+  document.getElementById('ov-streak').textContent = days.size || '0';
+
+  renderChart();
+  renderSectionBars();
+  renderFeedback();
+  renderRecommendations();
+}
+
+// Score trend chart (SVG line)
+function renderChart() {
+  const wrap = document.getElementById('chart-wrap');
+  if (allScores.length < 2) return; // keep empty state
+  const scores = allScores.map(s => Math.round(s.score / s.total_questions * 100));
+  const W = 400, H = 140, PAD = 20;
+  const minS = Math.max(0, Math.min(...scores) - 10);
+  const maxS = Math.min(100, Math.max(...scores) + 10);
+  const x = (i) => PAD + (i / (scores.length - 1)) * (W - PAD * 2);
+  const y = (s) => H - PAD - ((s - minS) / (maxS - minS)) * (H - PAD * 2);
+  const pts = scores.map((s,i) => x(i) + ',' + y(s)).join(' ');
+  const areaBot = (W - PAD) + ',' + (H - PAD) + ' ' + PAD + ',' + (H - PAD);
+  wrap.innerHTML = '<svg viewBox="0 0 ' + W + ' ' + H + '" xmlns="http://www.w3.org/2000/svg">' +
+    '<defs><linearGradient id="cg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#3b82f6" stop-opacity="0.2"/><stop offset="100%" stop-color="#3b82f6" stop-opacity="0"/></linearGradient></defs>' +
+    '<polygon points="' + pts + ' ' + areaBot + '" fill="url(#cg)"/>' +
+    '<polyline points="' + pts + '" fill="none" stroke="#1a56db" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>' +
+    scores.map((s,i) => '<circle cx="' + x(i) + '" cy="' + y(s) + '" r="4" fill="#1a56db"/><text x="' + x(i) + '" y="' + (y(s)-8) + '" text-anchor="middle" font-size="10" fill="#475569">' + s + '%</text>').join('') +
+    '</svg>';
+}
+
+// Section performance bars
+function renderSectionBars() {
+  const el = document.getElementById('section-bars');
+  if (!allAnswers.length) { el.innerHTML = '<div class="empty-state">עדיין אין נתונים</div>'; return; }
+
+  // Categorise: reading = passage_text not null; completion = short options; restatement = long options
+  const reading = allAnswers.filter(a => a.passage_text);
+  const rest = allAnswers.filter(a => !a.passage_text);
+  let completions = [], restatements = [];
+  rest.forEach(a => {
+    try {
+      const opts = a.options_json ? JSON.parse(a.options_json) : null;
+      if (opts && opts[0] && opts[0].length < 30) completions.push(a);
+      else restatements.push(a);
+    } catch(e) { completions.push(a); }
+  });
+
+  function pct(arr) {
+    if (!arr.length) return null;
+    return Math.round(arr.filter(a => a.is_correct).length / arr.length * 100);
+  }
+
+  const sections = [
+    { name: 'השלמת משפטים', pct: pct(completions), color: '#1a56db' },
+    { name: 'ניסוח מחדש', pct: pct(restatements), color: '#7c3aed' },
+    { name: 'הבנת הנקרא', pct: pct(reading), color: '#059669' },
+  ].filter(s => s.pct !== null);
+
+  if (!sections.length) { el.innerHTML = '<div class="empty-state">עדיין אין נתונים</div>'; return; }
+
+  el.innerHTML = sections.map(s => {
+    const cls = s.pct >= 75 ? '#059669' : s.pct >= 50 ? '#d97706' : '#dc2626';
+    return '<div class="section-bar">' +
+      '<div class="sb-label"><span class="sb-name">' + s.name + '</span><span class="sb-pct" style="color:' + cls + '">' + s.pct + '%</span></div>' +
+      '<div class="sb-track"><div class="sb-fill" style="width:' + s.pct + '%;background:' + s.color + '"></div></div>' +
+      '</div>';
+  }).join('');
+}
+
+// Teacher feedback
+function renderFeedback() {
+  const el = document.getElementById('feedback-body');
+  if (!feedbackData || (!feedbackData.grade && !feedbackData.teacher_note)) {
+    el.innerHTML = '<div class="no-feedback">המורה עדיין לא השאירה משוב. המשך לתרגל! 💪</div>'; return;
+  }
+  el.innerHTML =
+    (feedbackData.grade ? '<div class="feedback-grade">' + feedbackData.grade + '</div>' : '') +
+    (feedbackData.teacher_note ? '<div class="feedback-note">' + feedbackData.teacher_note + '</div>' : '') +
+    (feedbackData.updated_at ? '<div class="feedback-date">עודכן: ' + new Date(feedbackData.updated_at).toLocaleDateString('he-IL') + '</div>' : '');
+}
+
+// Smart recommendations
+function renderRecommendations() {
+  const el = document.getElementById('rec-body');
+  const recs = [];
+
+  if (!allScores.length) {
+    el.innerHTML = '<div class="rec-item"><span class="rec-icon info">🚀</span><span>ברוך הבא! התחל בסט תרגול ראשון כדי לראות המלצות אישיות.</span></div>';
+    return;
+  }
+
+  const avgs = allScores.map(s => Math.round(s.score / s.total_questions * 100));
+  const avg = Math.round(avgs.reduce((a,b)=>a+b,0)/avgs.length);
+  const trend = avgs.length >= 3 ? avgs[avgs.length-1] - avgs[avgs.length-3] : null;
+
+  // Trend
+  if (trend !== null && trend >= 10) recs.push({ icon: '🎉', type: 'good', text: 'הציון שלך עלה ב-' + trend + '% ב-3 הסטים האחרונים — כך ממשיכים!' });
+  else if (trend !== null && trend <= -10) recs.push({ icon: '⚠️', type: 'warn', text: 'הציון ירד ב-' + Math.abs(trend) + '% לאחרונה — כדאי להאט ולחזור על החומר.' });
+
+  // Section weaknesses
+  const reading = allAnswers.filter(a => a.passage_text);
+  const rest = allAnswers.filter(a => !a.passage_text);
+  let completions = [], restatements = [];
+  rest.forEach(a => {
+    try { const o = a.options_json ? JSON.parse(a.options_json) : null; if (o && o[0] && o[0].length < 30) completions.push(a); else restatements.push(a); }
+    catch(e) { completions.push(a); }
+  });
+  function pct(arr) { return arr.length ? Math.round(arr.filter(a=>a.is_correct).length/arr.length*100) : null; }
+  const compPct = pct(completions), restPct = pct(restatements), readPct = pct(reading);
+
+  const weak = [];
+  if (compPct !== null && compPct < 60) weak.push('השלמת משפטים (' + compPct + '%)');
+  if (restPct !== null && restPct < 60) weak.push('ניסוח מחדש (' + restPct + '%)');
+  if (readPct !== null && readPct < 60) weak.push('הבנת הנקרא (' + readPct + '%)');
+  if (weak.length) recs.push({ icon: '📌', type: 'warn', text: 'נקודות לשיפור: ' + weak.join(', ') + '. התמקד בסוגי שאלות אלו בתרגול הבא.' });
+
+  const strong = [];
+  if (compPct !== null && compPct >= 80) strong.push('השלמת משפטים');
+  if (restPct !== null && restPct >= 80) strong.push('ניסוח מחדש');
+  if (readPct !== null && readPct >= 80) strong.push('הבנת הנקרא');
+  if (strong.length) recs.push({ icon: '✓', type: 'good', text: 'חוזק שלך: ' + strong.join(', ') + '. המשך לשמור על הרמה.' });
+
+  // Vocab
+  const known = vocabData.filter(v => v.status === 'known').length;
+  if (known < 50) recs.push({ icon: '📖', type: 'info', text: 'למדת ' + known + ' מילים. מומלץ לתרגל את אוצר המילים יומיומית — 10 מילים ביום משנות את התוצאה.' });
+  else if (known >= 200) recs.push({ icon: '🌟', type: 'good', text: 'מרשים! שלטת ביותר מ-' + known + ' מילים. המשך לצבור.' });
+
+  // Overall
+  if (avg >= 90) recs.push({ icon: '🏆', type: 'good', text: 'ציון ממוצע של ' + avg + '% — ביצועים מצוינים! אתה מוכן היטב לבחינה.' });
+  else if (avg < 60) recs.push({ icon: '💡', type: 'info', text: 'ציון ממוצע ' + avg + '%. אל תתייאש — עם תרגול עקבי הציון עולה. נסה לעשות סט אחד כל יום.' });
+
+  // Last active
+  const lastDate = allScores.length ? new Date(allScores[allScores.length-1].completed_at) : null;
+  if (lastDate) {
+    const daysSince = Math.floor((Date.now() - lastDate) / 86400000);
+    if (daysSince >= 7) recs.push({ icon: '⏰', type: 'warn', text: 'לא תרגלת כבר ' + daysSince + ' ימים. חזרה לשגרה תעשה טוב לציון!' });
+  }
+
+  if (!recs.length) recs.push({ icon: '👍', type: 'good', text: 'המשך לתרגל — כל סט שאתה עושה משפר את הסיכויים שלך!' });
+
+  el.innerHTML = recs.map(r => '<div class="rec-item"><span class="rec-icon ' + r.type + '">' + r.icon + '</span><span>' + r.text + '</span></div>').join('');
+}
+
+// ── HISTORY ───────────────────────────────────────────────────────────────
+function renderHistory() {
+  const el = document.getElementById('history-body');
+  if (!allScores.length) { el.innerHTML = '<div class="empty-state">עדיין לא השלמת סטים. התחל לתרגל!</div>'; return; }
+
+  el.innerHTML = [...allScores].reverse().map((sc, idx) => {
+    const pct = Math.round(sc.score / sc.total_questions * 100);
+    const cls = pct >= 75 ? '#059669' : pct >= 50 ? '#d97706' : '#dc2626';
+    const date = sc.completed_at ? new Date(sc.completed_at).toLocaleDateString('he-IL') : '';
+    const label = sc.set_number >= 101 ? 'מבחן מדומה ' + (sc.set_number - 100) : 'סט ' + sc.set_number;
+    const answers = allAnswers.filter(a => a.set_number === sc.set_number);
+    return '<div class="history-set">' +
+      '<div class="history-set-header" onclick="toggleHistory(this)">' +
+        '<div class="hs-left">' +
+          '<div class="hs-badge">' + (sc.set_number >= 101 ? 'M'+(sc.set_number-100) : sc.set_number) + '</div>' +
+          '<div><div class="hs-name">' + label + '</div><div class="hs-date">' + date + '</div></div>' +
+        '</div>' +
+        '<div class="hs-score" style="color:' + cls + '">' + pct + '%</div>' +
+      '</div>' +
+      '<div class="hs-body">' + buildAnswersHtml(answers) + '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function toggleHistory(header) { header.nextElementSibling.classList.toggle('open'); }
+
+function buildAnswersHtml(answers) {
+  if (!answers.length) return '<div class="empty-state">אין פירוט שאלות לסט זה</div>';
+  let lastPassage = null;
+  return answers.map((a, i) => {
+    const isCorrect = a.is_correct;
+    const isSkipped = a.student_answer === -1;
+    const cardCls = isCorrect ? 'correct-card' : isSkipped ? 'skipped-card' : 'wrong-card';
+    const statusCls = isCorrect ? 'correct' : isSkipped ? 'skipped' : 'wrong';
+    const statusTxt = isCorrect ? '✓ נכון' : isSkipped ? '— דולג' : '✗ שגוי';
+
+    let passageHtml = '';
+    if (a.passage_text && a.passage_text !== lastPassage) {
+      lastPassage = a.passage_text;
+      const paras = a.passage_text.split('|||').map(function(p){ return '<p style="margin-bottom:8px">' + p + '</p>'; }).join('');
+      passageHtml = '<button class="passage-toggle" onclick="var b=this.nextElementSibling;b.classList.toggle(\'open\');this.querySelector(\'.arr\').textContent=b.classList.contains(\'open\')?\'▲\':\'▼\'"><span>📖 קטע הקריאה</span><span class="arr">▼</span></button>' +
+        '<div class="passage-body">' + paras + '</div>';
+    }
+
+    let optHtml = '';
+    try {
+      const opts = a.options_json ? JSON.parse(a.options_json) : null;
+      if (opts && opts.length === 4) {
+        optHtml = '<div class="answer-options">' + opts.map(function(opt, oi) {
+          const isStu = oi === a.student_answer, isCorr = oi === a.correct_answer;
+          let cls = 'answer-option', icon = (oi+1)+'.';
+          if (isCorr && isStu) { cls += ' opt-correct'; icon = '✓'; }
+          else if (isCorr) { cls += ' opt-correct'; icon = '✓'; }
+          else if (isStu) { cls += ' opt-wrong'; icon = '✗'; }
+          return '<div class="' + cls + '"><span class="opt-icon">' + icon + '</span><span>' + opt + '</span></div>';
+        }).join('') + '</div>';
+      } else {
+        const ct = a.correct_answer_text || '', st = a.student_answer_text || '';
+        if (!isCorrect && !isSkipped) optHtml = '<div class="answer-options">' + (st?'<div class="answer-option opt-wrong"><span class="opt-icon">✗</span><span>'+st+'</span></div>':'') + (ct?'<div class="answer-option opt-correct"><span class="opt-icon">✓</span><span>'+ct+'</span></div>':'') + '</div>';
+        else if (isCorrect && ct) optHtml = '<div class="answer-options"><div class="answer-option opt-correct"><span class="opt-icon">✓</span><span>'+ct+'</span></div></div>';
+      }
+    } catch(e) {}
+
+    return passageHtml +
+      '<div class="answer-card ' + cardCls + '">' +
+        '<div class="ac-header"><span class="ac-qnum">שאלה ' + (i+1) + '</span><span class="ac-status ' + statusCls + '">' + statusTxt + '</span></div>' +
+        '<div class="ac-qtext">' + (a.question_text || '') + '</div>' +
+        optHtml +
+      '</div>';
+  }).join('');
+}
+
+// ── VOCAB ─────────────────────────────────────────────────────────────────
+function renderVocab() {
+  const known = vocabData.filter(v => v.status === 'known');
+  const familiar = vocabData.filter(v => v.status === 'familiar');
+  const unknown = vocabData.filter(v => v.status === 'unfamiliar');
+  document.getElementById('v-known').textContent = known.length;
+  document.getElementById('v-familiar').textContent = familiar.length;
+  document.getElementById('v-unknown').textContent = unknown.length;
+
+  const wl = document.getElementById('known-words-list');
+  if (!known.length) { wl.innerHTML = '<div class="empty-state">לא סומנו מילים כנלמדות עדיין</div>'; return; }
+  wl.innerHTML = known.slice(0, 80).map(v => '<span class="word-pill wp-known">' + (v.word_id || '') + '</span>').join('') +
+    (known.length > 80 ? '<span style="font-size:12px;color:var(--gray-400)"> +' + (known.length-80) + ' נוספות</span>' : '');
+}
+
+// ── LESSONS ───────────────────────────────────────────────────────────────
+function renderLessons() {
+  const el = document.getElementById('lessons-body');
+  el.innerHTML = LESSONS.map(lesson => {
+    const w = watchedData.find(w => w.lesson_id === lesson.id);
+    return '<div class="lesson-row">' +
+      '<div class="lesson-watch-icon ' + (w ? 'watched' : 'unwatched') + '">' + (w ? '✓' : '🎬') + '</div>' +
+      '<div class="lesson-info"><div class="lesson-title-s">' + lesson.title + '</div><div class="lesson-meta-s">' + lesson.meta + '</div></div>' +
+      '<button class="btn-watch ' + (w ? 'done' : '') + '" onclick="markWatched(\'' + lesson.id + '\',this)" ' + (w ? 'disabled' : '') + '>' + (w ? 'נצפה ✓' : 'סמן כנצפה') + '</button>' +
+    '</div>';
+  }).join('');
+}
+
+async function markWatched(lessonId, btn) {
+  if (!currentUser) return;
+  const already = watchedData.find(w => w.lesson_id === lessonId);
+  if (already) return;
+  const { error } = await sb.from('watched_lessons').insert({ user_id: currentUser.id, lesson_id: lessonId });
+  if (!error) {
+    watchedData.push({ lesson_id: lessonId, watched_at: new Date().toISOString() });
+    btn.textContent = 'נצפה ✓';
+    btn.classList.add('done');
+    btn.disabled = true;
+    btn.previousElementSibling.className = 'lesson-watch-icon watched';
+    btn.previousElementSibling.textContent = '✓';
+    document.getElementById('ov-words'); // trigger update
+  }
+}
+
+// ── TABS ──────────────────────────────────────────────────────────────────
+function switchTab(id, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  btn.classList.add('active');
+}
+
+function renderEmpty() {
+  document.getElementById('auth-guard').classList.add('hidden');
+}
+
+init();
+</script>
+</body>
+</html>
