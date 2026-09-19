@@ -238,9 +238,15 @@ body{font-family:'Heebo',sans-serif;background:var(--gray-50);color:var(--text);
   <!-- ── TAB 3: VOCAB ────────────────────────────────────────── -->
   <div class="tab-panel" id="tab-vocab">
     <div class="vocab-cats">
-      <div class="vocab-cat known"><div class="vc-num" id="v-known">—</div><div class="vc-label">✓ שולט</div></div>
-      <div class="vocab-cat familiar"><div class="vc-num" id="v-familiar">—</div><div class="vc-label">↻ מתרגל</div></div>
-      <div class="vocab-cat unknown"><div class="vc-num" id="v-unknown">—</div><div class="vc-label">✗ לא יודע</div></div>
+      <div class="vocab-cat known active-filter" id="vf-known" onclick="setVocabFilter('known')" style="cursor:pointer;border:2px solid transparent;transition:border-color 0.15s">
+        <div class="vc-num" id="v-known">—</div><div class="vc-label">✓ שולט</div>
+      </div>
+      <div class="vocab-cat familiar" id="vf-familiar" onclick="setVocabFilter('familiar')" style="cursor:pointer;border:2px solid transparent;transition:border-color 0.15s">
+        <div class="vc-num" id="v-familiar">—</div><div class="vc-label">↻ מתרגל</div>
+      </div>
+      <div class="vocab-cat unknown" id="vf-unknown" onclick="setVocabFilter('unfamiliar')" style="cursor:pointer;border:2px solid transparent;transition:border-color 0.15s">
+        <div class="vc-num" id="v-unknown">—</div><div class="vc-label">✗ לא יודע</div>
+      </div>
     </div>
     <div class="card">
       <div class="card-title">המילים שלי</div>
@@ -295,7 +301,7 @@ async function loadAll() {
   allScores = scores || [];
 
   // Answer details
-  const { data: answers } = await sb.from('answer_details').select('*').eq('user_id', uid).order('created_at', { ascending: true });
+  const { data: answers } = await sb.from('answer_details').select('*').eq('user_id', uid);
   allAnswers = answers || [];
 
   // Feedback
@@ -571,8 +577,37 @@ function renderVocab() {
     html += '<div style="font-size:13px;font-weight:600;color:#d97706;margin-bottom:8px">↻ מתרגל (' + familiar.length + ')</div>';
     html += '<div class="words-list">' + wordPills(familiar, 'wp-familiar', 100) + '</div>';
   }
-  if (!html) html = '<div class="empty-state">לא סומנו מילים עדיין. התחל לתרגל באוצר המילים!</div>';
-  wl.innerHTML = html;
+  // Store for filter use
+  window._vocabKnown = known;
+  window._vocabFamiliar = familiar;
+  window._vocabUnknown = unknown;
+  setVocabFilter('known');
+}
+
+let _activeVocabFilter = 'known';
+
+function setVocabFilter(status) {
+  _activeVocabFilter = status;
+  // Update card borders
+  const borders = { known: '#059669', familiar: '#d97706', unfamiliar: '#dc2626' };
+  ['known','familiar','unfamiliar'].forEach(function(s) {
+    const el = document.getElementById('vf-' + (s === 'unfamiliar' ? 'unknown' : s));
+    if (el) el.style.borderColor = s === status ? borders[s] : 'transparent';
+  });
+  // Show words for selected filter
+  const map = { known: window._vocabKnown || [], familiar: window._vocabFamiliar || [], unfamiliar: window._vocabUnknown || [] };
+  const cls = { known: 'wp-known', familiar: 'wp-familiar', unfamiliar: 'wp-familiar' };
+  const arr = map[status] || [];
+  const wl = document.getElementById('known-words-list');
+  if (!arr.length) {
+    const labels = { known: 'שולט', familiar: 'מתרגל', unfamiliar: 'לא יודע' };
+    wl.innerHTML = '<div class="empty-state">אין מילים בקטגוריית "' + labels[status] + '" עדיין</div>';
+    return;
+  }
+  wl.innerHTML = arr.slice(0, 120).map(function(v) {
+    const word = WORD_LOOKUP[v.word_id] || v.word_id || '';
+    return '<span class="word-pill ' + cls[status] + '">' + word + '</span>';
+  }).join('') + (arr.length > 120 ? '<span style="font-size:12px;color:var(--gray-400)"> +' + (arr.length-120) + ' נוספות</span>' : '');
 }
 
 // ── LESSONS ───────────────────────────────────────────────────────────────
