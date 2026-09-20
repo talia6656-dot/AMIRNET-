@@ -483,7 +483,14 @@ function renderHistory() {
   const el = document.getElementById('history-body');
   if (!allScores.length) { el.innerHTML = '<div class="empty-state">עדיין לא השלמת סטים. התחל לתרגל!</div>'; return; }
 
-  el.innerHTML = [...allScores].reverse().map((sc, idx) => {
+  // Debug: show total answers loaded
+  const answerSets = [...new Set(allAnswers.map(a => a.set_number))];
+  const debugBar = allAnswers.length === 0
+    ? '<div style="font-size:12px;color:#dc2626;background:#fee2e2;border-radius:8px;padding:8px 12px;margin-bottom:12px">⚠️ לא נטענו פירוטי תשובות (answer_details ריק עבור משתמש זה)</div>'
+    : '<div style="font-size:12px;color:#059669;background:#d1fae5;border-radius:8px;padding:8px 12px;margin-bottom:12px">✓ נטענו ' + allAnswers.length + ' תשובות · סטים עם פירוט: ' + answerSets.join(', ') + '</div>';
+  el.innerHTML = debugBar;
+
+  el.innerHTML += [...allScores].reverse().map((sc, idx) => {
     const pct = Math.round(sc.score / sc.total_questions * 100);
     const cls = pct >= 75 ? '#059669' : pct >= 50 ? '#d97706' : '#dc2626';
     const date = sc.completed_at ? new Date(sc.completed_at).toLocaleDateString('he-IL') : '';
