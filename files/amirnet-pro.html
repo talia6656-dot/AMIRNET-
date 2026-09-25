@@ -242,6 +242,11 @@ body{font-family:'Heebo',sans-serif;background:var(--gray-50);color:var(--text);
 </script>
 </head>
 <body>
+<!-- ANNOUNCEMENT STRIPE -->
+<div id="announcement-stripe" style="display:none;background:linear-gradient(90deg,#f59e0b,#fbbf24);padding:10px 1.5rem;text-align:center;position:relative;z-index:200;">
+  <span id="announcement-text" style="font-family:'Heebo',sans-serif;font-size:14px;font-weight:600;color:#1a0a00;"></span>
+  <button onclick="document.getElementById('announcement-stripe').style.display='none'" style="position:absolute;left:1rem;top:50%;transform:translateY(-50%);background:none;border:none;font-size:18px;cursor:pointer;color:#92400e;line-height:1;">×</button>
+</div>
   <div style="color:rgba(255,255,255,0.4);font-family:'Heebo',sans-serif;font-size:0.85rem;">בודק הרשאות...</div>
 </div>
 
@@ -257,7 +262,7 @@ body{font-family:'Heebo',sans-serif;background:var(--gray-50);color:var(--text);
   </header>
   <section class="hero">
     <div class="hero-eyebrow">הכנה לבחינת האנגלית האקדמית</div>
-    <h1 class="hero-title">תתאמן.<br>תצליח.<br>תהיה פטור.</h1>
+    <h1 class="hero-title">תתאמן.<br>תצליח.<br>תשיג פטור.</h1>
     <p class="hero-sub">פלטפורמת התרגול המתקדמת לבחינת AMIRNET — עם שאלות ברמת הבחינה האמיתית ומבחן מדומה מלא.</p>
     <div class="hero-cta">
       <button class="btn btn-accent" onclick="document.getElementById('modes').scrollIntoView({behavior:'smooth'})">התחל להתאמן</button>
@@ -3734,6 +3739,16 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let currentUser = null;
 
 // Load session — non-blocking so app still works in preview
+async function loadAnnouncement() {
+  try {
+    const { data } = await sb.from('announcements').select('message').eq('active', true).order('created_at', { ascending: false }).limit(1);
+    if (data && data.length && data[0].message) {
+      document.getElementById('announcement-text').textContent = data[0].message;
+      document.getElementById('announcement-stripe').style.display = 'block';
+    }
+  } catch(e) {}
+}
+
 async function initAuth() {
   if (window.location.hostname !== 'amirnetpro.netlify.app') return;
   try {
@@ -3808,6 +3823,7 @@ async function saveScoreToSupabase(setNumber, correct, total) {
 }
 
 initAuth();
+loadAnnouncement();
 
 function getPassageText(passageId) {
   if (!passageId) return null;
