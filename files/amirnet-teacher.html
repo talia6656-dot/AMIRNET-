@@ -635,8 +635,14 @@ function openModal(userId) {
         
         return `<div class="score-item" onclick="toggleAnswers(this)">
           <div class="score-item-header">
-            <span class="set-name">סט ${sc.set_number}</span>
-            <span class="set-score">${Math.round(sc.score/sc.total_questions*100)}% (${sc.score}/${sc.total_questions})</span>
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--blue-light));color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">${sc.set_number}</span>
+              <span class="set-name">סט ${sc.set_number}</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="font-size:11px;color:var(--gray-400)">${sc.score}/${sc.total_questions} שאלות</span>
+              <span style="font-size:18px;font-weight:800;padding:4px 14px;border-radius:999px;background:${Math.round(sc.score/sc.total_questions*100)>=75?'#d1fae5':Math.round(sc.score/sc.total_questions*100)>=50?'#fef9c3':'#fee2e2'};color:${Math.round(sc.score/sc.total_questions*100)>=75?'#065f46':Math.round(sc.score/sc.total_questions*100)>=50?'#92400e':'#991b1b'}">${Math.round(sc.score/sc.total_questions*100)}%</span>
+            </div>
           </div>
           <div class="expand-hint">לחץ לפירוט תשובות ▼</div>
           <div class="answers-breakdown">${answersHtml}</div>
