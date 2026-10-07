@@ -3795,7 +3795,7 @@ async function saveScoreToSupabase(setNumber, correct, total) {
     });
 
     // Save individual answers
-    const qs = activeQuestions();
+    const qs = getActiveQuestions();
     const answerRows = qs.map((q, idx) => {
       const globalIdx = idx;
       const studentAnswer = answers[globalIdx];
