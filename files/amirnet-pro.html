@@ -3788,19 +3788,42 @@ async function saveScoreToSupabase(setNumber, correct, total) {
   try {
     // Build snapshot of exactly what student saw and answered
     const _qs = getActiveQuestions();
-    const resultsSnapshot = _qs.map(function(q, i) {
-      const sa = answers[i] !== undefined ? answers[i] : -1;
-      return {
-        text: q.text,
-        type: q.type || 'completion',
-        passageId: q.passageId || null,
-        options: q.options,
-        correct_answer: q.answer,
-        student_answer: sa,
-        is_correct: sa !== -1 && sa === q.answer,
-        explanation: q.explanation || null
-      };
+    const _secs = getSections();
+    // Build section scores for the snapshot
+    const _secScores = _secs.map(function(s, si) {
+      const sqs = secQuestions(si); let c=0,w=0;
+      sqs.forEach(function(q,qi){ if(answers[globalQIndex(si,qi)]===q.answer)c++; else w++; });
+      return {secId:s.id,label:s.label,type:s.type,correct:c,wrong:w,total:s.qCount};
     });
+    const _pct = _qs.length ? Math.round((correct/_qs.length)*100) : 0;
+    const _grade = Math.min(150, Math.max(50, Math.round(50+(_pct/100)*100)));
+    const _level = _grade>=134?'פטור (Exempt)':_grade>=120?'Advanced II':_grade>=100?'Advanced I':_grade>=85?'בסיסי (Basic)':_grade>=70?"טרום בסיסי ב'":"טרום בסיסי א'";
+    const _fbTitle = _grade>=134?'כל הכבוד — פטור!':_grade>=120?"Advanced II — עוד קצת!":_grade>=100?'Advanced I — יש מה לשפר':_grade>=85?'בסיסי — ממשיכים להתאמן!':_grade>=70?"טרום בסיסי ב' — הדרך ברורה!":"טרום בסיסי א' — מתחילים מהיסוד!";
+    const _fbText = _grade>=134?'ציון מעולה! פטור/ה מכל קורסי האנגלית החובה.':_grade>=120?'ציון טוב מאוד. נדרש קורס אנגלית אחד.':_grade>=100?'נדרשים שני קורסי אנגלית.':_grade>=85?'נדרשים 3 קורסי רמה + 2 קורסי תוכן.':_grade>=70?'נדרשים 4 קורסי רמה. התמקד/י בבסיסי תחילה.':'נדרשים 5 קורסי רמה. אל תתייאש/י.';
+    const resultsSnapshot = {
+      grade: _grade,
+      pct: _pct,
+      levelName: _level,
+      fbTitle: _fbTitle,
+      fbText: _fbText,
+      totalCorrect: correct,
+      totalWrong: _qs.length - correct,
+      sectionScores: _secScores,
+      questions: _qs.map(function(q, i) {
+        const sa = answers[i] !== undefined ? answers[i] : -1;
+        return {
+          text: q.text,
+          type: q.type || 'completion',
+          sec: q.sec || null,
+          passageId: q.passageId || null,
+          options: q.options,
+          correct_answer: q.answer,
+          student_answer: sa,
+          is_correct: sa !== -1 && sa === q.answer,
+          explanation: q.explanation || null
+        };
+      })
+    };
 
     // Save overall score with snapshot
     await sb.from('scores').insert({
