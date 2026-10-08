@@ -571,99 +571,83 @@ function openModal(userId) {
   
   const scoresHtml = s.scores.length
     ? s.scores.map(sc => {
-        const setAnswers = studentAnswers.filter(a => a.set_number === sc.set_number);
-        // Group reading questions and prepend passage once per unique passage
-        let lastPassageText = null;
-        const answersHtml = setAnswers.length ? setAnswers.map((a, i) => {
-          let passageHtml = '';
-          if (a.passage_text && a.passage_text !== lastPassageText) {
-            lastPassageText = a.passage_text;
-            const paraId = 'passage_' + sc.set_number + '_' + i;
-            const paras = a.passage_text.split('|||').map(function(p) {
-              return '<p style="margin-bottom:10px">' + p + '</p>';
-            }).join('');
-            const togFn = "var b=this.nextElementSibling;b.classList.toggle('open');this.querySelector('.arr').textContent=b.classList.contains('open')?'\u25b2':'\u25bc'";
-            passageHtml = '<button class="passage-toggle" onclick="' + togFn + '">' +
-              '<span>📖 קטע הקריאה</span><span class="arr">▼</span></button>' +
-              '<div class="passage-body">' + paras + '</div>';
-          }
-          const qText = a.question_text || '';
-          // Use text comparison as ground truth (shuffle-safe)
-          const isSkipped = a.student_answer === -1;
-          const isCorrect = isSkipped ? false :
-            (a.correct_answer_text && a.student_answer_text)
-              ? a.correct_answer_text === a.student_answer_text
-              : a.is_correct;
-          const cardClass = isCorrect ? 'correct-card' : (isSkipped ? 'skipped-card' : 'wrong-card');
-          const statusClass = isCorrect ? 'status-correct' : (isSkipped ? 'status-skipped' : 'status-wrong');
-          const statusText = isCorrect ? '✓ נכון' : (isSkipped ? '— דולג' : '✗ שגוי');
-          
-          // Display all 4 options from database
-          let optionsHtml = '';
-          try {
-            const opts = a.options_json ? JSON.parse(a.options_json) : null;
-            if (opts && opts.length === 4) {
-              optionsHtml = '<div class="answer-options">' +
-                opts.map(function(opt, oi) {
-                  const corrIdx2 = a.correct_answer_text ? opts.findIndex(function(o){return o===a.correct_answer_text;}) : a.correct_answer;
-                  const stuIdx2 = a.student_answer_text ? opts.findIndex(function(o){return o===a.student_answer_text;}) : a.student_answer;
-                  const isStu = oi === stuIdx2;
-                  const isCorr = oi === corrIdx2;
-                  let cls = 'answer-option';
-                  let icon = (oi + 1) + '.';
-                  if (isCorr && isStu)  { cls += ' opt-correct'; icon = '✓'; }
-                  else if (isCorr)       { cls += ' opt-correct'; icon = '✓'; }
-                  else if (isStu)        { cls += ' opt-wrong';   icon = '✗'; }
-                  return '<div class="' + cls + '"><span class="opt-icon">' + icon + '</span><span>' + opt + '</span></div>';
-                }).join('') + '</div>';
-            } else {
-              // fallback for older records without options_json
-              const correctText = a.correct_answer_text || '';
-              const studentText = a.student_answer_text || '';
-              if (!isCorrect && !isSkipped) {
-                optionsHtml = '<div class="answer-options">' +
-                  (studentText ? '<div class="answer-option opt-wrong"><span class="opt-icon">✗</span><span>' + studentText + '</span></div>' : '') +
-                  (correctText ? '<div class="answer-option opt-correct"><span class="opt-icon">✓</span><span>' + correctText + '</span></div>' : '') +
-                  '</div>';
-              } else if (isCorrect && correctText) {
-                optionsHtml = '<div class="answer-options"><div class="answer-option opt-correct"><span class="opt-icon">✓</span><span>' + correctText + '</span></div></div>';
+                const setAnswers = studentAnswers.filter(a => String(a.set_number) === String(sc.set_number));
+
+        // Use snapshot if available (reliable), else fall back to answer_details
+        let answersHtml = '';
+        let snapshot = null;
+        try { if (sc.results_json) snapshot = JSON.parse(sc.results_json); } catch(e) {}
+
+        if (snapshot && snapshot.length > 0) {
+          let lastPid = null;
+          answersHtml = snapshot.map(function(q, i) {
+            const ok = q.is_correct, skip = q.student_answer === -1;
+            const cc = ok ? 'correct-card' : skip ? 'skipped-card' : 'wrong-card';
+            const stTxt = ok ? '✓ נכון' : skip ? '— דולג' : '✗ שגוי';
+            const stBg = ok ? '#dcfce7' : skip ? 'var(--gray-200)' : '#fee2e2';
+            const stC = ok ? '#166534' : skip ? 'var(--gray-600)' : '#991b1b';
+            let ph = '';
+            if (q.passageId && q.passageId !== lastPid) {
+              lastPid = q.passageId;
+              const pt = typeof PASSAGE_BANK_LOOKUP !== 'undefined' ? PASSAGE_BANK_LOOKUP[q.passageId] : null;
+              if (pt) {
+                const paras = pt.split('|||').map(function(p){ return '<p style="margin-bottom:10px">'+p+'</p>'; }).join('');
+                ph = '<button class="passage-toggle" onclick="var b=this.nextElementSibling;b.classList.toggle(\'open\');this.querySelector(\'.arr\').textContent=b.classList.contains(\'open\')?\'▲\':\'▼\'"><span>📖 קטע הקריאה</span><span class="arr">▼</span></button><div class="passage-body">'+paras+'</div>';
               }
             }
-          } catch(e) { optionsHtml = ''; }
-          return passageHtml + `<div class="answer-card ${cardClass}">
-            <div class="answer-card-header">
-              <span class="answer-card-qnum">שאלה ${i + 1}</span>
-              <span class="answer-card-status ${statusClass}">${statusText}</span>
-            </div>
-            <div class="answer-card-question">${qText}</div>
-            ${optionsHtml}
-          </div>`;
-        }).join('') : '<div style="font-size:12px;color:var(--gray-400);padding:6px">אין פירוט זמין לסט זה</div>';
+            let oh = '';
+            if (q.options && q.options.length === 4) {
+              oh = '<div class="answer-options">' + q.options.map(function(opt, oi) {
+                const isStu = oi===q.student_answer, isCorr = oi===q.correct_answer;
+                let cls = 'answer-option', icon = (oi+1)+'.';
+                if (isCorr && isStu) { cls += ' opt-correct'; icon = '✓'; }
+                else if (isCorr) { cls += ' opt-correct'; icon = '✓'; }
+                else if (isStu) { cls += ' opt-wrong'; icon = '✗'; }
+                return '<div class="'+cls+'"><span class="opt-icon">'+icon+'</span><span>'+opt+'</span></div>';
+              }).join('') + '</div>';
+            }
+            return ph + '<div class="answer-card '+cc+'"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;gap:8px"><span style="font-size:12px;color:var(--gray-400)">שאלה '+(i+1)+'</span><span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:'+stBg+';color:'+stC+'">'+stTxt+'</span></div><div style="font-size:13px;color:var(--gray-700);margin-bottom:8px;line-height:1.5">'+q.text+'</div>'+oh+'</div>';
+          }).join('');
+        } else {
+          let lastPassageText = null;
+          const fb = setAnswers.map((a, i) => {
+            const isSkipped = a.student_answer === -1;
+            const isCorrect = isSkipped ? false : (a.correct_answer_text && a.student_answer_text) ? a.correct_answer_text === a.student_answer_text : a.is_correct;
+            const cardClass = isCorrect ? 'correct-card' : isSkipped ? 'skipped-card' : 'wrong-card';
+            const statusText = isCorrect ? '✓ נכון' : isSkipped ? '— דולג' : '✗ שגוי';
+            const stBg = isCorrect?'#dcfce7':isSkipped?'var(--gray-200)':'#fee2e2';
+            const stC = isCorrect?'#166534':isSkipped?'var(--gray-600)':'#991b1b';
+            let passageHtml = '';
+            if (a.passage_text && a.passage_text !== lastPassageText) {
+              lastPassageText = a.passage_text;
+              const paras = a.passage_text.split('|||').map(function(p){ return '<p style="margin-bottom:10px">'+p+'</p>'; }).join('');
+              passageHtml = '<button class="passage-toggle" onclick="var b=this.nextElementSibling;b.classList.toggle(\'open\');this.querySelector(\'.arr\').textContent=b.classList.contains(\'open\')?\'▲\':\'▼\'"><span>📖 קטע הקריאה</span><span class="arr">▼</span></button><div class="passage-body">'+paras+'</div>';
+            }
+            let optHtml = '';
+            try {
+              const opts = a.options_json ? JSON.parse(a.options_json) : null;
+              if (opts && opts.length === 4) {
+                const ci = a.correct_answer_text ? opts.findIndex(function(o){return o===a.correct_answer_text;}) : a.correct_answer;
+                const si2 = a.student_answer_text ? opts.findIndex(function(o){return o===a.student_answer_text;}) : a.student_answer;
+                optHtml = '<div class="answer-options">'+opts.map(function(opt,oi){
+                  const isStu=oi===si2, isCorr=oi===ci;
+                  let cls='answer-option',icon=(oi+1)+'.';
+                  if(isCorr&&isStu){cls+=' opt-correct';icon='✓';} else if(isCorr){cls+=' opt-correct';icon='✓';} else if(isStu){cls+=' opt-wrong';icon='✗';}
+                  return '<div class="'+cls+'"><span class="opt-icon">'+icon+'</span><span>'+opt+'</span></div>';
+                }).join('')+'</div>';
+              } else {
+                const ct=a.correct_answer_text||'',st2=a.student_answer_text||'';
+                if(!isCorrect&&!isSkipped) optHtml='<div class="answer-options">'+(st2?'<div class="answer-option opt-wrong"><span class="opt-icon">✗</span><span>'+st2+'</span></div>':'')+(ct?'<div class="answer-option opt-correct"><span class="opt-icon">✓</span><span>'+ct+'</span></div>':'')+'</div>';
+                else if(isCorrect&&ct) optHtml='<div class="answer-options"><div class="answer-option opt-correct"><span class="opt-icon">✓</span><span>'+ct+'</span></div></div>';
+              }
+            } catch(e){}
+            return passageHtml+'<div class="answer-card '+cardClass+'"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;gap:8px"><span style="font-size:12px;color:var(--gray-400)">שאלה '+(i+1)+'</span><span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:'+stBg+';color:'+stC+'">'+statusText+'</span></div><div style="font-size:13px;color:var(--gray-700);margin-bottom:8px;line-height:1.5">'+(a.question_text||'')+'</div>'+optHtml+'</div>';
+          });
+          answersHtml = fb.length ? fb.join('') : '<div style="font-size:13px;color:var(--gray-400);padding:8px">אין פירוט שאלות לסט זה.</div>';
+        }
+
         
-        return `<div class="score-item" onclick="toggleAnswers(this)">
-          <div style="background:var(--navy);border-radius:8px 8px 0 0;padding:1.25rem 1.5rem;text-align:center;color:#fff">
-            <div style="font-size:11px;color:rgba(255,255,255,0.4);margin-bottom:10px">${sc.set_number >= 101 ? 'מבחן מדומה ' + (sc.set_number - 100) : 'סט ' + sc.set_number} · ${sc.completed_at ? new Date(sc.completed_at).toLocaleDateString('he-IL') : ''}</div>
-            <div style="display:inline-flex;align-items:center;justify-content:center;width:72px;height:72px;border-radius:50%;border:3px solid #f59e0b;margin-bottom:12px">
-              <div>
-                <div style="font-size:22px;font-weight:800;line-height:1">${Math.round(50 + sc.score/sc.total_questions*100)}</div>
-                <div style="font-size:10px;color:rgba(255,255,255,0.45);margin-top:2px">מתוך 150</div>
-              </div>
-            </div>
-            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:300px;margin:0 auto">
-              <div style="background:rgba(255,255,255,0.07);border-radius:8px;padding:8px 4px">
-                <div style="font-size:18px;font-weight:800;color:#f59e0b">${Math.round(sc.score/sc.total_questions*100)}%</div>
-                <div style="font-size:10px;color:rgba(255,255,255,0.4)">אחוז הצלחה</div>
-              </div>
-              <div style="background:rgba(255,255,255,0.07);border-radius:8px;padding:8px 4px">
-                <div style="font-size:18px;font-weight:800;color:#f87171">${sc.total_questions - sc.score}</div>
-                <div style="font-size:10px;color:rgba(255,255,255,0.4)">תשובות שגויות</div>
-              </div>
-              <div style="background:rgba(255,255,255,0.07);border-radius:8px;padding:8px 4px">
-                <div style="font-size:18px;font-weight:800;color:#34d399">${sc.score}</div>
-                <div style="font-size:10px;color:rgba(255,255,255,0.4)">תשובות נכונות</div>
-              </div>
-            </div>
-          </div>
+return `<div class="score-item" onclick="toggleAnswers(this)">
           <div class="score-item-header">
             <div style="display:flex;align-items:center;gap:10px">
               <span style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--blue-light));color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">${sc.set_number}</span>

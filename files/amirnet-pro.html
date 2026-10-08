@@ -3786,12 +3786,29 @@ async function saveScoreToSupabase(setNumber, correct, total) {
     }
   }
   try {
-    // Save overall score
+    // Build snapshot of exactly what student saw and answered
+    const _qs = getActiveQuestions();
+    const resultsSnapshot = _qs.map(function(q, i) {
+      const sa = answers[i] !== undefined ? answers[i] : -1;
+      return {
+        text: q.text,
+        type: q.type || 'completion',
+        passageId: q.passageId || null,
+        options: q.options,
+        correct_answer: q.answer,
+        student_answer: sa,
+        is_correct: sa !== -1 && sa === q.answer,
+        explanation: q.explanation || null
+      };
+    });
+
+    // Save overall score with snapshot
     await sb.from('scores').insert({
       user_id: currentUser.id,
       set_number: setNumber,
       score: correct,
       total_questions: total,
+      results_json: JSON.stringify(resultsSnapshot),
     });
 
     // Save individual answers
