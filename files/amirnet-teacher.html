@@ -283,6 +283,25 @@
   }
   .save-success.show { display: block; }
 
+  /* Messages inbox */
+  .message-card {
+    background: var(--white); border: 1px solid var(--gray-200);
+    border-radius: var(--radius); padding: 1.25rem 1.5rem;
+    margin-bottom: 10px; display: flex; align-items: flex-start; gap: 1rem;
+    transition: background 0.15s;
+  }
+  .message-card.unread { border-right: 4px solid var(--blue); background: #eff6ff; }
+  .message-card .msg-name { font-weight: 600; color: var(--navy); font-size: 15px; }
+  .message-card .msg-meta { font-size: 12px; color: var(--gray-400); margin-top: 3px; }
+  .message-card .msg-text { font-size: 14px; color: var(--gray-800); line-height: 1.6; margin-top: 8px; }
+  .mark-read-btn {
+    margin-right: auto; background: none; border: 1px solid var(--gray-200);
+    border-radius: 8px; padding: 5px 12px; font-family: 'Heebo', sans-serif;
+    font-size: 12px; color: var(--gray-600); cursor: pointer; white-space: nowrap;
+    flex-shrink: 0; transition: all 0.15s;
+  }
+  .mark-read-btn:hover { background: var(--gray-100); color: var(--navy); }
+
   /* Modal tabs */
   .modal-tabs { display: flex; gap: 8px; margin-bottom: 1.25rem; border-bottom: 2px solid var(--gray-200); padding-bottom: 0; }
   .modal-tab {
@@ -409,6 +428,15 @@
     <div id="students-body">
       <div class="loading-text">טוען נתונים...</div>
     </div>
+  </div>
+
+  <!-- Messages inbox -->
+  <div style="margin-top:2.5rem">
+    <div class="section-title">
+      📬 הודעות מתלמידים
+      <span id="unread-badge" style="background:var(--blue);color:#fff;border-radius:999px;font-size:11px;font-weight:700;padding:2px 9px;display:none;margin-right:4px"></span>
+    </div>
+    <div id="messages-list"><div class="loading-text">טוען הודעות...</div></div>
   </div>
 
 </main>
@@ -992,6 +1020,48 @@ async function saveNewCode() {
   }
 }
 
+async function loadMessages() {
+  const { data: msgs, error } = await sb.from('student_messages')
+    .select('*').order('created_at', { ascending: false });
+  const listEl = document.getElementById('messages-list');
+  if (error || !msgs || !msgs.length) {
+    listEl.innerHTML = '<div style="color:var(--gray-400);font-size:14px;padding:0.5rem 0">אין הודעות כרגע.</div>';
+    return;
+  }
+  const unreadCount = msgs.filter(m => !m.read).length;
+  const badge = document.getElementById('unread-badge');
+  if (badge) { badge.textContent = unreadCount; badge.style.display = unreadCount ? 'inline' : 'none'; }
+  listEl.innerHTML = msgs.map(m => {
+    const date = new Date(m.created_at).toLocaleString('he-IL', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+    const safeMsg = (m.message || '').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+    return `<div class="message-card ${!m.read ? 'unread' : ''}" id="msg-${m.id}">
+      <div style="flex:1">
+        <div class="msg-name">${m.student_name || 'תלמיד'}</div>
+        <div class="msg-meta">${date}</div>
+        <div class="msg-text">${safeMsg}</div>
+      </div>
+      <div style="flex-shrink:0">
+        ${!m.read
+          ? `<button class="mark-read-btn" onclick="markMessageRead('${m.id}')">✓ סמן כנקרא</button>`
+          : '<span style="font-size:12px;color:var(--gray-400)">✓ נקרא</span>'}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function markMessageRead(msgId) {
+  await sb.from('student_messages').update({ read: true }).eq('id', msgId);
+  const card = document.getElementById('msg-' + msgId);
+  if (card) {
+    card.classList.remove('unread');
+    const btn = card.querySelector('.mark-read-btn');
+    if (btn) btn.outerHTML = '<span style="font-size:12px;color:var(--gray-400)">✓ נקרא</span>';
+  }
+  const remaining = document.querySelectorAll('.message-card.unread').length;
+  const badge = document.getElementById('unread-badge');
+  if (badge) { badge.textContent = remaining; badge.style.display = remaining ? 'inline' : 'none'; }
+}
+
 function copyCode() {
   navigator.clipboard.writeText(currentInviteCode);
   const el = document.getElementById('copy-confirm');
@@ -1005,6 +1075,7 @@ document.addEventListener('keydown', e => {
 });
 
 init();
+loadMessages();
 </script>
 </body>
 </html>
