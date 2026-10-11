@@ -400,11 +400,11 @@
   <div class="students-table">
     <div class="table-header">
       <div>שם</div>
-      <div>אימייל</div>
+      <div>אימייל / הצטרפות</div>
       <div>סטים</div>
       <div>ציון ממוצע</div>
-      <div>מילון</div>
-      <div>פידבק / ציון</div>
+      <div>מנוי</div>
+      <div>פעולות</div>
     </div>
     <div id="students-body">
       <div class="loading-text">טוען נתונים...</div>
@@ -449,8 +449,9 @@
       <input type="text" id="modal-grade" placeholder='למשל: 85, "מצוין", A+'>
       <label>משוב אישי</label>
       <textarea id="modal-feedback" placeholder="כתוב כאן את המשוב לתלמיד..."></textarea>
-      <div class="modal-actions">
+      <div class="modal-actions" style="flex-wrap:wrap;gap:8px">
         <button class="btn-cancel" onclick="document.getElementById('modal-overlay').classList.remove('open')">ביטול</button>
+        <button onclick="renewSubscription(currentStudentId)" style="padding:11px 16px;background:#059669;border:none;border-radius:10px;font-family:'Heebo',sans-serif;font-size:14px;font-weight:600;color:#fff;cursor:pointer">🔄 חדש מנוי</button>
         <button class="btn-save" onclick="saveFeedback()">שמור משוב</button>
       </div>
       <div class="save-success" id="save-success">✓ המשוב נשמר בהצלחה!</div>
@@ -521,7 +522,14 @@ async function loadDashboard() {
     const vocabFamiliar = studentVocab.filter(v => v.status === 'familiar').length;
     const vocabUnknown = studentVocab.filter(v => v.status === 'unknown').length;
     const vocabPct = Math.round((vocabKnown / 992) * 100);
-    return { ...p, scores: studentScores, feedback: studentFeedback, avgScore, lastActive, studentVocab, vocabKnown, vocabFamiliar, vocabUnknown, vocabPct };
+    const createdDate = new Date(p.created_at);
+    // Use subscription_renewed_at only when teacher explicitly renewed (NULL = not yet renewed)
+    // After running SQL reset: UPDATE profiles SET subscription_renewed_at = NULL WHERE role = 'student'
+    const renewedDate = p.subscription_renewed_at ? new Date(p.subscription_renewed_at) : null;
+    const baseDate = renewedDate || createdDate;
+    const renewDue = new Date(baseDate); renewDue.setDate(renewDue.getDate() + 30);
+    const daysLeft = Math.ceil((renewDue - new Date()) / 86400000);
+    return { ...p, scores: studentScores, feedback: studentFeedback, avgScore, lastActive, studentVocab, vocabKnown, vocabFamiliar, vocabUnknown, vocabPct, createdDate, renewDue, daysLeft };
   });
 
   // Stats
@@ -549,15 +557,28 @@ function renderStudents() {
     const scoreClass = s.avgScore === null ? '' : s.avgScore >= 75 ? 'score-high' : s.avgScore >= 50 ? 'score-mid' : 'score-low';
     const scoreText = s.avgScore !== null ? s.avgScore + '%' : '—';
     const hasFeedback = s.feedback && (s.feedback.grade || s.feedback.teacher_note);
-    const vocabBar = `<div style="font-size:12px;color:var(--gray-600)">${s.vocabKnown} מילים (${s.vocabPct}%)</div>
-      <div class="vocab-mini-bar"><div class="vocab-mini-fill" style="width:${s.vocabPct}%"></div></div>`;
-    return `<div class="student-row" onclick="openModal('${s.id}')">
-      <div class="student-name">${s.first_name} ${s.last_name}</div>
-      <div class="student-email">${s.email}</div>
+    const isFrozen = s.subscription_status === 'frozen';
+    const regDate = s.createdDate ? s.createdDate.toLocaleDateString('he-IL') : '—';
+    const renewStr = s.renewDue ? s.renewDue.toLocaleDateString('he-IL') : '—';
+    const daysColor = s.daysLeft <= 3 ? '#dc2626' : s.daysLeft <= 7 ? '#d97706' : '#059669';
+    const statusBadge = isFrozen
+      ? '<span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:#fee2e2;color:#991b1b">❄️ מוקפא</span>'
+      : '<span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:#dcfce7;color:#166534">✓ פעיל</span>';
+    return `<div class="student-row" onclick="openModal('${s.id}')" style="${isFrozen?'opacity:0.75':''}">
+      <div class="student-name">${s.first_name} ${s.last_name} ${statusBadge}</div>
+      <div style="font-size:12px">${s.email}<br><span style="color:var(--gray-400);font-size:11px">נרשם: ${regDate}</span></div>
       <div class="sets-done">${s.scores.length} סטים</div>
       <div class="avg-score ${scoreClass}">${scoreText}</div>
-      <div class="last-active">${vocabBar}</div>
-      <div><button class="btn-feedback" onclick="event.stopPropagation();openModal('${s.id}')">${hasFeedback ? '✏️ עדכן' : '+ הוסף'} משוב</button></div>
+      <div style="font-size:12px">
+        <div style="font-weight:700;color:${daysColor}">${s.daysLeft > 0 ? s.daysLeft + ' ימים' : 'פג תוקף!'}</div>
+        <div style="color:var(--gray-400);font-size:11px">חידוש: ${renewStr}</div>
+        <div style="color:var(--gray-400);font-size:11px">הצטרף: ${regDate}</div>
+      </div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center">
+        <button class="btn-feedback" onclick="event.stopPropagation();openModal('${s.id}')" style="font-size:11px;padding:5px 9px">${hasFeedback ? '✏️ עדכן' : '+ הוסף'} משוב</button>
+        <button onclick="event.stopPropagation();toggleFreeze('${s.id}','${isFrozen?'active':'frozen'}')" style="padding:5px 9px;border-radius:8px;font-family:'Heebo',sans-serif;font-size:11px;font-weight:600;cursor:pointer;border:1px solid ${isFrozen?'#059669':'#dc2626'};background:${isFrozen?'#f0fdf4':'#fff1f2'};color:${isFrozen?'#059669':'#dc2626'}">${isFrozen?'🔓 הפשר':'❄️ הקפא'}</button>
+        <button onclick="event.stopPropagation();sendReminderEmail('${s.email}','${s.first_name}')" style="padding:5px 9px;border-radius:8px;font-family:'Heebo',sans-serif;font-size:11px;font-weight:600;cursor:pointer;border:1px solid #1a56db;background:#eff6ff;color:#1a56db">✉️</button>
+      </div>
     </div>`;
   }).join('');
 }
@@ -828,6 +849,49 @@ function renderVocabPanel(studentVocab) {
       </div>
     </div>`;
   }).join('');
+}
+
+async function toggleFreeze(userId, newStatus) {
+  const updateData = { subscription_status: newStatus };
+  if (newStatus === 'active') updateData.subscription_renewed_at = new Date().toISOString().slice(0,10);
+  const { error } = await sb.from('profiles').update(updateData).eq('id', userId);
+  if (error) { alert('שגיאה: ' + error.message); return; }
+  const s = studentsData.find(x => x.id === userId);
+  if (s) {
+    s.subscription_status = newStatus;
+    if (newStatus === 'active') {
+      s.subscription_renewed_at = new Date().toISOString().slice(0,10);
+      const rd = new Date(); rd.setDate(rd.getDate()+30);
+      s.renewDue = rd; s.daysLeft = 30;
+    }
+  }
+  renderStudents();
+}
+
+async function renewSubscription(userId) {
+  const today = new Date().toISOString().slice(0,10);
+  const { error } = await sb.from('profiles').update({ subscription_renewed_at: today, subscription_status: 'active' }).eq('id', userId);
+  if (error) { alert('שגיאה: ' + error.message); return; }
+  const s = studentsData.find(x => x.id === userId);
+  if (s) {
+    s.subscription_renewed_at = today; s.subscription_status = 'active';
+    const rd = new Date(); rd.setDate(rd.getDate()+30);
+    s.renewDue = rd; s.daysLeft = 30;
+  }
+  renderStudents();
+  alert('✓ המנוי חודש ל-30 יום.');
+}
+
+function sendReminderEmail(email, firstName) {
+  const subject = encodeURIComponent('חידוש מנוי — AmirNET Pro');
+  const body = encodeURIComponent(
+    'שלום ' + firstName + ',\n\n' +
+    'המנוי שלך ל-AmirNET Pro עומד לפוג בקרוב.\n' +
+    'כדי להמשיך ולגשת לתרגולים, לשאלות ולמבחנים המדומים — אנא חדש/י את המנוי.\n\n' +
+    'לפרטים נוספים ולביצוע התשלום, ניתן לפנות אליי ישירות.\n\n' +
+    'בהצלחה,\nטליה'
+  );
+  window.open('mailto:' + email + '?subject=' + subject + '&body=' + body);
 }
 
 async function saveFeedback() {
