@@ -3843,24 +3843,38 @@ let currentUser = null;
 // Async session validation — redirect if session expired server-side
 (async function validateSession() {
   if (window.location.hostname !== 'amirnetpro.netlify.app') return;
+  // Hide page until subscription check passes
+  document.body.style.visibility = 'hidden';
   try {
     const { data } = await sb.auth.getSession();
-    if (!data.session) { window.location.replace('index.html'); return; }
+    if (!data.session) { document.body.style.visibility = 'visible'; window.location.replace('index.html'); return; }
     currentUser = data.session.user;
     // Check frozen status
-    const { data: prof } = await sb.from('profiles').select('subscription_status').eq('id', currentUser.id).single();
+    const { data: prof } = await sb.from('profiles').select('first_name, subscription_status').eq('id', currentUser.id).single();
     if (prof && prof.subscription_status === 'frozen') {
-      document.body.innerHTML = `<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0a1628;font-family:'Heebo',sans-serif;direction:rtl;text-align:center;padding:2rem">
-        <div style="max-width:400px">
-          <div style="font-size:4rem;margin-bottom:1rem">❄️</div>
-          <h2 style="color:#fff;font-size:1.5rem;margin-bottom:0.75rem">המנוי שלך הוקפא</h2>
-          <p style="color:#94a3b8;line-height:1.7;margin-bottom:1.5rem">הגישה שלך לפלטפורמה הוקפאה זמנית. אנא פנה/י למורה שלך לחידוש המנוי.</p>
-          <button onclick="window.location.href='index.html'" style="padding:12px 28px;background:#1a56db;color:#fff;border:none;border-radius:10px;font-family:'Heebo',sans-serif;font-size:15px;font-weight:600;cursor:pointer">חזרה לדף הכניסה</button>
-        </div>
-      </div>`;
+      document.body.style.visibility = 'visible';
+      document.body.innerHTML = `
+        <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0a1628;font-family:'Heebo',sans-serif;direction:rtl;text-align:center;padding:2rem">
+          <div style="max-width:420px">
+            <div style="font-size:5rem;margin-bottom:1.25rem">🔒</div>
+            <h2 style="color:#fff;font-size:1.6rem;font-weight:800;margin-bottom:0.75rem">הגישה לאתר חסומה</h2>
+            <p style="color:#94a3b8;line-height:1.8;margin-bottom:0.5rem;font-size:1rem">
+              שלום${prof.first_name ? ' ' + prof.first_name : ''},<br>
+              המנוי שלך הוקפא על ידי המורה.
+            </p>
+            <p style="color:#94a3b8;line-height:1.8;margin-bottom:2rem;font-size:1rem">
+              כדי לחדש את הגישה לאתר, אנא פנה/י לתליה ישירות לחידוש המנוי.
+            </p>
+            <a href="mailto:talia6656@gmail.com" style="display:inline-block;padding:13px 32px;background:#1a56db;color:#fff;border:none;border-radius:12px;font-family:'Heebo',sans-serif;font-size:15px;font-weight:700;cursor:pointer;text-decoration:none;margin-bottom:12px">✉️ שלח/י הודעה לתליה</a>
+            <div style="margin-top:12px">
+              <button onclick="supabase.createClient('https://ivauncueyedwlthzylnt.supabase.co','sb_publishable_BbdQ2HYYKcO4uxJbFT0JWw_k5nqO39G').auth.signOut().then(()=>window.location.href='index.html')" style="background:none;border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.5);padding:8px 20px;border-radius:8px;font-family:'Heebo',sans-serif;font-size:13px;cursor:pointer">יציאה מהחשבון</button>
+            </div>
+          </div>
+        </div>`;
       return;
     }
-  } catch(e) { window.location.replace('index.html'); }
+    document.body.style.visibility = 'visible';
+  } catch(e) { document.body.style.visibility = 'visible'; window.location.replace('index.html'); }
 })();
 let userProgress = {};
 let currentLevel = 0;
