@@ -3760,8 +3760,21 @@ async function initAuth() {
       const nameEl = document.getElementById('user-name-display');
       if (nameEl) {
         const { data: profile } = await sb.from('profiles')
-          .select('first_name,last_name').eq('id', currentUser.id).single();
-        if (profile) nameEl.textContent = profile.first_name + ' ' + profile.last_name;
+          .select('first_name,last_name,subscription_status').eq('id', currentUser.id).single();
+        if (profile) {
+          nameEl.textContent = profile.first_name + ' ' + profile.last_name;
+          if (profile.subscription_status === 'frozen') {
+            document.body.innerHTML = `<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0a1628;font-family:'Heebo',sans-serif;direction:rtl;text-align:center;padding:2rem">
+              <div style="max-width:400px">
+                <div style="font-size:4rem;margin-bottom:1rem">❄️</div>
+                <h2 style="color:#fff;font-size:1.5rem;margin-bottom:0.75rem">המנוי שלך הוקפא</h2>
+                <p style="color:#94a3b8;line-height:1.7;margin-bottom:1.5rem">הגישה שלך לפלטפורמה הוקפאה זמנית. אנא פנה/י למורה שלך לחידוש המנוי.</p>
+                <button onclick="window.location.href='index.html'" style="padding:12px 28px;background:#1a56db;color:#fff;border:none;border-radius:10px;font-family:'Heebo',sans-serif;font-size:15px;font-weight:600;cursor:pointer">חזרה לדף הכניסה</button>
+              </div>
+            </div>`;
+            return;
+          }
+        }
       }
     } else {
       // No valid session — send to login page
@@ -3820,7 +3833,8 @@ async function saveScoreToSupabase(setNumber, correct, total) {
           correct_answer: q.answer,
           student_answer: sa,
           is_correct: sa !== -1 && sa === q.answer,
-          explanation: q.explanation || null
+          explanation: q.explanation || null,
+          passage_text: (q.type === 'reading' && q.passageId) ? getPassageText(q.passageId) : null
         };
       })
     };
