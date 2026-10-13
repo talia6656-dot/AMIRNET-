@@ -359,13 +359,12 @@
   }
   .compose-box h3 { font-size: 16px; font-weight: 700; color: var(--navy); margin-bottom: 1.25rem; }
   .compose-box label { display: block; font-size: 12px; font-weight: 600; color: var(--gray-400); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px; }
-  .compose-box input, .compose-box textarea {
+  .compose-box input {
     width: 100%; padding: 10px 13px; border: 1px solid var(--gray-200);
     border-radius: 10px; font-family: 'Heebo', sans-serif; font-size: 14px;
     color: var(--navy); outline: none; margin-bottom: 1rem; direction: rtl;
   }
-  .compose-box input:focus, .compose-box textarea:focus { border-color: var(--blue); }
-  .compose-box textarea { min-height: 140px; resize: vertical; line-height: 1.7; }
+  .compose-box input:focus { border-color: var(--blue); }
   .compose-label-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; }
   .compose-label-row label { margin-bottom: 0; }
   .btn-dir-toggle {
@@ -376,6 +375,51 @@
   }
   .btn-dir-toggle:hover { background: var(--gray-200); color: var(--navy); }
   .btn-dir-toggle.ltr-active { background: var(--blue); color: #fff; border-color: var(--blue); }
+  /* Formatting toolbar */
+  .compose-toolbar {
+    display: flex; align-items: center; gap: 3px; flex-wrap: wrap;
+    padding: 5px 8px; background: var(--gray-100);
+    border: 1px solid var(--gray-200); border-bottom: none;
+    border-radius: 10px 10px 0 0; margin-top: 6px;
+  }
+  .toolbar-btn {
+    background: none; border: 1px solid transparent; border-radius: 5px;
+    width: 28px; height: 26px; font-size: 13px; cursor: pointer;
+    color: var(--gray-600); display: flex; align-items: center; justify-content: center;
+    transition: all 0.1s; padding: 0; font-family: Arial, sans-serif;
+  }
+  .toolbar-btn:hover, .toolbar-btn.active { background: var(--gray-200); color: var(--navy); border-color: var(--gray-200); }
+  .toolbar-sep { width: 1px; height: 18px; background: var(--gray-200); margin: 0 3px; flex-shrink: 0; }
+  .toolbar-select {
+    border: 1px solid var(--gray-200); border-radius: 5px;
+    padding: 2px 5px; font-family: 'Heebo', sans-serif; font-size: 11px;
+    color: var(--gray-600); background: white; cursor: pointer; outline: none; height: 26px;
+  }
+  .toolbar-color {
+    width: 26px; height: 26px; border: 1px solid var(--gray-200);
+    border-radius: 5px; padding: 2px; cursor: pointer; background: none;
+  }
+  /* Contenteditable editor */
+  .compose-editor {
+    width: 100%; min-height: 150px; max-height: 260px; overflow-y: auto;
+    padding: 10px 13px; border: 1px solid var(--gray-200); border-top: none;
+    border-radius: 0 0 10px 10px; font-family: 'Heebo', sans-serif; font-size: 15px;
+    color: var(--navy); outline: none; margin-bottom: 1rem;
+    direction: rtl; text-align: right; line-height: 1.75;
+    word-break: break-word; cursor: text;
+  }
+  .compose-editor:focus { border-color: var(--blue); }
+  .compose-editor.error { border-color: var(--red) !important; }
+  .compose-editor:empty::before { content: "הקלד/י הודעה..."; color: var(--gray-400); }
+  /* Notification dot on student rows */
+  .msg-dot {
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--red); color: #fff; border-radius: 999px;
+    font-size: 10px; font-weight: 700; min-width: 18px; height: 18px;
+    padding: 0 5px; margin-right: 6px; vertical-align: middle;
+    animation: pulse-dot 1.8s ease-in-out infinite;
+  }
+  @keyframes pulse-dot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.7;transform:scale(0.9)} }
   .compose-actions { display: flex; gap: 10px; }
   .btn-compose-send {
     flex: 1; padding: 11px; background: var(--blue); border: none;
@@ -498,7 +542,35 @@
       <label>הודעה</label>
       <button class="btn-dir-toggle" id="dir-toggle-btn" onclick="toggleMsgDir()" title="שנה כיוון טקסט">עב | EN</button>
     </div>
-    <textarea id="compose-message"></textarea>
+    <!-- Formatting toolbar -->
+    <div class="compose-toolbar">
+      <select class="toolbar-select" id="tb-font" onchange="applyFont(this.value)" title="גופן">
+        <option value="Heebo">Heebo</option>
+        <option value="Arial">Arial</option>
+        <option value="Georgia">Georgia</option>
+        <option value="Verdana">Verdana</option>
+        <option value="'Courier New'">Courier</option>
+      </select>
+      <select class="toolbar-select" id="tb-size" onchange="applySize(this.value)" title="גודל">
+        <option value="2">12</option>
+        <option value="3" selected>14</option>
+        <option value="4">16</option>
+        <option value="5">18</option>
+        <option value="6">22</option>
+        <option value="7">28</option>
+      </select>
+      <div class="toolbar-sep"></div>
+      <button class="toolbar-btn" onmousedown="event.preventDefault();applyFmt('bold')" title="מודגש"><b>B</b></button>
+      <button class="toolbar-btn" onmousedown="event.preventDefault();applyFmt('italic')" title="נטוי"><i>I</i></button>
+      <button class="toolbar-btn" onmousedown="event.preventDefault();applyFmt('underline')" title="קו תחתון"><u>U</u></button>
+      <div class="toolbar-sep"></div>
+      <button class="toolbar-btn" onmousedown="event.preventDefault();applyFmt('strikeThrough')" title="קו חוצה"><s>S</s></button>
+      <button class="toolbar-btn" onmousedown="event.preventDefault();applyAlign('left')" title="יישור שמאל" style="font-size:11px">≡←</button>
+      <button class="toolbar-btn" onmousedown="event.preventDefault();applyAlign('right')" title="יישור ימין" style="font-size:11px">→≡</button>
+      <div class="toolbar-sep"></div>
+      <input type="color" class="toolbar-color" id="tb-color" onchange="applyColor(this.value)" value="#1e293b" title="צבע טקסט">
+    </div>
+    <div id="compose-message" class="compose-editor" contenteditable="true" spellcheck="true"></div>
     <div class="compose-actions">
       <button class="btn-compose-cancel" onclick="closeCompose()">ביטול</button>
       <button class="btn-compose-send" id="compose-send-btn" onclick="sendComposeEmail()">✉️ שלח</button>
@@ -638,7 +710,49 @@ async function loadDashboard() {
   document.getElementById('stat-avg').textContent = overallAvg !== null ? overallAvg + '%' : '—';
   document.getElementById('stat-active').textContent = activeThisWeek || '0';
 
+  // Load unread message counts per student
+  await loadUnreadCounts();
   renderStudents();
+
+  // Real-time: update dots + inbox when a student sends a new message
+  if (!window._msgChannel) {
+    window._msgChannel = sb.channel('new-student-msgs')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'student_messages' }, (payload) => {
+        const sid = payload.new && payload.new.student_id;
+        if (sid) {
+          window._unreadCounts = window._unreadCounts || {};
+          window._unreadCounts[sid] = (window._unreadCounts[sid] || 0) + 1;
+        }
+        // Flash unread badge
+        const badge = document.getElementById('unread-badge');
+        const total = Object.values(window._unreadCounts || {}).reduce((a,b) => a+b, 0);
+        if (total > 0) { badge.textContent = total; badge.style.display = 'inline'; }
+        renderStudents();
+        loadMessages();
+        // Short beep
+        try {
+          const ctx = new (window.AudioContext || window.webkitAudioContext)();
+          const o = ctx.createOscillator(); const g = ctx.createGain();
+          o.connect(g); g.connect(ctx.destination);
+          o.frequency.value = 880; g.gain.setValueAtTime(0.15, ctx.currentTime);
+          g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+          o.start(); o.stop(ctx.currentTime + 0.4);
+        } catch(e) {}
+      })
+      .subscribe();
+  }
+}
+
+async function loadUnreadCounts() {
+  const { data } = await sb.from('student_messages').select('student_id').eq('read', false);
+  window._unreadCounts = {};
+  (data || []).forEach(r => {
+    if (r.student_id) window._unreadCounts[r.student_id] = (window._unreadCounts[r.student_id] || 0) + 1;
+  });
+  // Show global badge in inbox section header
+  const badge = document.getElementById('unread-badge');
+  const total = Object.values(window._unreadCounts).reduce((a,b) => a+b, 0);
+  if (badge) { badge.textContent = total; badge.style.display = total > 0 ? 'inline' : 'none'; }
 }
 
 function renderStudents() {
@@ -658,8 +772,10 @@ function renderStudents() {
     const statusBadge = isFrozen
       ? '<span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:#fee2e2;color:#991b1b">❄️ מוקפא</span>'
       : '<span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:#dcfce7;color:#166534">✓ פעיל</span>';
+    const unread = (window._unreadCounts || {})[s.id] || 0;
+    const msgDot = unread > 0 ? `<span class="msg-dot" title="${unread} הודעה/ות חדשה/ות">${unread}</span>` : '';
     return `<div class="student-row" onclick="openModal('${s.id}')" style="${isFrozen?'opacity:0.75':''}">
-      <div class="student-name">${s.first_name} ${s.last_name} ${statusBadge}</div>
+      <div class="student-name">${msgDot}${s.first_name} ${s.last_name} ${statusBadge}</div>
       <div style="font-size:12px">${s.email}<br><span style="color:var(--gray-400);font-size:11px">נרשם: ${regDate}</span></div>
       <div class="sets-done">${s.scores.length} סטים</div>
       <div class="avg-score ${scoreClass}">${scoreText}</div>
@@ -671,7 +787,7 @@ function renderStudents() {
       <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center">
         <button class="btn-feedback" onclick="event.stopPropagation();openModal('${s.id}')" style="font-size:11px;padding:5px 9px">${hasFeedback ? '✏️ עדכן' : '+ הוסף'} משוב</button>
         <button onclick="event.stopPropagation();toggleFreeze('${s.id}','${isFrozen?'active':'frozen'}')" style="padding:5px 9px;border-radius:8px;font-family:'Heebo',sans-serif;font-size:11px;font-weight:600;cursor:pointer;border:1px solid ${isFrozen?'#059669':'#dc2626'};background:${isFrozen?'#f0fdf4':'#fff1f2'};color:${isFrozen?'#059669':'#dc2626'}">${isFrozen?'🔓 הפשר':'❄️ הקפא'}</button>
-        <button onclick="event.stopPropagation();sendReminderEmail('${s.email}','${s.first_name}')" style="padding:5px 9px;border-radius:8px;font-family:'Heebo',sans-serif;font-size:11px;font-weight:600;cursor:pointer;border:1px solid #1a56db;background:#eff6ff;color:#1a56db">✉️</button>
+        <button onclick="event.stopPropagation();sendReminderEmail('${s.email}','${s.first_name}','${s.id}')" style="padding:5px 9px;border-radius:8px;font-family:'Heebo',sans-serif;font-size:11px;font-weight:600;cursor:pointer;border:1px solid #1a56db;background:#eff6ff;color:#1a56db">✉️</button>
       </div>
     </div>`;
   }).join('');
@@ -977,26 +1093,31 @@ async function renewSubscription(userId) {
 }
 
 let _composeEmail = '';
+let _composeStudentId = '';
+let _composeStudentName = '';
 
-function sendReminderEmail(email, firstName) {
+function sendReminderEmail(email, firstName, studentId) {
   _composeEmail = email;
+  _composeStudentId = studentId || '';
+  _composeStudentName = firstName;
   document.getElementById('compose-title').textContent = '✉️ שלח הודעה ל-' + firstName;
   document.getElementById('compose-subject').value = 'חידוש מנוי — AmirNET Pro';
-  document.getElementById('compose-message').value =
-    'שלום ' + firstName + ',\n\n' +
-    'המנוי שלך ל-AmirNET Pro עומד לפוג בקרוב.\n' +
-    'כדי להמשיך ולגשת לתרגולים, לשאלות ולמבחנים המדומים — אנא חדש/י את המנוי.\n\n' +
-    'לפרטים נוספים ולביצוע התשלום, ניתן לפנות אליי ישירות.\n\n' +
-    'בהצלחה!';
+  // Set default message as styled HTML
+  const ed = document.getElementById('compose-message');
+  ed.innerHTML =
+    '<p>שלום ' + firstName + ',</p>' +
+    '<p>המנוי שלך ל-AmirNET Pro עומד לפוג בקרוב.<br>' +
+    'כדי להמשיך ולגשת לתרגולים, לשאלות ולמבחנים המדומים — אנא חדש/י את המנוי.</p>' +
+    '<p>לפרטים נוספים ולביצוע התשלום, ניתן לפנות אליי ישירות.</p>' +
+    '<p>בהצלחה!</p>';
   const btn = document.getElementById('compose-send-btn');
-  btn.textContent = '✉️ שלח';
-  btn.disabled = false;
+  btn.textContent = '✉️ שלח'; btn.disabled = false;
   // Reset direction to RTL (Hebrew default)
-  const ta = document.getElementById('compose-message');
-  ta.style.direction = 'rtl'; ta.style.textAlign = 'right';
+  ed.dir = 'rtl'; ed.style.textAlign = 'right';
+  ed.classList.remove('error');
   document.getElementById('dir-toggle-btn').classList.remove('ltr-active');
   document.getElementById('compose-overlay').classList.add('open');
-  setTimeout(() => ta.focus(), 100);
+  setTimeout(() => { ed.focus(); placeCaretAtEnd(ed); }, 100);
 }
 
 function closeCompose() {
@@ -1004,33 +1125,71 @@ function closeCompose() {
 }
 
 function toggleMsgDir() {
-  const ta = document.getElementById('compose-message');
+  const ed = document.getElementById('compose-message');
   const btn = document.getElementById('dir-toggle-btn');
-  const isRtl = ta.style.direction !== 'ltr';
-  ta.style.direction = isRtl ? 'ltr' : 'rtl';
-  ta.style.textAlign = isRtl ? 'left' : 'right';
+  const isRtl = ed.dir !== 'ltr';
+  ed.dir = isRtl ? 'ltr' : 'rtl';
+  ed.style.textAlign = isRtl ? 'left' : 'right';
   btn.classList.toggle('ltr-active', isRtl);
+  ed.focus();
+}
+
+// Toolbar formatting helpers
+function applyFmt(cmd) { document.execCommand(cmd, false, null); document.getElementById('compose-message').focus(); }
+function applyFont(val) { document.execCommand('fontName', false, val); document.getElementById('compose-message').focus(); }
+function applySize(val) { document.execCommand('fontSize', false, val); document.getElementById('compose-message').focus(); }
+function applyColor(val) { document.execCommand('foreColor', false, val); document.getElementById('compose-message').focus(); }
+function applyAlign(dir) {
+  const ed = document.getElementById('compose-message');
+  ed.style.textAlign = dir === 'left' ? 'left' : 'right';
+  ed.dir = dir === 'left' ? 'ltr' : 'rtl';
+  const btn = document.getElementById('dir-toggle-btn');
+  btn.classList.toggle('ltr-active', dir === 'left');
+  ed.focus();
+}
+function placeCaretAtEnd(el) {
+  if (!el.childNodes.length) return;
+  const range = document.createRange(); const sel = window.getSelection();
+  range.selectNodeContents(el); range.collapse(false);
+  sel.removeAllRanges(); sel.addRange(range);
 }
 
 async function sendComposeEmail() {
   const subject = document.getElementById('compose-subject').value.trim();
-  const message = document.getElementById('compose-message').value.trim();
-  if (!message) { document.getElementById('compose-message').style.border = '1px solid #dc2626'; return; }
+  const ed = document.getElementById('compose-message');
+  const rawHtml = ed.innerHTML.trim();
+  // Strip empty placeholder
+  if (!rawHtml || rawHtml === '<br>' || ed.innerText.trim() === '') {
+    ed.classList.add('error'); ed.focus(); return;
+  }
+  ed.classList.remove('error');
+
+  // Build reply link if we have a student ID
+  let replySection = '';
+  if (_composeStudentId) {
+    const replyUrl = 'https://amirnetpro.netlify.app/amirnet-reply.html?sid=' +
+      encodeURIComponent(_composeStudentId) + '&name=' + encodeURIComponent(_composeStudentName);
+    replySection = '<br><hr style="border:none;border-top:1px solid #e2e8f0;margin:18px 0">' +
+      '<div style="text-align:center"><a href="' + replyUrl + '" ' +
+      'style="display:inline-block;background:#1a56db;color:#ffffff;padding:10px 26px;' +
+      'border-radius:8px;text-decoration:none;font-family:Arial,sans-serif;font-weight:700;font-size:14px">' +
+      '↩ השב/י למורה</a></div>';
+  }
+  const fullMessage = rawHtml + replySection;
+
   const btn = document.getElementById('compose-send-btn');
-  btn.textContent = '⏳ שולח...';
-  btn.disabled = true;
+  btn.textContent = '⏳ שולח...'; btn.disabled = true;
   try {
     await emailjs.send('service_l2a4k6m', 'template_o5acv6q', {
       to_email: _composeEmail,
       subject: subject,
-      message: message
+      message: fullMessage
     });
     btn.textContent = '✅ נשלח!';
     setTimeout(() => closeCompose(), 1500);
   } catch(err) {
     console.error('EmailJS error:', err);
-    btn.textContent = '❌ שגיאה';
-    btn.disabled = false;
+    btn.textContent = '❌ שגיאה'; btn.disabled = false;
     alert('שגיאה בשליחת המייל. אנא נסה/י שוב.');
   }
 }
@@ -1224,12 +1383,21 @@ async function sendReply(msgId, studentId, studentName) {
 }
 
 async function markMessageRead(msgId) {
+  // Find the student_id from the message data so we can update the dot
+  const { data: msgData } = await sb.from('student_messages').select('student_id').eq('id', msgId).single();
   await sb.from('student_messages').update({ read: true }).eq('id', msgId);
   const card = document.getElementById('msg-' + msgId);
   if (card) {
     card.classList.remove('unread');
     const btn = document.getElementById('read-btn-' + msgId);
     if (btn) btn.outerHTML = '<span style="font-size:12px;color:var(--gray-400)" id="read-btn-' + msgId + '">✓ נקרא</span>';
+  }
+  // Update local unread counts
+  if (msgData && msgData.student_id && window._unreadCounts) {
+    const cnt = window._unreadCounts[msgData.student_id];
+    if (cnt && cnt > 1) window._unreadCounts[msgData.student_id] = cnt - 1;
+    else delete window._unreadCounts[msgData.student_id];
+    renderStudents(); // refresh dots
   }
   const remaining = document.querySelectorAll('.message-card.unread').length;
   const badge = document.getElementById('unread-badge');
