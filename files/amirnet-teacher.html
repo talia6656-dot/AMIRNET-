@@ -344,6 +344,52 @@
   .vocab-mini-fill { height: 100%; background: var(--green); border-radius: 999px; }
 
   .loading-text { text-align: center; color: var(--gray-400); padding: 3rem; font-size: 14px; }
+
+  /* Compose modal */
+  .compose-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+    display: none; align-items: center; justify-content: center;
+    z-index: 200; padding: 1rem;
+  }
+  .compose-overlay.open { display: flex; }
+  .compose-box {
+    background: var(--white); border-radius: 16px;
+    padding: 1.75rem; width: 100%; max-width: 500px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+  }
+  .compose-box h3 { font-size: 16px; font-weight: 700; color: var(--navy); margin-bottom: 1.25rem; }
+  .compose-box label { display: block; font-size: 12px; font-weight: 600; color: var(--gray-400); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .compose-box input, .compose-box textarea {
+    width: 100%; padding: 10px 13px; border: 1px solid var(--gray-200);
+    border-radius: 10px; font-family: 'Heebo', sans-serif; font-size: 14px;
+    color: var(--navy); outline: none; margin-bottom: 1rem; direction: rtl;
+  }
+  .compose-box input:focus, .compose-box textarea:focus { border-color: var(--blue); }
+  .compose-box textarea { min-height: 140px; resize: vertical; line-height: 1.7; }
+  .compose-label-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; }
+  .compose-label-row label { margin-bottom: 0; }
+  .btn-dir-toggle {
+    background: var(--gray-100); border: 1px solid var(--gray-200);
+    border-radius: 7px; padding: 3px 10px; font-family: 'Heebo', sans-serif;
+    font-size: 11px; font-weight: 700; color: var(--gray-600); cursor: pointer;
+    letter-spacing: 0.5px; transition: all 0.15s; white-space: nowrap;
+  }
+  .btn-dir-toggle:hover { background: var(--gray-200); color: var(--navy); }
+  .btn-dir-toggle.ltr-active { background: var(--blue); color: #fff; border-color: var(--blue); }
+  .compose-actions { display: flex; gap: 10px; }
+  .btn-compose-send {
+    flex: 1; padding: 11px; background: var(--blue); border: none;
+    border-radius: 10px; font-family: 'Heebo', sans-serif; font-size: 14px;
+    font-weight: 600; color: #fff; cursor: pointer;
+  }
+  .btn-compose-send:hover { background: #1d4ed8; }
+  .btn-compose-send:disabled { opacity: 0.6; pointer-events: none; }
+  .btn-compose-cancel {
+    padding: 11px 18px; background: none; border: 1px solid var(--gray-200);
+    border-radius: 10px; font-family: 'Heebo', sans-serif; font-size: 14px;
+    color: var(--gray-600); cursor: pointer;
+  }
+  .btn-compose-cancel:hover { background: var(--gray-100); }
 </style>
 </head>
 <body>
@@ -441,6 +487,24 @@
   </div>
 
 </main>
+
+<!-- Compose Modal -->
+<div class="compose-overlay" id="compose-overlay" onclick="if(event.target===this)closeCompose()">
+  <div class="compose-box">
+    <h3 id="compose-title">✉️ שלח הודעה</h3>
+    <label>נושא</label>
+    <input type="text" id="compose-subject" value="חידוש מנוי — AmirNET Pro">
+    <div class="compose-label-row">
+      <label>הודעה</label>
+      <button class="btn-dir-toggle" id="dir-toggle-btn" onclick="toggleMsgDir()" title="שנה כיוון טקסט">עב | EN</button>
+    </div>
+    <textarea id="compose-message"></textarea>
+    <div class="compose-actions">
+      <button class="btn-compose-cancel" onclick="closeCompose()">ביטול</button>
+      <button class="btn-compose-send" id="compose-send-btn" onclick="sendComposeEmail()">✉️ שלח</button>
+    </div>
+  </div>
+</div>
 
 <!-- Feedback Modal -->
 <div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
@@ -912,24 +976,62 @@ async function renewSubscription(userId) {
   alert('✓ המנוי חודש ל-30 יום.');
 }
 
-async function sendReminderEmail(email, firstName) {
-  const btn = event.currentTarget;
-  const origText = btn.textContent;
-  btn.textContent = '⏳';
+let _composeEmail = '';
+
+function sendReminderEmail(email, firstName) {
+  _composeEmail = email;
+  document.getElementById('compose-title').textContent = '✉️ שלח הודעה ל-' + firstName;
+  document.getElementById('compose-subject').value = 'חידוש מנוי — AmirNET Pro';
+  document.getElementById('compose-message').value =
+    'שלום ' + firstName + ',\n\n' +
+    'המנוי שלך ל-AmirNET Pro עומד לפוג בקרוב.\n' +
+    'כדי להמשיך ולגשת לתרגולים, לשאלות ולמבחנים המדומים — אנא חדש/י את המנוי.\n\n' +
+    'לפרטים נוספים ולביצוע התשלום, ניתן לפנות אליי ישירות.\n\n' +
+    'בהצלחה!';
+  const btn = document.getElementById('compose-send-btn');
+  btn.textContent = '✉️ שלח';
+  btn.disabled = false;
+  // Reset direction to RTL (Hebrew default)
+  const ta = document.getElementById('compose-message');
+  ta.style.direction = 'rtl'; ta.style.textAlign = 'right';
+  document.getElementById('dir-toggle-btn').classList.remove('ltr-active');
+  document.getElementById('compose-overlay').classList.add('open');
+  setTimeout(() => ta.focus(), 100);
+}
+
+function closeCompose() {
+  document.getElementById('compose-overlay').classList.remove('open');
+}
+
+function toggleMsgDir() {
+  const ta = document.getElementById('compose-message');
+  const btn = document.getElementById('dir-toggle-btn');
+  const isRtl = ta.style.direction !== 'ltr';
+  ta.style.direction = isRtl ? 'ltr' : 'rtl';
+  ta.style.textAlign = isRtl ? 'left' : 'right';
+  btn.classList.toggle('ltr-active', isRtl);
+}
+
+async function sendComposeEmail() {
+  const subject = document.getElementById('compose-subject').value.trim();
+  const message = document.getElementById('compose-message').value.trim();
+  if (!message) { document.getElementById('compose-message').style.border = '1px solid #dc2626'; return; }
+  const btn = document.getElementById('compose-send-btn');
+  btn.textContent = '⏳ שולח...';
   btn.disabled = true;
   try {
     await emailjs.send('service_l2a4k6m', 'template_o5acv6q', {
-      to_email: email,
-      subject: 'חידוש מנוי — AmirNET Pro',
-      message: 'שלום ' + firstName + ',\n\nהמנוי שלך ל-AmirNET Pro עומד לפוג בקרוב.\nכדי להמשיך ולגשת לתרגולים, לשאלות ולמבחנים המדומים — אנא חדש/י את המנוי.\n\nלפרטים נוספים ולביצוע התשלום, ניתן לפנות אליי ישירות.\n\nבהצלחה!'
+      to_email: _composeEmail,
+      subject: subject,
+      message: message
     });
-    btn.textContent = '✅';
-    setTimeout(() => { btn.textContent = origText; btn.disabled = false; }, 2500);
+    btn.textContent = '✅ נשלח!';
+    setTimeout(() => closeCompose(), 1500);
   } catch(err) {
     console.error('EmailJS error:', err);
-    btn.textContent = '❌';
-    setTimeout(() => { btn.textContent = origText; btn.disabled = false; }, 2500);
-    alert('שגיאה בשליחת המייל. בדוק/י את הגדרות EmailJS.');
+    btn.textContent = '❌ שגיאה';
+    btn.disabled = false;
+    alert('שגיאה בשליחת המייל. אנא נסה/י שוב.');
   }
 }
 
