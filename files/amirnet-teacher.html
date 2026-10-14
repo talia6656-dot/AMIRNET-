@@ -597,6 +597,7 @@
       <button class="modal-tab active" onclick="switchTab('exercises',this)">תרגילים</button>
       <button class="modal-tab" onclick="switchTab('vocab',this)">אוצר מילים</button>
       <button class="modal-tab" onclick="switchTab('feedback',this)">משוב</button>
+      <button class="modal-tab" onclick="switchTab('history',this);loadHistory(currentStudentId)">📋 היסטוריה</button>
     </div>
 
     <!-- Exercises panel -->
@@ -630,6 +631,26 @@
         <button class="btn-save" onclick="saveFeedback()">שמור משוב</button>
       </div>
       <div class="save-success" id="save-success">✓ המשוב נשמר בהצלחה!</div>
+    </div>
+
+    <!-- History panel -->
+    <div class="modal-panel" id="panel-history">
+      <div style="display:flex;gap:10px;margin-bottom:1rem;flex-wrap:wrap">
+        <button onclick="showAddPayment()" style="padding:9px 18px;background:#059669;border:none;border-radius:10px;font-family:'Heebo',sans-serif;font-size:14px;font-weight:600;color:#fff;cursor:pointer">💳 הוסף תשלום</button>
+      </div>
+      <!-- Add payment form (hidden by default) -->
+      <div id="add-payment-form" style="display:none;background:var(--gray-50);border-radius:12px;padding:1rem;margin-bottom:1rem;border:1px solid var(--gray-200)">
+        <div style="font-size:14px;font-weight:600;color:var(--navy);margin-bottom:0.75rem">💳 רישום תשלום</div>
+        <label style="font-size:13px;color:var(--gray-600)">סכום (₪)</label>
+        <input type="number" id="payment-amount" placeholder="לדוגמה: 150" style="margin-bottom:0.75rem">
+        <label style="font-size:13px;color:var(--gray-600)">הערות (אופציונלי)</label>
+        <input type="text" id="payment-notes" placeholder="לדוגמה: חידוש חודש נוסף, מזומן">
+        <div style="display:flex;gap:8px;margin-top:0.75rem">
+          <button onclick="savePayment()" style="padding:9px 18px;background:var(--blue);border:none;border-radius:8px;font-family:'Heebo',sans-serif;font-size:14px;font-weight:600;color:#fff;cursor:pointer">שמור תשלום</button>
+          <button onclick="document.getElementById('add-payment-form').style.display='none'" style="padding:9px 18px;background:none;border:1px solid var(--gray-200);border-radius:8px;font-family:'Heebo',sans-serif;font-size:14px;color:var(--gray-600);cursor:pointer">ביטול</button>
+        </div>
+      </div>
+      <div id="history-list"><div style="color:var(--gray-400);font-size:14px">טוען היסטוריה...</div></div>
     </div>
   </div>
 </div>
@@ -797,6 +818,7 @@ function renderStudents() {
       <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center">
         <button class="btn-feedback" onclick="event.stopPropagation();openModal('${s.id}')" style="font-size:11px;padding:5px 9px">${hasFeedback ? '✏️ עדכן' : '+ הוסף'} משוב</button>
         <button onclick="event.stopPropagation();toggleFreeze('${s.id}','${isFrozen?'active':'frozen'}')" style="padding:5px 9px;border-radius:8px;font-family:'Heebo',sans-serif;font-size:11px;font-weight:600;cursor:pointer;border:1px solid ${isFrozen?'#059669':'#dc2626'};background:${isFrozen?'#f0fdf4':'#fff1f2'};color:${isFrozen?'#059669':'#dc2626'}">${isFrozen?'🔓 הפשר':'❄️ הקפא'}</button>
+        <button onclick="event.stopPropagation();renewSubscription('${s.id}')" style="padding:5px 9px;border-radius:8px;font-family:'Heebo',sans-serif;font-size:11px;font-weight:600;cursor:pointer;border:1px solid #059669;background:#f0fdf4;color:#059669">🔄 חדש מנוי</button>
         <button onclick="event.stopPropagation();sendReminderEmail('${s.email}','${s.first_name}','${s.id}')" style="padding:5px 9px;border-radius:8px;font-family:'Heebo',sans-serif;font-size:11px;font-weight:600;cursor:pointer;border:1px solid #1a56db;background:#eff6ff;color:#1a56db">✉️</button>
       </div>
     </div>`;
@@ -1071,20 +1093,26 @@ function renderVocabPanel(studentVocab) {
   }).join('');
 }
 
+async function logHistory(studentId, action, notes = '', amount = null) {
+  const entry = { student_id: studentId, action, notes };
+  if (amount !== null) entry.amount = amount;
+  await sb.from('subscription_history').insert(entry);
+}
+
 async function toggleFreeze(userId, newStatus) {
+  const s = studentsData.find(x => x.id === userId);
+  if (newStatus === 'frozen') {
+    const name = s ? s.first_name + ' ' + s.last_name : 'תלמיד זה';
+    const confirmed = confirm('האם להקפיא את החשבון של ' + name + '?\nהימים שנותרו ישמרו ויוחזרו בעת ההפשרה.');
+    if (!confirmed) return;
+  }
   const updateData = { subscription_status: newStatus };
-  if (newStatus === 'active') updateData.subscription_renewed_at = new Date().toISOString().slice(0,10);
   const { error } = await sb.from('profiles').update(updateData).eq('id', userId);
   if (error) { alert('שגיאה: ' + error.message); return; }
-  const s = studentsData.find(x => x.id === userId);
-  if (s) {
-    s.subscription_status = newStatus;
-    if (newStatus === 'active') {
-      s.subscription_renewed_at = new Date().toISOString().slice(0,10);
-      const rd = new Date(); rd.setDate(rd.getDate()+30);
-      s.renewDue = rd; s.daysLeft = 30;
-    }
-  }
+  if (s) s.subscription_status = newStatus;
+  const actionLabel = newStatus === 'frozen' ? '❄️ הקפאת חשבון' : '🔓 הפשרת חשבון';
+  const daysNote = s ? ' (' + s.daysLeft + ' ימים נותרו)' : '';
+  logHistory(userId, actionLabel, daysNote);
   renderStudents();
 }
 
@@ -1098,6 +1126,7 @@ async function renewSubscription(userId) {
     const rd = new Date(); rd.setDate(rd.getDate()+30);
     s.renewDue = rd; s.daysLeft = 30;
   }
+  logHistory(userId, '🔄 חידוש מנוי', '30 יום נוספו');
   renderStudents();
   alert('✓ המנוי חודש ל-30 יום.');
 }
@@ -1455,6 +1484,45 @@ async function markMessageRead(msgId) {
     else delete window._unreadCounts[msgData.student_id];
     renderStudents();
   }
+}
+
+async function loadHistory(studentId) {
+  const listEl = document.getElementById('history-list');
+  if (!listEl) return;
+  listEl.innerHTML = '<div style="color:var(--gray-400);font-size:14px">טוען היסטוריה...</div>';
+  const { data, error } = await sb.from('subscription_history')
+    .select('*').eq('student_id', studentId).order('created_at', { ascending: false });
+  if (error || !data || !data.length) {
+    listEl.innerHTML = '<div style="color:var(--gray-400);font-size:14px">אין פעולות רשומות עדיין.</div>';
+    return;
+  }
+  listEl.innerHTML = data.map(h => {
+    const date = new Date(h.created_at).toLocaleString('he-IL', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+    const amountTag = h.amount ? `<span style="background:#dcfce7;color:#166534;font-weight:700;padding:2px 10px;border-radius:999px;font-size:12px">₪${h.amount}</span>` : '';
+    return `<div style="display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid var(--gray-200)">
+      <div style="flex:1">
+        <div style="font-weight:600;font-size:14px;color:var(--navy)">${h.action} ${amountTag}</div>
+        ${h.notes ? `<div style="font-size:13px;color:var(--gray-400);margin-top:2px">${h.notes}</div>` : ''}
+      </div>
+      <div style="font-size:12px;color:var(--gray-400);white-space:nowrap">${date}</div>
+    </div>`;
+  }).join('');
+}
+
+function showAddPayment() {
+  const form = document.getElementById('add-payment-form');
+  if (form) { form.style.display = form.style.display === 'none' ? 'block' : 'none'; }
+}
+
+async function savePayment() {
+  const amount = parseFloat(document.getElementById('payment-amount').value);
+  const notes = document.getElementById('payment-notes').value.trim();
+  if (!amount || isNaN(amount)) { alert('יש להזין סכום תשלום.'); return; }
+  await logHistory(currentStudentId, '💳 תשלום התקבל', notes, amount);
+  document.getElementById('payment-amount').value = '';
+  document.getElementById('payment-notes').value = '';
+  document.getElementById('add-payment-form').style.display = 'none';
+  loadHistory(currentStudentId);
 }
 
 function copyCode() {
