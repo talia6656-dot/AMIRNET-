@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>השב/י למורה — AmirNET Pro</title>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --navy: #0a1628; --blue: #1a56db; --accent: #f59e0b;
+    --white: #fff; --gray-50: #f8fafc; --gray-100: #f1f5f9;
+    --gray-200: #e2e8f0; --gray-400: #94a3b8; --gray-600: #475569;
+    --gray-800: #1e293b; --green: #059669; --red: #dc2626; --radius: 14px;
+  }
+  body {
+    font-family: 'Heebo', sans-serif;
+    background: linear-gradient(135deg, #0a1628 0%, #1e3a5f 100%);
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    padding: 1.5rem;
+  }
+  .card {
+    background: var(--white); border-radius: 20px;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.35);
+    width: 100%; max-width: 480px; overflow: hidden;
+  }
+  /* Header strip */
+  .card-header {
+    background: linear-gradient(135deg, #0a1628 0%, #1e3a5f 100%);
+    padding: 28px 32px; text-align: center;
+  }
+  .logo { font-family: 'DM Serif Display', serif; font-size: 1.5rem; color: #fff; margin-bottom: 4px; }
+  .logo span { color: var(--accent); }
+  .logo-sub { font-size: 12px; color: var(--gray-400); letter-spacing: 1px; }
+  /* Body */
+  .card-body { padding: 32px; }
+  .form-title { font-size: 18px; font-weight: 700; color: var(--navy); margin-bottom: 6px; }
+  .form-sub { font-size: 13px; color: var(--gray-400); margin-bottom: 24px; line-height: 1.5; }
+  label { display: block; font-size: 12px; font-weight: 600; color: var(--gray-400);
+    text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  input[type="text"], textarea {
+    width: 100%; padding: 11px 14px; border: 1.5px solid var(--gray-200);
+    border-radius: 10px; font-family: 'Heebo', sans-serif; font-size: 14px;
+    color: var(--gray-800); outline: none; transition: border-color 0.15s;
+    direction: rtl; background: var(--gray-50);
+  }
+  input[type="text"]:focus, textarea:focus { border-color: var(--blue); background: var(--white); }
+  input[type="text"].error, textarea.error { border-color: var(--red); }
+  .mb { margin-bottom: 18px; }
+  textarea { min-height: 140px; resize: vertical; line-height: 1.7; }
+  .send-btn {
+    width: 100%; padding: 13px; background: var(--blue); border: none;
+    border-radius: 10px; font-family: 'Heebo', sans-serif; font-size: 15px;
+    font-weight: 700; color: #fff; cursor: pointer; transition: background 0.15s;
+    margin-top: 8px;
+  }
+  .send-btn:hover { background: #1d4ed8; }
+  .send-btn:disabled { opacity: 0.65; pointer-events: none; }
+  /* Success state */
+  .success-box {
+    display: none; text-align: center; padding: 40px 32px;
+  }
+  .success-icon { font-size: 52px; margin-bottom: 12px; }
+  .success-title { font-size: 20px; font-weight: 700; color: var(--navy); margin-bottom: 8px; }
+  .success-msg { font-size: 14px; color: var(--gray-600); line-height: 1.6; }
+  /* Error banner */
+  .err-banner {
+    display: none; background: #fef2f2; border: 1px solid #fecaca;
+    border-radius: 8px; padding: 10px 14px; font-size: 13px;
+    color: var(--red); margin-bottom: 14px;
+  }
+  .err-banner.show { display: block; }
+  /* Footer */
+  .card-footer {
+    background: var(--gray-50); border-top: 1px solid var(--gray-200);
+    padding: 14px 32px; text-align: center;
+    font-size: 11px; color: var(--gray-400);
+  }
+  .card-footer a { color: var(--blue); text-decoration: none; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="card-header">
+    <div class="logo">Amir<span>NET</span> Pro</div>
+    <div class="logo-sub">PROFESSIONAL ENGLISH PREPARATION</div>
+  </div>
+
+  <!-- Form view -->
+  <div id="form-view">
+    <div class="card-body">
+      <div class="form-title">✉️ שלח/י הודעה למורה</div>
+      <div class="form-sub" id="form-sub">מלא/י את הטופס ואשלח את הודעתך ישירות למורה.</div>
+      <div class="err-banner" id="err-banner">אירעה שגיאה. נסה/י שנית.</div>
+
+      <div class="mb">
+        <label>שם</label>
+        <input type="text" id="student-name-input" placeholder="השם שלך" readonly style="background:#f1f5f9;color:#64748b">
+      </div>
+      <div class="mb">
+        <label>הודעה</label>
+        <textarea id="msg-input" placeholder="כתוב/י כאן את הודעתך..."></textarea>
+      </div>
+      <button class="send-btn" id="send-btn" onclick="sendMessage()">שלח/י הודעה ✈</button>
+    </div>
+  </div>
+
+  <!-- Success view (hidden until sent) -->
+  <div class="success-box" id="success-view">
+    <div class="success-icon">✅</div>
+    <div class="success-title">ההודעה נשלחה!</div>
+    <div class="success-msg">ההודעה שלך נשלחה בהצלחה למורה.<br>נחזור אליך בהקדם.</div>
+  </div>
+
+  <div class="card-footer">
+    הודעה זו נשלחת דרך
+    <a href="https://amirnetpro.netlify.app" target="_blank">AmirNET Pro</a>
+    — פלטפורמת הכנה לאמירנט
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://ivauncueyedwlthzylnt.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml2YXVuY3VleWVkd2x0aHp5bG50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5MzQ3MjgsImV4cCI6MjA5MzUxMDcyOH0.Fn7xittXNv8f25V3y_roMbrnGkre_BaunCNzC3hvSVo';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// Parse URL params
+const params = new URLSearchParams(window.location.search);
+const studentId = params.get('sid') || '';
+const studentName = params.get('name') || '';
+
+// Pre-fill name
+document.addEventListener('DOMContentLoaded', () => {
+  if (studentName) {
+    document.getElementById('student-name-input').value = decodeURIComponent(studentName);
+    document.getElementById('form-sub').textContent =
+      'שלום ' + decodeURIComponent(studentName) + '! כתוב/י הודעה למורה ואשלח אותה ישירות.';
+  }
+  if (!studentId) {
+    document.getElementById('err-banner').textContent = 'קישור לא תקין. אנא חזור/י למייל שקיבלת.';
+    document.getElementById('err-banner').classList.add('show');
+    document.getElementById('send-btn').disabled = true;
+  }
+});
+
+async function sendMessage() {
+  const msgEl = document.getElementById('msg-input');
+  const message = msgEl.value.trim();
+  if (!message) { msgEl.classList.add('error'); msgEl.focus(); return; }
+  msgEl.classList.remove('error');
+  document.getElementById('err-banner').classList.remove('show');
+
+  const btn = document.getElementById('send-btn');
+  btn.textContent = 'שולח/ת...'; btn.disabled = true;
+
+  const { error } = await sb.from('student_messages').insert({
+    student_id: studentId || null,
+    student_name: decodeURIComponent(studentName) || 'תלמיד',
+    message: message,
+    read: false
+  });
+
+  if (error) {
+    console.error('Supabase error:', error);
+    document.getElementById('err-banner').textContent = 'אירעה שגיאה: ' + error.message;
+    document.getElementById('err-banner').classList.add('show');
+    btn.textContent = 'שלח/י הודעה ✈'; btn.disabled = false;
+    return;
+  }
+
+  // Show success
+  document.getElementById('form-view').style.display = 'none';
+  document.getElementById('success-view').style.display = 'block';
+}
+</script>
+</body>
+</html>
