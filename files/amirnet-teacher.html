@@ -530,6 +530,16 @@
     <div id="messages-list"><div class="loading-text">טוען הודעות...</div></div>
   </div>
 
+  <!-- Archive -->
+  <div style="margin-top:1.5rem">
+    <button onclick="toggleArchive()" id="archive-toggle-btn"
+      style="background:none;border:none;cursor:pointer;font-family:'Heebo',sans-serif;font-size:14px;color:var(--gray-400);display:flex;align-items:center;gap:6px;padding:0">
+      <span id="archive-arrow">▶</span> 🗂 ארכיון הודעות שנקראו
+      <span id="archive-badge" style="background:var(--gray-400);color:#fff;border-radius:999px;font-size:11px;font-weight:700;padding:2px 8px;display:none"></span>
+    </button>
+    <div id="archive-list" style="display:none;margin-top:1rem"></div>
+  </div>
+
 </main>
 
 <!-- Compose Modal -->
@@ -1292,45 +1302,70 @@ async function saveNewCode() {
   }
 }
 
+function buildMessageCard(m) {
+  const date = new Date(m.created_at).toLocaleString('he-IL', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+  const safeMsg = (m.message || '').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+  const studentId = m.student_id || '';
+  const studentName = (m.student_name || 'תלמיד').replace(/'/g,"&#39;");
+  return `<div class="message-card ${!m.read ? 'unread' : ''}" id="msg-${m.id}">
+    <div style="flex:1">
+      <div class="msg-name">${m.student_name || 'תלמיד'}</div>
+      <div class="msg-meta">${date}</div>
+      <div class="msg-text">${safeMsg}</div>
+      <div id="reply-area-${m.id}" style="display:none;margin-top:14px;border-top:1px solid var(--gray-200);padding-top:12px">
+        <textarea id="reply-text-${m.id}" placeholder="כתוב/י תשובה לתלמיד..."
+          style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--gray-200);font-family:'Heebo',sans-serif;font-size:14px;resize:vertical;min-height:80px;outline:none;direction:rtl;color:var(--gray-800)"></textarea>
+        <button onclick="sendReply('${m.id}','${studentId}','${studentName}')"
+          style="margin-top:8px;padding:9px 20px;background:var(--blue);color:#fff;border:none;border-radius:8px;font-family:'Heebo',sans-serif;font-size:14px;font-weight:600;cursor:pointer">
+          ✉️ שלח/י תשובה
+        </button>
+      </div>
+    </div>
+    <div style="flex-shrink:0;display:flex;flex-direction:column;gap:6px;align-items:flex-end">
+      <button class="mark-read-btn" onclick="toggleReply('${m.id}')" title="השב לתלמיד">↩ השב</button>
+      ${!m.read
+        ? `<button class="mark-read-btn" id="read-btn-${m.id}" onclick="markMessageRead('${m.id}')">✓ סמן כנקרא</button>`
+        : `<span style="font-size:12px;color:var(--gray-400)" id="read-btn-${m.id}">✓ נקרא</span>`}
+    </div>
+  </div>`;
+}
+
 async function loadMessages() {
   const { data: msgs, error } = await sb.from('student_messages')
     .select('*').order('created_at', { ascending: false });
   const listEl = document.getElementById('messages-list');
+  const archiveEl = document.getElementById('archive-list');
+  const archiveBadge = document.getElementById('archive-badge');
+
   if (error || !msgs || !msgs.length) {
     listEl.innerHTML = '<div style="color:var(--gray-400);font-size:14px;padding:0.5rem 0">אין הודעות כרגע.</div>';
+    if (archiveEl) archiveEl.innerHTML = '';
+    if (archiveBadge) archiveBadge.style.display = 'none';
     return;
   }
-  const unreadCount = msgs.filter(m => !m.read).length;
+
+  const unread = msgs.filter(m => !m.read);
+  const read = msgs.filter(m => m.read);
+
+  const unreadCount = unread.length;
   const badge = document.getElementById('unread-badge');
   if (badge) { badge.textContent = unreadCount; badge.style.display = unreadCount ? 'inline' : 'none'; }
-  listEl.innerHTML = msgs.map(m => {
-    const date = new Date(m.created_at).toLocaleString('he-IL', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
-    const safeMsg = (m.message || '').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
-    const studentId = m.student_id || '';
-    const studentName = (m.student_name || 'תלמיד').replace(/'/g,"&#39;");
-    return `<div class="message-card ${!m.read ? 'unread' : ''}" id="msg-${m.id}">
-      <div style="flex:1">
-        <div class="msg-name">${m.student_name || 'תלמיד'}</div>
-        <div class="msg-meta">${date}</div>
-        <div class="msg-text">${safeMsg}</div>
-        <!-- Reply area (hidden by default) -->
-        <div id="reply-area-${m.id}" style="display:none;margin-top:14px;border-top:1px solid var(--gray-200);padding-top:12px">
-          <textarea id="reply-text-${m.id}" placeholder="כתוב/י תשובה לתלמיד..."
-            style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--gray-200);font-family:'Heebo',sans-serif;font-size:14px;resize:vertical;min-height:80px;outline:none;direction:rtl;color:var(--gray-800)"></textarea>
-          <button onclick="sendReply('${m.id}','${studentId}','${studentName}')"
-            style="margin-top:8px;padding:9px 20px;background:var(--blue);color:#fff;border:none;border-radius:8px;font-family:'Heebo',sans-serif;font-size:14px;font-weight:600;cursor:pointer">
-            ✉️ שלח/י תשובה
-          </button>
-        </div>
-      </div>
-      <div style="flex-shrink:0;display:flex;flex-direction:column;gap:6px;align-items:flex-end">
-        <button class="mark-read-btn" onclick="toggleReply('${m.id}')" title="השב לתלמיד">↩ השב</button>
-        ${!m.read
-          ? `<button class="mark-read-btn" id="read-btn-${m.id}" onclick="markMessageRead('${m.id}')">✓ סמן כנקרא</button>`
-          : `<span style="font-size:12px;color:var(--gray-400)" id="read-btn-${m.id}">✓ נקרא</span>`}
-      </div>
-    </div>`;
-  }).join('');
+
+  listEl.innerHTML = unread.length
+    ? unread.map(buildMessageCard).join('')
+    : '<div style="color:var(--gray-400);font-size:14px;padding:0.5rem 0">אין הודעות חדשות.</div>';
+
+  if (archiveEl) archiveEl.innerHTML = read.length ? read.map(buildMessageCard).join('') : '<div style="color:var(--gray-400);font-size:14px;padding:0.5rem 0">הארכיון ריק.</div>';
+  if (archiveBadge) { archiveBadge.textContent = read.length; archiveBadge.style.display = read.length ? 'inline' : 'none'; }
+}
+
+function toggleArchive() {
+  const list = document.getElementById('archive-list');
+  const arrow = document.getElementById('archive-arrow');
+  if (!list) return;
+  const isOpen = list.style.display !== 'none';
+  list.style.display = isOpen ? 'none' : 'block';
+  if (arrow) arrow.textContent = isOpen ? '▶' : '▼';
 }
 
 function toggleReply(msgId) {
@@ -1383,25 +1418,43 @@ async function sendReply(msgId, studentId, studentName) {
 }
 
 async function markMessageRead(msgId) {
-  // Find the student_id from the message data so we can update the dot
   const { data: msgData } = await sb.from('student_messages').select('student_id').eq('id', msgId).single();
   await sb.from('student_messages').update({ read: true }).eq('id', msgId);
+
+  // Move card from inbox to archive
   const card = document.getElementById('msg-' + msgId);
-  if (card) {
+  const archiveEl = document.getElementById('archive-list');
+  if (card && archiveEl) {
     card.classList.remove('unread');
     const btn = document.getElementById('read-btn-' + msgId);
     if (btn) btn.outerHTML = '<span style="font-size:12px;color:var(--gray-400)" id="read-btn-' + msgId + '">✓ נקרא</span>';
+    // Remove empty placeholder if present
+    const placeholder = archiveEl.querySelector('div[style*="אין"]');
+    if (placeholder) placeholder.remove();
+    archiveEl.prepend(card);
   }
-  // Update local unread counts
+
+  // Update unread badge
+  const remaining = document.querySelectorAll('#messages-list .message-card.unread').length;
+  const badge = document.getElementById('unread-badge');
+  if (badge) { badge.textContent = remaining; badge.style.display = remaining ? 'inline' : 'none'; }
+  const listEl = document.getElementById('messages-list');
+  if (listEl && !listEl.querySelector('.message-card')) {
+    listEl.innerHTML = '<div style="color:var(--gray-400);font-size:14px;padding:0.5rem 0">אין הודעות חדשות.</div>';
+  }
+
+  // Update archive badge
+  const archiveBadge = document.getElementById('archive-badge');
+  const archiveCount = document.querySelectorAll('#archive-list .message-card').length;
+  if (archiveBadge) { archiveBadge.textContent = archiveCount; archiveBadge.style.display = archiveCount ? 'inline' : 'none'; }
+
+  // Update student dot counts
   if (msgData && msgData.student_id && window._unreadCounts) {
     const cnt = window._unreadCounts[msgData.student_id];
     if (cnt && cnt > 1) window._unreadCounts[msgData.student_id] = cnt - 1;
     else delete window._unreadCounts[msgData.student_id];
-    renderStudents(); // refresh dots
+    renderStudents();
   }
-  const remaining = document.querySelectorAll('.message-card.unread').length;
-  const badge = document.getElementById('unread-badge');
-  if (badge) { badge.textContent = remaining; badge.style.display = remaining ? 'inline' : 'none'; }
 }
 
 function copyCode() {
