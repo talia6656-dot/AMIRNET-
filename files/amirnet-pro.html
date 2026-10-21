@@ -3923,6 +3923,8 @@ async function saveScoreToSupabase(setNumber, correct, total) {
 
     await sb.from('answer_details').insert(answerRows);
     console.log('Score and answers saved:', setNumber, correct, total);
+    // Invalidate completion cache so badge appears next time picker opens
+    _completedSetNums = null;
   } catch(e) {
     console.error('Score save error:', e);
   }
@@ -3969,8 +3971,51 @@ async function signOut(){
   window.location.href='index.html';
 }
 
-function showSetPicker(){showScreen('set-picker');}
-function showMockPicker(){showScreen('mock-picker');}
+function showSetPicker(){showScreen('set-picker');markCompletedSets();}
+function showMockPicker(){showScreen('mock-picker');markCompletedSets();}
+
+let _completedSetNums = null;
+async function markCompletedSets() {
+  try {
+    if (!currentUser) {
+      const { data } = await sb.auth.getSession();
+      if (!data || !data.session) return;
+      currentUser = data.session.user;
+    }
+    if (!_completedSetNums) {
+      const { data } = await sb.from('scores').select('set_number').eq('user_id', currentUser.id);
+      _completedSetNums = new Set((data || []).map(s => Number(s.set_number)));
+    }
+    // Practice sets: selectSetAndPractice(N) → set_number N+1
+    document.querySelectorAll('[onclick^="selectSetAndPractice("]').forEach(function(card) {
+      var m = card.getAttribute('onclick').match(/selectSetAndPractice\((\d+)\)/);
+      if (!m) return;
+      var setNum = Number(m[1]) + 1;
+      if (_completedSetNums.has(setNum) && !card.querySelector('.done-badge')) {
+        card.style.position = 'relative';
+        var b = document.createElement('div');
+        b.className = 'done-badge';
+        b.style.cssText = 'position:absolute;top:10px;left:10px;background:#059669;color:#fff;font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;pointer-events:none;z-index:2';
+        b.textContent = '✓ הושלם';
+        card.appendChild(b);
+      }
+    });
+    // Mock tests: selectMockAndStart(N) → set_number 101+N
+    document.querySelectorAll('[onclick^="selectMockAndStart("]').forEach(function(card) {
+      var m = card.getAttribute('onclick').match(/selectMockAndStart\((\d+)\)/);
+      if (!m) return;
+      var setNum = 101 + Number(m[1]);
+      if (_completedSetNums.has(setNum) && !card.querySelector('.done-badge')) {
+        card.style.position = 'relative';
+        var b = document.createElement('div');
+        b.className = 'done-badge';
+        b.style.cssText = 'position:absolute;top:10px;left:10px;background:#059669;color:#fff;font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;pointer-events:none;z-index:2';
+        b.textContent = '✓ הושלם';
+        card.appendChild(b);
+      }
+    });
+  } catch(e) { console.warn('markCompletedSets:', e); }
+}
 
 function selectSetAndPractice(idx){
   currentSet=idx;
