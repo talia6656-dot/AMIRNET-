@@ -259,7 +259,22 @@ function renderHistory(){
     const label=sc.set_number>=101?'מבחן מדומה '+(sc.set_number-100):'סט '+sc.set_number;
     const badge=sc.set_number>=101?'M'+(sc.set_number-100):sc.set_number;
     const ans=allAnswers.filter(a=>String(a.set_number)===String(sc.set_number));
-    return '<div class="history-set"><div class="history-set-header" onclick="this.nextElementSibling.classList.toggle(\'open\')"><div class="hs-left"><div class="hs-badge">'+badge+'</div><div><div class="hs-name">'+label+'</div><div class="hs-date">'+date+'</div></div></div><div class="hs-score" style="color:'+c+'">'+p+'%</div></div><div class="hs-body">'+buildAnswers(ans)+'</div></div>';
+    const correctCount=ans.filter(a=>a.is_correct).length;
+    const wrongCount=ans.filter(a=>!a.is_correct&&a.student_answer!==-1).length;
+    const skipCount=ans.filter(a=>a.student_answer===-1).length;
+    const gradeLabel=p>=90?'מצוין! 🏆':p>=75?'טוב מאוד! 👍':p>=60?'טוב 😊':p>=50?'בסדר 💪':'יש מקום לשיפור 📚';
+    const gradeBg=p>=75?'#f0fdf4':p>=50?'#fffbeb':'#fef2f2';
+    const gradeBorder=p>=75?'#86efac':p>=50?'#fcd34d':'#fca5a5';
+    const gradeHtml='<div style="background:'+gradeBg+';border:2px solid '+gradeBorder+';border-radius:14px;padding:20px 24px;margin-bottom:18px;text-align:center;direction:rtl">'
+      +'<div style="font-size:13px;font-weight:600;color:#64748b;margin-bottom:4px">ציון סופי</div>'
+      +'<div style="font-size:3.5rem;font-weight:900;color:'+c+';line-height:1.1">'+p+'%</div>'
+      +'<div style="font-size:14px;font-weight:600;color:'+c+';margin-top:6px">'+gradeLabel+'</div>'
+      +'<div style="display:flex;justify-content:center;gap:24px;margin-top:14px;font-size:13px;color:#475569;flex-wrap:wrap">'
+      +'<span style="background:#dcfce7;color:#166534;padding:4px 12px;border-radius:20px;font-weight:600">✓ נכון: '+correctCount+'</span>'
+      +'<span style="background:#fee2e2;color:#991b1b;padding:4px 12px;border-radius:20px;font-weight:600">✗ שגוי: '+wrongCount+'</span>'
+      +(skipCount?'<span style="background:#f1f5f9;color:#475569;padding:4px 12px;border-radius:20px;font-weight:600">— דולג: '+skipCount+'</span>':'')
+      +'</div></div>';
+    return '<div class="history-set"><div class="history-set-header" onclick="this.nextElementSibling.classList.toggle(\'open\')"><div class="hs-left"><div class="hs-badge">'+badge+'</div><div><div class="hs-name">'+label+'</div><div class="hs-date">'+date+'</div></div></div><div class="hs-score" style="color:'+c+'">'+p+'%</div></div><div class="hs-body">'+gradeHtml+buildAnswers(ans)+'</div></div>';
   }).join('');
 }
 function buildAnswers(answers){
