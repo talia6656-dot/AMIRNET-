@@ -159,6 +159,14 @@ body{font-family:'Heebo',sans-serif;background:var(--gray-50);color:var(--text);
 .exp-type-card:hover{border-color:var(--blue-light);transform:translateY(-2px);box-shadow:0 8px 25px rgba(26,86,219,0.1)}
 .exp-type-card.coming-soon{opacity:0.5;cursor:default}
 .exp-type-card.coming-soon:hover{transform:none;box-shadow:none;border-color:var(--gray-200)}
+.wf-base-box{display:inline-block;background:#1e3a5f;color:#93c5fd;font-size:22px;font-weight:700;letter-spacing:2px;padding:10px 28px;border-radius:12px;margin:1.25rem 0 1rem;font-family:monospace}
+.wf-input{width:100%;padding:14px 16px;font-size:18px;font-family:inherit;border:2px solid var(--gray-300);border-radius:12px;outline:none;transition:border .15s;direction:ltr;text-align:center;letter-spacing:1px;box-sizing:border-box}
+.wf-input:focus{border-color:#1a56db}
+.wf-input.wf-correct{border-color:#10b981;background:#d1fae5}
+.wf-input.wf-wrong{border-color:#ef4444;background:#fee2e2}
+.wf-check-btn{display:block;width:100%;margin-top:0.75rem;padding:13px;border-radius:12px;border:none;background:#1a56db;color:#fff;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;transition:background .15s}
+.wf-check-btn:hover{background:#1d4ed8}
+.wf-blank{display:inline-block;min-width:90px;border-bottom:2.5px solid #1a56db;margin:0 3px;vertical-align:bottom}
 .opt-listen{background:none;border:none;cursor:pointer;font-size:13px;padding:2px 4px;margin-right:2px;opacity:0.4;transition:opacity .15s;line-height:1;flex-shrink:0;margin-top:2px}
 .opt-listen:hover{opacity:1}
 .opt.correct-ans .opt-listen,.opt.wrong-ans .opt-listen{opacity:0.6}
@@ -625,13 +633,13 @@ body{font-family:'Heebo',sans-serif;background:var(--gray-50);color:var(--text);
         <div style="font-size:15px;font-weight:600;margin-bottom:6px">Grammar in Context</div>
         <div style="font-size:13px;color:var(--gray-600);line-height:1.6">בחר את הצורה הדקדוקית הנכונה · 5 סטים · 4 שאלות בכל סט</div>
       </div>
-      <div class="exp-type-card coming-soon">
+      <div class="exp-type-card" onclick="showScreen('word-formation-picker')">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
-          <span style="font-size:12px;font-weight:600;padding:3px 10px;background:#f1f5f9;color:#64748b;border-radius:999px">בקרוב</span>
+          <span style="font-size:12px;font-weight:600;padding:3px 10px;background:#eff6ff;color:#1d4ed8;border-radius:999px">20 שאלות</span>
           <span style="font-size:22px">🔤</span>
         </div>
         <div style="font-size:15px;font-weight:600;margin-bottom:6px">Word Formation</div>
-        <div style="font-size:13px;color:var(--gray-600);line-height:1.6">שנה את צורת המילה המודגשת · הקלדה</div>
+        <div style="font-size:13px;color:var(--gray-600);line-height:1.6">גזור את המילה הנכונה ממילת הבסיס · הקלדה · 5 סטים</div>
       </div>
       <div class="exp-type-card coming-soon">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
@@ -675,7 +683,7 @@ body{font-family:'Heebo',sans-serif;background:var(--gray-50);color:var(--text);
       <div style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:4px 12px;background:#eff6ff;color:#1d4ed8;border-radius:999px;margin-bottom:0.75rem">🧪 פרק ניסיוני · AMIRNET</div>
       <div style="font-family:'DM Serif Display',serif;font-size:26px;color:var(--text);margin-bottom:1rem">Grammar in Context</div>
       <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:1.25rem 1.5rem;text-align:right;margin-bottom:1.25rem;line-height:1.9;font-size:14.5px;color:#334155">
-        בפרק זה תקבל משפטים עם מקום חסר, ועליך לבחור את הצורה הדקדוקית הנכונה להשלמתו.<br>
+        בפרק זה תקבל משפטים שחסרה בהם מילה אחת, ועליך לבחור את הצורה הדקדוקית הנכונה להשלמת המשפט.<br>
         השאלות בודקות מבנים דקדוקיים כמו <strong>גוף סביל (Passive Voice)</strong>, <strong>זמנים</strong>, <strong>Relative Clauses</strong>, <strong>Gerund</strong> ועוד — בדיוק כפי שמופיע בפרקים הניסיוניים של AMIRNET.<br>
         אין קנס על תשובה שגויה — כדאי לנסות ולענות על כל השאלות.
       </div>
@@ -738,6 +746,86 @@ body{font-family:'Heebo',sans-serif;background:var(--gray-50);color:var(--text);
     <button onclick="showScreen('grammar-in-context-picker')" style="font-family:inherit;font-size:13px;background:transparent;border:0.5px solid rgba(255,255,255,0.3);color:rgba(255,255,255,0.8);padding:6px 14px;border-radius:999px;cursor:pointer">← חזרה לסטים</button>
   </header>
   <div style="max-width:680px;margin:0 auto;padding:2rem 1.5rem" id="grammar-exercise-body">
+  </div>
+</div>
+
+<!-- WORD FORMATION — SET PICKER -->
+<div id="word-formation-picker" class="screen">
+  <header class="home-header">
+    <div class="logo">Amir<span>NET</span> Pro</div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <button onclick="signOut()" style="font-family:var(--font-sans);font-size:12px;background:transparent;border:1px solid rgba(255,255,255,0.25);color:rgba(255,255,255,0.6);padding:5px 12px;border-radius:999px;cursor:pointer;">יציאה</button>
+    </div>
+    <button onclick="showScreen('experimental-picker')" style="font-family:inherit;font-size:13px;background:transparent;border:0.5px solid rgba(255,255,255,0.3);color:rgba(255,255,255,0.8);padding:6px 14px;border-radius:999px;cursor:pointer">← חזרה</button>
+  </header>
+  <div style="max-width:700px;margin:0 auto;padding:3rem 2rem">
+    <div style="text-align:center;margin-bottom:2.5rem">
+      <div style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:4px 12px;background:#eff6ff;color:#1d4ed8;border-radius:999px;margin-bottom:0.75rem">🧪 פרק ניסיוני · AMIRNET</div>
+      <div style="font-family:'DM Serif Display',serif;font-size:26px;color:var(--text);margin-bottom:1rem">Word Formation</div>
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:1.25rem 1.5rem;text-align:right;margin-bottom:1.25rem;line-height:1.9;font-size:14.5px;color:#334155">
+        בפרק זה תקבל משפטים שחסרה בהם מילה אחת — ועליך להקליד את הצורה הנגזרת הנכונה של <strong>מילת הבסיס</strong> המסומנת.<br>
+        השאלות בודקות ידע במורפולוגיה של השפה: סיומות כמו <strong>-ment, -tion, -ous, -ly</strong>, קידומות שליליות כמו <strong>un-, dis-, il-</strong>, ופעלים לא-סדירים.<br>
+        שימו לב לאיות — גם איות בריטי מתקבל. אין קנס על שגיאה.
+      </div>
+      <a href="https://www.nite.org.il/other-tests/amirnet/practice-test/word-formation/" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#1a56db;text-decoration:none;padding:7px 16px;border:1px solid #bfdbfe;border-radius:999px;background:#eff6ff;transition:background .15s" onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#eff6ff'">
+        🔗 ראה שאלות לדוגמה באתר מאל״ו הרשמי
+      </a>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div class="mode-card" onclick="startWFSet(0)" style="text-align:right;cursor:pointer">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
+          <span style="font-size:12px;font-weight:700;padding:3px 10px;background:#e2e8f0;color:#475569;border-radius:999px">סט 1</span>
+          <span style="font-size:22px">📌</span>
+        </div>
+        <div style="font-size:15px;font-weight:500;margin-bottom:6px">Noun Suffixes</div>
+        <div style="font-size:13px;color:var(--gray-600);line-height:1.6">4 שאלות · סיומות שם עצם</div>
+      </div>
+      <div class="mode-card" onclick="startWFSet(1)" style="text-align:right;cursor:pointer">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
+          <span style="font-size:12px;font-weight:700;padding:3px 10px;background:#e2e8f0;color:#475569;border-radius:999px">סט 2</span>
+          <span style="font-size:22px">🎨</span>
+        </div>
+        <div style="font-size:15px;font-weight:500;margin-bottom:6px">Adjective Suffixes</div>
+        <div style="font-size:13px;color:var(--gray-600);line-height:1.6">4 שאלות · סיומות תואר שם</div>
+      </div>
+      <div class="mode-card" onclick="startWFSet(2)" style="text-align:right;cursor:pointer">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
+          <span style="font-size:12px;font-weight:700;padding:3px 10px;background:#e2e8f0;color:#475569;border-radius:999px">סט 3</span>
+          <span style="font-size:22px">🚫</span>
+        </div>
+        <div style="font-size:15px;font-weight:500;margin-bottom:6px">Negative Prefixes</div>
+        <div style="font-size:13px;color:var(--gray-600);line-height:1.6">4 שאלות · קידומות שליליות</div>
+      </div>
+      <div class="mode-card" onclick="startWFSet(3)" style="text-align:right;cursor:pointer">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
+          <span style="font-size:12px;font-weight:700;padding:3px 10px;background:#e2e8f0;color:#475569;border-radius:999px">סט 4</span>
+          <span style="font-size:22px">⚡</span>
+        </div>
+        <div style="font-size:15px;font-weight:500;margin-bottom:6px">Adverbs &amp; Irregular Verbs</div>
+        <div style="font-size:13px;color:var(--gray-600);line-height:1.6">4 שאלות · תואר פועל + פעלים לא-סדירים</div>
+      </div>
+      <div class="mode-card" onclick="startWFSet(4)" style="text-align:right;cursor:pointer;grid-column:span 2">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
+          <span style="font-size:12px;font-weight:700;padding:3px 10px;background:#e2e8f0;color:#475569;border-radius:999px">סט 5</span>
+          <span style="font-size:22px">🎯</span>
+        </div>
+        <div style="font-size:15px;font-weight:500;margin-bottom:6px">Mixed — Challenging</div>
+        <div style="font-size:13px;color:var(--gray-600);line-height:1.6">4 שאלות · שילוב מאתגר</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- WORD FORMATION — EXERCISE -->
+<div id="word-formation-exercise" class="screen">
+  <header class="home-header">
+    <div class="logo">Amir<span>NET</span> Pro</div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <button onclick="signOut()" style="font-family:var(--font-sans);font-size:12px;background:transparent;border:1px solid rgba(255,255,255,0.25);color:rgba(255,255,255,0.6);padding:5px 12px;border-radius:999px;cursor:pointer;">יציאה</button>
+    </div>
+    <button onclick="showScreen('word-formation-picker')" style="font-family:inherit;font-size:13px;background:transparent;border:0.5px solid rgba(255,255,255,0.3);color:rgba(255,255,255,0.8);padding:6px 14px;border-radius:999px;cursor:pointer">← חזרה לסטים</button>
+  </header>
+  <div style="max-width:680px;margin:0 auto;padding:2rem 1.5rem" id="wf-exercise-body">
   </div>
 </div>
 
@@ -4858,6 +4946,365 @@ function buildResultsReview(){
   document.getElementById('r-review-list').innerHTML=html;
 }
 
+
+// ─────────────────────────────────────────────────────────────
+// EXPERIMENTAL CHAPTERS — Word Formation
+// ─────────────────────────────────────────────────────────────
+
+const wfData = [
+  // ── Set 1: Noun Suffixes ──
+  {
+    id:'wf1',
+    sentence:'The ___ introduced emergency legislation to address the ongoing housing crisis.',
+    base:'GOVERN',
+    answers:['government'],
+    explanation:'הפועל GOVERN הופך לשם עצם על-ידי הוספת הסיומת <strong>-ment → government</strong> (ממשלה). ❌ governing / governed = צורות פועל, לא שם עצם.'
+  },
+  {
+    id:'wf2',
+    sentence:'Great inventors are praised not only for technical skills but also for their remarkable ___.',
+    base:'IMAGINE',
+    answers:['imagination'],
+    explanation:'IMAGINE → ה-e הסופי נשמט + סיומת <strong>-ation → imagination</strong>. המשפט דורש שם עצם (their remarkable ___). ❌ imagining / imaginative = צורות שונות.'
+  },
+  {
+    id:'wf3',
+    sentence:'The eyewitness gave a detailed ___ of the events that took place that evening.',
+    base:'DESCRIBE',
+    answers:['description'],
+    explanation:'DESCRIBE → שינוי בלתי-צפוי: be הסופי + סיומת מיוחדת → <strong>description</strong>. ❌ describement / describtion = לא קיימות. זוהי צורה לא-סדירה שחשוב לזכור.'
+  },
+  {
+    id:'wf4',
+    sentence:'Regular ___ of computer systems is essential to prevent data loss and costly failures.',
+    base:'MAINTAIN',
+    answers:['maintenance'],
+    explanation:'MAINTAIN → סיומת בלתי-צפויה לחלוטין: <strong>-ance → maintenance</strong>. ❌ maintainment / maintainance = לא קיימות. זוהי אחת הצורות הקשות לאיות באנגלית.'
+  },
+  // ── Set 2: Adjective Suffixes ──
+  {
+    id:'wf5',
+    sentence:'Many communities continue to hold ___ festivals that reflect their cultural heritage.',
+    base:'TRADITION',
+    answers:['traditional'],
+    explanation:'TRADITION (שם עצם) → תואר שם על-ידי הוספת <strong>-al → traditional</strong>. המשפט דורש תואר שם שיתאר את ה-festivals. ❌ traditionally = תואר פועל.'
+  },
+  {
+    id:'wf6',
+    sentence:'All new construction projects must undergo an ___ impact assessment before work begins.',
+    base:'ENVIRONMENT',
+    answers:['environmental'],
+    explanation:'ENVIRONMENT → תואר שם: <strong>-al → environmental</strong>. שים לב לאיות: environment (לא enviroment). ❌ environmentally = תואר פועל, לא מתאים לפני impact.'
+  },
+  {
+    id:'wf7',
+    sentence:'Companies that attract ___ employees tend to innovate more and grow at a faster rate.',
+    base:'AMBITION',
+    answers:['ambitious'],
+    explanation:'AMBITION → תואר שם: ה-ion נשמט + <strong>-ious → ambitious</strong>. ❌ ambitioned / ambitionful = לא קיימות. שים לב לשינוי האיות.'
+  },
+  {
+    id:'wf8',
+    sentence:'Regular physical activity is known to ___ the immune system and reduce the risk of illness.',
+    base:'STRONG',
+    answers:['strengthen'],
+    explanation:'התואר STRONG הופך לפועל על-ידי הסיומת <strong>-en → strengthen</strong>. סיומת זו הופכת תארים לפעלים: widen, deepen, broaden. ❌ strongify / making strong = לא נכון.'
+  },
+  // ── Set 3: Negative Prefixes ──
+  {
+    id:'wf9',
+    sentence:'The company was investigated for using ___ accounting practices to reduce its tax liability.',
+    base:'LEGAL',
+    answers:['illegal'],
+    explanation:'קידומת שלילית <strong>il-</strong> מתאימה לפני מילים שמתחילות ב-l → <strong>illegal</strong>. ❌ unlegal / inlegal = אינם נכונים. כלל: il+l, im+p/b/m, ir+r, in לשאר.'
+  },
+  {
+    id:'wf10',
+    sentence:'Long delays at customs can make even the most relaxed traveler feel ___.',
+    base:'PATIENT',
+    answers:['impatient'],
+    explanation:'קידומת שלילית <strong>im-</strong> מתאימה לפני p, b, m → <strong>impatient</strong>. ❌ unpatient / dispatient = אינם נכונים.'
+  },
+  {
+    id:'wf11',
+    sentence:"The board's ___ of the proposal was based on serious concerns about its environmental impact.",
+    base:'APPROVE',
+    answers:['disapproval'],
+    explanation:'שינוי כפול: קידומת שלילית <strong>dis-</strong> + סיומת שם עצם <strong>-al → disapproval</strong>. ❌ disapprove = פועל, לא שם עצם. המשפט דורש שם עצם (the board\'s ___).'
+  },
+  {
+    id:'wf12',
+    sentence:'Stock market fluctuations are often described as ___, making long-term financial planning difficult.',
+    base:'PREDICT',
+    answers:['unpredictable'],
+    explanation:'שינוי כפול: קידומת <strong>un-</strong> + סיומת <strong>-able → unpredictable</strong>. המשפט דורש תואר שם שלילי (described as ___). ❌ unpredicted = שגוי בהקשר.'
+  },
+  // ── Set 4: Adverbs & Irregular Verbs ──
+  {
+    id:'wf13',
+    sentence:'The number of people working remotely has grown ___ since the rise of high-speed internet.',
+    base:'SIGNIFICANT',
+    answers:['significantly'],
+    explanation:'SIGNIFICANT (תואר שם) → תואר פועל: <strong>-ly → significantly</strong>. המשפט דורש תואר פועל שיתאר כיצד גדלה המגמה (grown ___). ❌ significant = תואר שם בלבד.'
+  },
+  {
+    id:'wf14',
+    sentence:'Hybrid vehicles are designed to use fuel more ___ than conventional cars.',
+    base:'ECONOMY',
+    answers:['economically'],
+    explanation:'שינוי דו-שלבי: ECONOMY → ECONOMIC (תואר) → <strong>ECONOMICALLY</strong> (תואר פועל עם -ally). ❌ economily = לא קיים; חייבים לעבור דרך economic.'
+  },
+  {
+    id:'wf15',
+    sentence:'The conflict ___ from a series of miscommunications between the two departments.',
+    base:'ARISE',
+    answers:['arose'],
+    explanation:'פועל לא-סדיר: ARISE (עכשיו) → עבר: <strong>arose</strong>. המשפט מתייחס לאירוע עבר. ❌ arised = לא קיים — arise אינו פועל סדיר.'
+  },
+  {
+    id:'wf16',
+    sentence:'Following weeks of international pressure, the troops ___ from the occupied territory.',
+    base:'WITHDRAW',
+    answers:['withdrew'],
+    explanation:'פועל לא-סדיר: WITHDRAW → עבר: <strong>withdrew</strong>. זמן עתיד מושלם: withdrawn. ❌ withdrawed = לא קיים — withdraw אינו פועל סדיר.'
+  },
+  // ── Set 5: Mixed / Challenging ──
+  {
+    id:'wf17',
+    sentence:'The smartphone market has become highly ___, with dozens of brands offering similar features at lower prices.',
+    base:'COMPETE',
+    answers:['competitive'],
+    explanation:'COMPETE → תואר שם: ה-e הסופי נשמט + סיומת <strong>-itive → competitive</strong>. ❌ competing = Present Participle, לא תואר שם. שים לב: highly ___ דורש תואר שם.'
+  },
+  {
+    id:'wf18',
+    sentence:'Each new employee is paired with an experienced ___ who provides guidance during the training period.',
+    base:'SUPERVISE',
+    answers:['supervisor','superviser'],
+    explanation:'SUPERVISE + סיומת המציינת ממלא-תפקיד <strong>-or → supervisor</strong> (מפקח). סיומות -or/-er יוצרות שמות של אנשים: actor, director, editor. שתי האיותים מתקבלות.'
+  },
+  {
+    id:'wf19',
+    sentence:'For decades, scientists ___ a cure for the disease before finally achieving a breakthrough.',
+    base:'SEEK',
+    answers:['sought'],
+    explanation:'פועל לא-סדיר עם שינוי קיצוני: SEEK → עבר: <strong>sought</strong>. ❌ seeked / soughed = לא קיימים. שינוי דומה: teach→taught, bring→brought, think→thought.'
+  },
+  {
+    id:'wf20',
+    sentence:'The ___ of the ocean in that region exceeds 8,000 meters, making exploration extremely difficult.',
+    base:'DEEP',
+    answers:['depth'],
+    explanation:'התואר DEEP הופך לשם עצם עם שינוי ניכר בצורה: <strong>depth</strong>. שינויים דומים: wide→width, long→length, strong→strength. ❌ deepness / deepth = אינם נכונים.'
+  }
+];
+
+// WF State variables
+var wfCurrentSet = 0;
+var wfQuestions = [];
+var wfCurrentQ = 0;
+var wfUserAnswers = [];
+var wfChecked = [];
+var wfCorrect = [];
+var wfScore = 0;
+
+function startWFSet(setIdx) {
+  wfCurrentSet = setIdx;
+  wfQuestions = wfData.slice(setIdx * 4, setIdx * 4 + 4);
+  wfCurrentQ = 0;
+  wfUserAnswers = ['','','',''];
+  wfChecked = [false,false,false,false];
+  wfCorrect = [false,false,false,false];
+  wfScore = 0;
+  showScreen('word-formation-exercise');
+  renderWFQuestion();
+}
+
+function renderWFQuestion() {
+  var q = wfQuestions[wfCurrentQ];
+  var checked = wfChecked[wfCurrentQ];
+  var isCorrect = wfCorrect[wfCurrentQ];
+  var userVal = wfUserAnswers[wfCurrentQ];
+  var setNum = wfCurrentSet + 1;
+
+  // Nav dots
+  var navDots = '';
+  for (var di = 0; di < wfQuestions.length; di++) {
+    var dotCls = 'gc-dot';
+    if (di === wfCurrentQ) dotCls += ' gc-dot-current';
+    else if (wfChecked[di]) dotCls += (wfCorrect[di] ? ' gc-dot-correct' : ' gc-dot-wrong');
+    navDots += '<span class="' + dotCls + '" onclick="jumpWFQ(' + di + ')" title="שאלה ' + (di+1) + '"></span>';
+  }
+
+  // Format sentence: word-click first, then replace ___ with visual blank
+  var displaySentence = makeWordsClickable(q.sentence).replace('___', '<span class="wf-blank"></span>');
+
+  // Input / result area
+  var inputArea = '';
+  if (!checked) {
+    inputArea =
+      '<input class="wf-input" id="wf-input" type="text" placeholder="הקלד את תשובתך..." autocomplete="off" autocorrect="off" spellcheck="false" value="' + escHtml(userVal) + '" oninput="wfUserAnswers[wfCurrentQ]=this.value" onkeydown="if(event.key===\'Enter\')checkWFAnswer()">'
+      + '<button class="wf-check-btn" onclick="checkWFAnswer()">בדוק תשובה ✓</button>';
+  } else {
+    var inputCls = 'wf-input ' + (isCorrect ? 'wf-correct' : 'wf-wrong');
+    inputArea = '<input class="' + inputCls + '" type="text" value="' + escHtml(userVal) + '" disabled>';
+  }
+
+  // Explanation
+  var explainHtml = '';
+  if (checked) {
+    var expCls = isCorrect ? 'correct-exp' : 'wrong-exp';
+    var expTitle = isCorrect ? '✓ נכון!' : '✗ לא נכון';
+    var acceptedStr = q.answers.join(' / ');
+    explainHtml = '<div class="explain-card ' + expCls + '"><div class="explain-title">' + expTitle
+      + (isCorrect ? '' : ' — התשובה הנכונה: <strong>' + acceptedStr + '</strong>') + '</div>'
+      + q.explanation + '</div>';
+  }
+
+  // Next / Results button
+  var isLast = (wfCurrentQ === wfQuestions.length - 1);
+  var nextBtnHtml = checked
+    ? '<button class="next-btn" onclick="' + (isLast ? 'showWFResults()' : 'nextWFQ()') + '">'
+      + (isLast ? 'ראה תוצאות ←' : 'שאלה הבאה ←') + '</button>'
+    : '';
+
+  document.getElementById('wf-exercise-body').innerHTML =
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:8px">'
+    + '<div style="font-size:14px;color:var(--gray-600)">סט ' + setNum + ' · שאלה ' + (wfCurrentQ+1) + ' מתוך ' + wfQuestions.length + '</div>'
+    + '<div style="display:flex;gap:6px;align-items:center">' + navDots + '</div>'
+    + '</div>'
+    + '<div class="q-card">'
+    + '<div class="q-number" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'
+    + 'Word Formation'
+    + '<button class="listen-btn" onclick="speakWFQ()" id="wf-listen-btn"><span class="listen-icon">&#9654;</span> האזן לשאלה</button>'
+    + '</div>'
+    + '<div class="q-text" style="font-size:17px;line-height:1.8;margin-bottom:0.5rem">' + displaySentence + '</div>'
+    + '<div style="text-align:center">'
+    + '<div style="font-size:11px;font-weight:600;color:var(--gray-500);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">מילת הבסיס</div>'
+    + '<div class="wf-base-box">' + q.base.toLowerCase() + '</div>'
+    + '</div>'
+    + inputArea
+    + '</div>'
+    + explainHtml
+    + nextBtnHtml;
+
+  // Focus input if not checked
+  if (!checked) {
+    var inp = document.getElementById('wf-input');
+    if (inp) setTimeout(function(){ inp.focus(); }, 80);
+  }
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function checkWFAnswer() {
+  if (wfChecked[wfCurrentQ]) return;
+  var inp = document.getElementById('wf-input');
+  var val = (inp ? inp.value : wfUserAnswers[wfCurrentQ]).trim();
+  wfUserAnswers[wfCurrentQ] = val;
+  wfChecked[wfCurrentQ] = true;
+  var q = wfQuestions[wfCurrentQ];
+  var valLower = val.toLowerCase();
+  var correct = q.answers.some(function(a){ return a.toLowerCase() === valLower; });
+  wfCorrect[wfCurrentQ] = correct;
+  if (correct) wfScore++;
+  renderWFQuestion();
+}
+
+function nextWFQ() {
+  if (wfCurrentQ < wfQuestions.length - 1) {
+    wfCurrentQ++;
+    renderWFQuestion();
+  }
+}
+
+function jumpWFQ(i) {
+  wfCurrentQ = i;
+  renderWFQuestion();
+}
+
+function speakWFQ() {
+  var q = wfQuestions[wfCurrentQ];
+  var plainText = q.sentence.replace('___', 'blank').replace(/\s+/g,' ').trim();
+
+  if (window.speechSynthesis.speaking) {
+    window.speechSynthesis.cancel();
+    var btnNow = document.getElementById('wf-listen-btn');
+    if (btnNow && btnNow.classList.contains('playing')) {
+      btnNow.classList.remove('playing');
+      btnNow.innerHTML = '<span class="listen-icon">&#9654;</span> האזן לשאלה';
+      return;
+    }
+  }
+
+  var utt = new SpeechSynthesisUtterance(plainText);
+  utt.lang = 'en-US';
+  utt.rate = 0.9;
+
+  var btn = document.getElementById('wf-listen-btn');
+  if (btn) { btn.classList.add('playing'); btn.innerHTML = '<span class="listen-icon">◼</span> עצור'; }
+  utt.onend = function() {
+    var b = document.getElementById('wf-listen-btn'); if(b){b.classList.remove('playing');b.innerHTML='<span class="listen-icon">&#9654;</span> האזן לשאלה';}
+  };
+  utt.onerror = function() {
+    var b = document.getElementById('wf-listen-btn'); if(b){b.classList.remove('playing');b.innerHTML='<span class="listen-icon">&#9654;</span> האזן לשאלה';}
+  };
+  window.speechSynthesis.speak(utt);
+}
+
+function showWFResults() {
+  var pct = Math.round((wfScore / wfQuestions.length) * 100);
+  var setNum = wfCurrentSet + 1;
+  var emoji = pct >= 75 ? '🌟' : pct >= 50 ? '👍' : '💪';
+  var scoreColor = pct >= 75 ? '#059669' : pct >= 50 ? '#d97706' : '#dc2626';
+
+  if (currentUser) { saveWFScore(wfScore, wfQuestions.length, setNum); }
+
+  var reviewHtml = '';
+  for (var i = 0; i < wfQuestions.length; i++) {
+    var q = wfQuestions[i];
+    var correct = wfCorrect[i];
+    var icon = correct ? '✓' : '✗';
+    var bg = correct ? '#d1fae5' : '#fee2e2';
+    reviewHtml +=
+      '<div style="background:' + bg + ';border-radius:12px;padding:1rem 1.25rem;margin-bottom:12px;direction:rtl">'
+      + '<div style="font-weight:600;margin-bottom:4px">' + icon + ' שאלה ' + (i+1) + ' · base: ' + q.base.toLowerCase() + '</div>'
+      + '<div style="font-size:14px;color:#475569;margin-bottom:4px">' + q.sentence + '</div>'
+      + '<div style="font-size:13px">תשובה נכונה: <strong>' + q.answers.join(' / ') + '</strong></div>'
+      + (!correct && wfUserAnswers[i]
+        ? '<div style="font-size:13px;color:#991b1b">הקלדת: ' + wfUserAnswers[i] + '</div>'
+        : '')
+      + '</div>';
+  }
+
+  document.getElementById('wf-exercise-body').innerHTML =
+    '<div style="text-align:center;padding:2rem 0">'
+    + '<div style="font-size:3.5rem;margin-bottom:0.5rem">' + emoji + '</div>'
+    + '<div style="font-family:\'DM Serif Display\',serif;font-size:26px;color:var(--text);margin-bottom:8px">Word Formation — סט ' + setNum + '</div>'
+    + '<div style="font-size:18px;color:var(--gray-600);margin-bottom:4px">' + wfScore + ' / ' + wfQuestions.length + ' נכון</div>'
+    + '<div style="font-size:36px;font-weight:700;color:' + scoreColor + '">' + pct + '%</div>'
+    + '<div style="font-size:13px;color:var(--gray-500);margin-top:6px">פרקים ניסיוניים — בונוס לציון, ללא קנס על שגיאה</div>'
+    + '</div>'
+    + '<div style="margin-bottom:1.5rem">' + reviewHtml + '</div>'
+    + '<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;padding-bottom:2rem">'
+    + '<button onclick="startWFSet(' + wfCurrentSet + ')" style="font-family:inherit;padding:12px 28px;border-radius:12px;border:none;background:#1a56db;color:#fff;font-size:15px;font-weight:600;cursor:pointer">נסה שוב</button>'
+    + '<button onclick="showScreen(\'word-formation-picker\')" style="font-family:inherit;padding:12px 28px;border-radius:12px;border:1.5px solid var(--gray-300);background:#fff;color:var(--text);font-size:15px;cursor:pointer">חזרה לסטים</button>'
+    + '</div>';
+}
+
+async function saveWFScore(score, total, setNum) {
+  try {
+    await supabase.from('word_formation_scores').insert({
+      user_id: currentUser.id,
+      set_number: setNum,
+      score: score,
+      total_questions: total,
+      completed_at: new Date().toISOString()
+    });
+  } catch(e) { console.warn('WF score save failed:', e); }
+}
 
 // ─────────────────────────────────────────────────────────────
 // EXPERIMENTAL CHAPTERS — Grammar in Context
