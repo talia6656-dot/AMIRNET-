@@ -149,6 +149,16 @@ body{font-family:'Heebo',sans-serif;background:var(--gray-50);color:var(--text);
 .explain-card.correct-exp{background:#d1fae5;border-right:4px solid var(--green);color:#064e3b}
 .explain-card.wrong-exp{background:#fee2e2;border-right:4px solid var(--red);color:#7f1d1d}
 .explain-title{font-weight:700;margin-bottom:4px}
+.gc-dot{display:inline-block;width:12px;height:12px;border-radius:50%;background:var(--gray-200);cursor:pointer;transition:all .15s;margin:0 2px}
+.gc-dot.gc-dot-current{background:#1a56db;transform:scale(1.25)}
+.gc-dot.gc-dot-correct{background:#10b981}
+.gc-dot.gc-dot-wrong{background:#ef4444}
+.next-btn{display:block;width:100%;margin-top:1.25rem;padding:14px;border-radius:12px;border:none;background:#1a56db;color:#fff;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;transition:background .15s}
+.next-btn:hover{background:#1d4ed8}
+.exp-type-card{background:var(--white);border:1.5px solid var(--gray-200);border-radius:var(--radius-lg);padding:1.5rem;cursor:pointer;transition:all 0.2s;position:relative;text-align:right}
+.exp-type-card:hover{border-color:var(--blue-light);transform:translateY(-2px);box-shadow:0 8px 25px rgba(26,86,219,0.1)}
+.exp-type-card.coming-soon{opacity:0.5;cursor:default}
+.exp-type-card.coming-soon:hover{transform:none;box-shadow:none;border-color:var(--gray-200)}
 .opt-listen{background:none;border:none;cursor:pointer;font-size:13px;padding:2px 4px;margin-right:2px;opacity:0.4;transition:opacity .15s;line-height:1;flex-shrink:0;margin-top:2px}
 .opt-listen:hover{opacity:1}
 .opt.correct-ans .opt-listen,.opt.wrong-ans .opt-listen{opacity:0.6}
@@ -318,6 +328,14 @@ body{font-family:'Heebo',sans-serif;background:var(--gray-50);color:var(--text);
         <div class="mode-name">מבחן מדומה</div>
         <div class="mode-desc">סימולציה מלאה עם שעון נפרד לכל חלק — בדיוק כמו הבחינה האמיתית של NITE.</div>
         <div class="mode-meta"><span class="meta-chip">שעון נפרד לכל חלק</span><span class="meta-chip">6 חלקים</span><span class="meta-chip">ציון 50–150</span></div>
+      </div>
+      <div class="mode-card" onclick="showExperimentalPicker()" style="background:linear-gradient(135deg,#0a1628,#1a3a6b);border:1.5px solid rgba(147,51,234,0.3)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
+          <span style="font-size:12px;font-weight:600;padding:3px 10px;background:rgba(147,51,234,0.15);color:#c084fc;border-radius:999px">חדש!</span>
+          <span style="font-size:22px">🧪</span>
+        </div>
+        <div style="font-size:16px;font-weight:600;margin-bottom:6px;color:#fff">פרקים ניסיוניים</div>
+        <div style="font-size:13px;color:rgba(255,255,255,0.6);line-height:1.6">פרקים 7–8 · בונוס לציון · ללא קנס על שגיאה</div>
       </div>
     </div>
 
@@ -578,6 +596,148 @@ body{font-family:'Heebo',sans-serif;background:var(--gray-50);color:var(--text);
       </div>
 
     </div>
+  </div>
+</div>
+
+<!-- EXPERIMENTAL CHAPTERS PICKER -->
+<div id="experimental-picker" class="screen">
+  <header class="home-header">
+    <div class="logo">Amir<span>NET</span> Pro</div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <button onclick="signOut()" style="font-family:var(--font-sans);font-size:12px;background:transparent;border:1px solid rgba(255,255,255,0.25);color:rgba(255,255,255,0.6);padding:5px 12px;border-radius:999px;cursor:pointer;">יציאה</button>
+    </div>
+    <button onclick="showScreen('home')" style="font-family:inherit;font-size:13px;background:transparent;border:0.5px solid rgba(255,255,255,0.3);color:rgba(255,255,255,0.8);padding:6px 14px;border-radius:999px;cursor:pointer">← חזרה</button>
+  </header>
+  <div style="max-width:700px;margin:0 auto;padding:3rem 2rem">
+    <div style="text-align:center;margin-bottom:0.75rem">
+      <div style="font-size:22px;font-weight:500;color:var(--text);margin-bottom:8px">פרקים ניסיוניים</div>
+      <div style="font-size:15px;color:var(--gray-600);max-width:500px;margin:0 auto;line-height:1.6">פרקים 7–8 של הבחינה. ניתן להרוויח עד 2 נקודות בונוס. <strong>שגיאה לא פוגעת בציון.</strong></div>
+    </div>
+    <div style="text-align:center;margin-bottom:2rem">
+      <a href="https://www.nite.org.il/other-tests/amirnet/practice-test/" target="_blank" style="font-size:13px;color:#1a56db;text-decoration:none">← ראה שאלות לדוגמה באתר NITE הרשמי</a>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div class="exp-type-card" onclick="showScreen('grammar-in-context-picker')">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
+          <span style="font-size:12px;font-weight:600;padding:3px 10px;background:#eff6ff;color:#1d4ed8;border-radius:999px">20 שאלות</span>
+          <span style="font-size:22px">📝</span>
+        </div>
+        <div style="font-size:15px;font-weight:600;margin-bottom:6px">Grammar in Context</div>
+        <div style="font-size:13px;color:var(--gray-600);line-height:1.6">בחר את הצורה הדקדוקית הנכונה · 5 סטים · 4 שאלות בכל סט</div>
+      </div>
+      <div class="exp-type-card coming-soon">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
+          <span style="font-size:12px;font-weight:600;padding:3px 10px;background:#f1f5f9;color:#64748b;border-radius:999px">בקרוב</span>
+          <span style="font-size:22px">🔤</span>
+        </div>
+        <div style="font-size:15px;font-weight:600;margin-bottom:6px">Word Formation</div>
+        <div style="font-size:13px;color:var(--gray-600);line-height:1.6">שנה את צורת המילה המודגשת · הקלדה</div>
+      </div>
+      <div class="exp-type-card coming-soon">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
+          <span style="font-size:12px;font-weight:600;padding:3px 10px;background:#f1f5f9;color:#64748b;border-radius:999px">בקרוב</span>
+          <span style="font-size:22px">🎧</span>
+        </div>
+        <div style="font-size:15px;font-weight:600;margin-bottom:6px">Listening — Text Continuation</div>
+        <div style="font-size:13px;color:var(--gray-600);line-height:1.6">השלמת משפט עם שמיעה · 4 קטעים קצרים</div>
+      </div>
+      <div class="exp-type-card coming-soon">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
+          <span style="font-size:12px;font-weight:600;padding:3px 10px;background:#f1f5f9;color:#64748b;border-radius:999px">בקרוב</span>
+          <span style="font-size:22px">🎙️</span>
+        </div>
+        <div style="font-size:15px;font-weight:600;margin-bottom:6px">Lecture / Conversation</div>
+        <div style="font-size:13px;color:var(--gray-600);line-height:1.6">שאלות על קטע שמיעה ארוך · 5 שאלות</div>
+      </div>
+      <div class="exp-type-card coming-soon" style="grid-column:span 2">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
+          <span style="font-size:12px;font-weight:600;padding:3px 10px;background:#f1f5f9;color:#64748b;border-radius:999px">בקרוב</span>
+          <span style="font-size:22px">✍️</span>
+        </div>
+        <div style="font-size:15px;font-weight:600;margin-bottom:6px">Writing Task</div>
+        <div style="font-size:13px;color:var(--gray-600);line-height:1.6">כתיבה חופשית של 90–120 מילים · ניקוד אוטומטי</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- GRAMMAR IN CONTEXT — SET PICKER -->
+<div id="grammar-in-context-picker" class="screen">
+  <header class="home-header">
+    <div class="logo">Amir<span>NET</span> Pro</div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <button onclick="signOut()" style="font-family:var(--font-sans);font-size:12px;background:transparent;border:1px solid rgba(255,255,255,0.25);color:rgba(255,255,255,0.6);padding:5px 12px;border-radius:999px;cursor:pointer;">יציאה</button>
+    </div>
+    <button onclick="showScreen('experimental-picker')" style="font-family:inherit;font-size:13px;background:transparent;border:0.5px solid rgba(255,255,255,0.3);color:rgba(255,255,255,0.8);padding:6px 14px;border-radius:999px;cursor:pointer">← חזרה</button>
+  </header>
+  <div style="max-width:700px;margin:0 auto;padding:3rem 2rem">
+    <div style="text-align:center;margin-bottom:2.5rem">
+      <div style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:4px 12px;background:#eff6ff;color:#1d4ed8;border-radius:999px;margin-bottom:0.75rem">🧪 פרק ניסיוני · AMIRNET</div>
+      <div style="font-family:'DM Serif Display',serif;font-size:26px;color:var(--text);margin-bottom:1rem">Grammar in Context</div>
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:1.25rem 1.5rem;text-align:right;margin-bottom:1.25rem;line-height:1.9;font-size:14.5px;color:#334155">
+        בפרק זה תקבל משפטים עם מקום חסר, ועליך לבחור את הצורה הדקדוקית הנכונה להשלמתו.<br>
+        השאלות בודקות מבנים דקדוקיים כמו <strong>גוף סביל (Passive Voice)</strong>, <strong>זמנים</strong>, <strong>Relative Clauses</strong>, <strong>Gerund</strong> ועוד — בדיוק כפי שמופיע בפרקים הניסיוניים של AMIRNET.<br>
+        אין קנס על תשובה שגויה — כדאי לנסות ולענות על כל השאלות.
+      </div>
+      <a href="https://www.nite.org.il/other-tests/amirnet/practice-test/grammar-in-context/" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#1a56db;text-decoration:none;padding:7px 16px;border:1px solid #bfdbfe;border-radius:999px;background:#eff6ff;transition:background .15s" onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#eff6ff'">
+        🔗 ראה שאלות לדוגמה באתר מאל״ו הרשמי
+      </a>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px" id="gc-set-picker-grid">
+      <div class="mode-card" onclick="startGrammarSet(0)" style="text-align:right;cursor:pointer">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
+          <span style="font-size:12px;font-weight:700;padding:3px 10px;background:#e2e8f0;color:#475569;border-radius:999px">סט 1</span>
+          <span style="font-size:22px">📝</span>
+        </div>
+        <div style="font-size:15px;font-weight:500;margin-bottom:6px">Passive Voice &amp; Tenses</div>
+        <div style="font-size:13px;color:var(--gray-600);line-height:1.6">4 שאלות · גוף סביל ו-Tenses</div>
+      </div>
+      <div class="mode-card" onclick="startGrammarSet(1)" style="text-align:right;cursor:pointer">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
+          <span style="font-size:12px;font-weight:700;padding:3px 10px;background:#e2e8f0;color:#475569;border-radius:999px">סט 2</span>
+          <span style="font-size:22px">🔡</span>
+        </div>
+        <div style="font-size:15px;font-weight:500;margin-bottom:6px">Noun Phrases &amp; Gerunds</div>
+        <div style="font-size:13px;color:var(--gray-600);line-height:1.6">4 שאלות · Gerund ו-Noun Phrases</div>
+      </div>
+      <div class="mode-card" onclick="startGrammarSet(2)" style="text-align:right;cursor:pointer">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
+          <span style="font-size:12px;font-weight:700;padding:3px 10px;background:#e2e8f0;color:#475569;border-radius:999px">סט 3</span>
+          <span style="font-size:22px">⚖️</span>
+        </div>
+        <div style="font-size:15px;font-weight:500;margin-bottom:6px">Comparatives &amp; Conditionals</div>
+        <div style="font-size:13px;color:var(--gray-600);line-height:1.6">4 שאלות · השוואות ותנאים</div>
+      </div>
+      <div class="mode-card" onclick="startGrammarSet(3)" style="text-align:right;cursor:pointer">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
+          <span style="font-size:12px;font-weight:700;padding:3px 10px;background:#e2e8f0;color:#475569;border-radius:999px">סט 4</span>
+          <span style="font-size:22px">🔗</span>
+        </div>
+        <div style="font-size:15px;font-weight:500;margin-bottom:6px">Relative Clauses</div>
+        <div style="font-size:13px;color:var(--gray-600);line-height:1.6">4 שאלות · Relative Clauses</div>
+      </div>
+      <div class="mode-card" onclick="startGrammarSet(4)" style="text-align:right;cursor:pointer;grid-column:span 2">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
+          <span style="font-size:12px;font-weight:700;padding:3px 10px;background:#e2e8f0;color:#475569;border-radius:999px">סט 5</span>
+          <span style="font-size:22px">🎯</span>
+        </div>
+        <div style="font-size:15px;font-weight:500;margin-bottom:6px">Mixed Grammar Structures</div>
+        <div style="font-size:13px;color:var(--gray-600);line-height:1.6">4 שאלות · שילוב של כל המבנים</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- GRAMMAR IN CONTEXT — EXERCISE -->
+<div id="grammar-exercise" class="screen">
+  <header class="home-header">
+    <div class="logo">Amir<span>NET</span> Pro</div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <button onclick="signOut()" style="font-family:var(--font-sans);font-size:12px;background:transparent;border:1px solid rgba(255,255,255,0.25);color:rgba(255,255,255,0.6);padding:5px 12px;border-radius:999px;cursor:pointer;">יציאה</button>
+    </div>
+    <button onclick="showScreen('grammar-in-context-picker')" style="font-family:inherit;font-size:13px;background:transparent;border:0.5px solid rgba(255,255,255,0.3);color:rgba(255,255,255,0.8);padding:6px 14px;border-radius:999px;cursor:pointer">← חזרה לסטים</button>
+  </header>
+  <div style="max-width:680px;margin:0 auto;padding:2rem 1.5rem" id="grammar-exercise-body">
   </div>
 </div>
 
@@ -4698,6 +4858,355 @@ function buildResultsReview(){
   document.getElementById('r-review-list').innerHTML=html;
 }
 
+
+// ─────────────────────────────────────────────────────────────
+// EXPERIMENTAL CHAPTERS — Grammar in Context
+// ─────────────────────────────────────────────────────────────
+
+const gcData = [
+  // ── Set 1: Passive Voice & Tenses ──
+  {
+    id:'g1',
+    text:'The ancient ruins <span class="blank-line">____</span> by thousands of tourists every year.',
+    opts:['are visited','visited','have visited','are visiting'],
+    correct:0,
+    explanation:'ה-Subject הוא "ruins" — האתרים נזכרים, לא מבקרים. מכיוון שמדובר בעובדה חוזרת (<em>every year</em>), נדרש <strong>Present Simple Passive: are visited</strong>. ❌ "visited" = Simple Past — לא מתאים לעובדה כללית. ❌ "have visited" = Present Perfect Active — ruins לא יכולות לבקר. ❌ "are visiting" = Present Continuous Active — מתאים לפעולה מתמשכת כרגע, לא לעובדה קבועה.'
+  },
+  {
+    id:'g2',
+    text:'The results of the study <span class="blank-line">____</span> to the board of directors at the annual conference next month.',
+    opts:['will be presented','will present','are being presented','have been presented'],
+    correct:0,
+    explanation:'המשפט מתייחס לעתיד (<em>next month</em>), וה-"results" הם מקבל הפעולה. לכן נדרש <strong>Future Passive: will be presented</strong>. ❌ "will present" = Future Active — ה-results לא מציגות עצמן. ❌ "are being presented" = Present Continuous Passive, מתאים לכרגע, לא לעתיד. ❌ "have been presented" = Present Perfect Passive — מתאים לעבר.'
+  },
+  {
+    id:'g3',
+    text:'It was not until the 19th century that scientists <span class="blank-line">____</span> the connection between germs and disease.',
+    opts:['discovered','had discovered','were discovering','have discovered'],
+    correct:0,
+    explanation:'המבנה <em>"It was not until ... that ..."</em> מתאר גילוי שהתרחש בנקודת זמן בעבר. לכן נדרש <strong>Simple Past: discovered</strong>. ❌ "had discovered" = Past Perfect — מתאים לפעולה שקרתה לפני אירוע קודם בעבר. ❌ "were discovering" = Past Continuous — מביע פעולה מתמשכת ולא השלמה. ❌ "have discovered" = Present Perfect — אינו תקין עם ציון זמן ספציפי בעבר.'
+  },
+  {
+    id:'g4',
+    text:'The stadium <span class="blank-line">____</span> during the 1960s now serves as a protected cultural heritage site.',
+    opts:['built','that built','building','was building'],
+    correct:0,
+    explanation:'נדרש <strong>Reduced Relative Clause</strong> — קיצור של "which was built during the 1960s". ה-Past Participle "built" ממלא תפקיד זה. ❌ "that built" = שגוי, כאילו ה-stadium בנה משהו. ❌ "building" = Present Participle — מציין פעולה פעילה. ❌ "was building" = שגוי, ה-stadium לא בנה בעצמו.'
+  },
+  // ── Set 2: Noun Phrases & Gerunds ──
+  {
+    id:'g5',
+    text:'King Louis IX died of scurvy as a result of <span class="blank-line">____</span> locally available fruits and vegetables.',
+    opts:['his refusal to eat','refusing to eat','his refusing of eating','him to refuse'],
+    correct:0,
+    explanation:'לאחר "as a result of" בא Noun Phrase. <strong>"his refusal to eat"</strong> = Possessive + Noun + Infinitive — נכון. ❌ "refusing to eat" = Gerund, אך ללא "his" אין ייחוס ברור. ❌ "his refusing of eating" = שגוי — "refuse" נלווה ל-to, לא ל-of. ❌ "him to refuse" = לאחר Preposition לא מגיע Infinitive.'
+  },
+  {
+    id:'g6',
+    text:'After Catalina arrived in England in 1501, <span class="blank-line">____</span> to its English equivalent: Catherine.',
+    opts:['she changed her name','her name was changed','changing her name','she had changed her name'],
+    correct:0,
+    explanation:'אחרי "after + clause" נדרש Main Clause עם Subject ופועל. <strong>"she changed her name"</strong> = Simple Past Active — מתאר פעולה שבחרה לעשות. ❌ "her name was changed" = Passive — מרמז שמישהו אחר שינה. ❌ "changing her name" = Participial Phrase ללא Main Clause. ❌ "she had changed her name" = Past Perfect מיותר כשיש "after" המסמן סדר.'
+  },
+  {
+    id:'g7',
+    text:'There are many <span class="blank-line">____</span> for tourists to visit in Barcelona.',
+    opts:['places of interest','interesting places','places interesting','places of interests'],
+    correct:0,
+    explanation:'<strong>"places of interest"</strong> הוא ביטוי קבוע ופורמלי שמשמעותו "אתרים לתיירות". ❌ "interesting places" = תקין אך פחות פורמלי. ❌ "places interesting" = סדר שגוי — תואר קודם לשם עצם. ❌ "places of interests" = שגוי — "interest" בהקשר זה הוא Uncountable.'
+  },
+  {
+    id:'g8',
+    text:'The idea that bacteria should be classified as a separate kingdom <span class="blank-line">____</span> biologists until the 1960s.',
+    opts:['did not become accepted by','was not accepted by','did not accept','had not been accepting'],
+    correct:0,
+    explanation:'<strong>"did not become accepted by"</strong> = Negative Past + become accepted — מתאר תהליך הדרגתי שלא הושלם עד שנות ה-60. ❌ "was not accepted by" = Passive Past, נכון אך פחות מדויק. ❌ "did not accept" = Active — "the idea" לא מקבלת או דוחה. ❌ "had not been accepting" = Past Perfect Continuous Active — שגוי לחלוטין.'
+  },
+  // ── Set 3: Comparatives & Conditionals ──
+  {
+    id:'g9',
+    text:'In 2019, there were almost <span class="blank-line">____</span> reported cases of measles as there had been in 2018.',
+    opts:['three times as many','three times more','three times as much','three times as many than'],
+    correct:0,
+    explanation:'המבנה הנכון הוא <strong>"X times as many/much as"</strong>. מכיוון ש-"cases" הוא Countable Noun, משתמשים ב-"many". ❌ "three times more" = לא תקין; הצורה הנכונה היא "times as many". ❌ "three times as much" = שגוי — "much" עם Uncountable Nouns. ❌ "three times as many than" = כפילות שגויה — אחרי "as many" בא "as", לא "than".'
+  },
+  {
+    id:'g10',
+    text:'Privacy laws must be revised <span class="blank-line">____</span> regulate new face-recognition technology.',
+    opts:['if they are to','in order to','so as to','for them to'],
+    correct:0,
+    explanation:'<strong>"if they are to + infinitive"</strong> = תנאי הכרחי: "אם חוקים אמורים לווסת טכנולוגיה — עליהם להיות מתוקנים." ❌ "in order to" = הסובייקט הנסתר הוא מי שמתקן ולא ה-laws. ❌ "so as to" = אותה בעיה. ❌ "for them to" = שימוש לא-סטנדרטי כאן.'
+  },
+  {
+    id:'g11',
+    text:'Clean water <span class="blank-line">____</span> to be one of the most pressing global challenges of the coming decades.',
+    opts:['is considered','is considering','considers','has considered'],
+    correct:0,
+    explanation:'<strong>Impersonal Passive: is considered</strong> — צורה נפוצה לביטוי דעה כללית ("נחשב ל-"). ❌ "is considering" = Present Continuous Active — clean water לא שוקל משהו. ❌ "considers" = Present Simple Active — אותה בעיה. ❌ "has considered" = Present Perfect Active — לא מתאים.'
+  },
+  {
+    id:'g12',
+    text:'Many deep-sea creatures <span class="blank-line">____</span> in the wild because they cannot survive outside their natural habitat.',
+    opts:['cannot be studied','cannot be studying','cannot study','are not able to study'],
+    correct:0,
+    explanation:'ה-creatures הם מושא הפעולה (נחקרים, לא חוקרים). לכן נדרש <strong>Modal Passive: cannot be studied</strong>. ❌ "cannot be studying" = Modal + Continuous — לא תקין עם Passive. ❌ "cannot study" = Modal Active — creatures לא חוקרות את עצמן. ❌ "are not able to study" = Active — אותה בעיה.'
+  },
+  // ── Set 4: Relative Clauses ──
+  {
+    id:'g13',
+    text:'Despite <span class="blank-line">____</span> for years, the two neighboring countries have yet to reach a lasting peace agreement.',
+    opts:['negotiating','having been negotiated','being negotiated','to negotiate'],
+    correct:0,
+    explanation:'לאחר "despite" בא Gerund. ה-Subject הנסתר הוא "the countries" שניהלו את המשא ומתן (Active). לכן: <strong>negotiating</strong> = Active Gerund. ❌ "having been negotiated" = Perfect Passive — כאילו המדינות הוחזקו במשא ומתן. ❌ "being negotiated" = Passive Gerund — אותה בעיה. ❌ "to negotiate" = Infinitive — לא ניתן לאחר "despite".'
+  },
+  {
+    id:'g14',
+    text:'The volcano, <span class="blank-line">____</span> had been dormant for centuries, erupted without warning last spring.',
+    opts:['which','that','what','where'],
+    correct:0,
+    explanation:'מדובר ב-<strong>Non-Restrictive Relative Clause</strong> (מוגדר בפסיקים). עבור סוג זה חייבים להשתמש ב-<strong>"which"</strong>. ❌ "that" = Restrictive Relative Pronoun — לא ניתן לשימוש עם פסיקים. ❌ "what" = Relative Pronoun עבור "the thing that" — לא מתאים. ❌ "where" = Relative Adverb למקום.'
+  },
+  {
+    id:'g15',
+    text:'The scholarship <span class="blank-line">____</span> only to students who have maintained a GPA above 3.5 for two consecutive years.',
+    opts:['is awarded','awards','is awarding','has awarded'],
+    correct:0,
+    explanation:'ה-scholarship היא המקבלת (awarded), לא המעניקה. לכן נדרש <strong>Present Simple Passive: is awarded</strong>. ❌ "awards" = Active — scholarship לא מעניקה. ❌ "is awarding" = Continuous Active. ❌ "has awarded" = Perfect Active — גם שגוי.'
+  },
+  {
+    id:'g16',
+    text:'The documentary focuses on communities <span class="blank-line">____</span> traditional way of life is threatened by climate change.',
+    opts:['whose','which','that their','where the'],
+    correct:0,
+    explanation:'נדרש Relative Pronoun המביע <strong>בעלות: "whose"</strong>. ❌ "which" = Relative Pronoun ללא בעלות. ❌ "that their" = כפילות שגויה. ❌ "where the" = Relative Adverb למקום, לא לבעלות.'
+  },
+  // ── Set 5: Mixed Grammar Structures ──
+  {
+    id:'g17',
+    text:'The new medication proved to be far more effective <span class="blank-line">____</span> doctors had initially predicted.',
+    opts:['than','as','that','then'],
+    correct:0,
+    explanation:'בהשוואה עם "more", הצירוף הנכון הוא <strong>"more + adj + than"</strong>. ❌ "as" = משמש ב-"as...as" בלבד. ❌ "that" = Conjunction — לא משמש בהשוואות. ❌ "then" = Adverb של זמן — טעות נפוצה: "than" (השוואה) ≠ "then" (זמן).'
+  },
+  {
+    id:'g18',
+    text:'After <span class="blank-line">____</span> reviewed by three independent experts, the study was finally approved for publication.',
+    opts:['being','having','it was','having been'],
+    correct:0,
+    explanation:'לאחר "after" בא Gerund. ה-Subject הנסתר הוא "the study" שנסקרה (Passive). לכן: <strong>"being reviewed"</strong> = Passive Gerund. ❌ "having" = Active Gerund — "having reviewed" = כאילו ה-study סקרה. ❌ "it was" = Full Finite Clause ללא Conjunction. ❌ "having been" = Perfect Passive — "having been reviewed" אפשרי אך מדגיש השלמה מיותרת.'
+  },
+  {
+    id:'g19',
+    text:'The city council has yet <span class="blank-line">____</span> a final decision on the proposed housing development.',
+    opts:['to make','making','make','made'],
+    correct:0,
+    explanation:'הביטוי <strong>"have/has yet to + Infinitive"</strong> = עדיין לא. ❌ "making" = Gerund — לא ניתן לאחר "yet" כך. ❌ "make" = Base Form — נדרש "to" לפניו. ❌ "made" = Past Participle — לא מתאים לביטוי זה.'
+  },
+  {
+    id:'g20',
+    text:'Employees <span class="blank-line">____</span> to work from home are still expected to attend monthly meetings in person.',
+    opts:['permitted','permitting','who permitted','having permitted'],
+    correct:0,
+    explanation:'נדרש <strong>Reduced Relative Clause Passive</strong> — קיצור של "who are permitted to work from home". ❌ "permitting" = Present Participle Active — כאילו הם מרשים. ❌ "who permitted" = Active — שגוי. ❌ "having permitted" = Perfect Active — שגוי.'
+  }
+];
+
+// State variables
+var gcCurrentSet = 0;
+var gcQuestions = [];
+var gcCurrentQ = 0;
+var gcAnswers = [];
+var gcAnswered = [];
+var gcScore = 0;
+
+function showExperimentalPicker() {
+  showScreen('experimental-picker');
+}
+
+function startGrammarSet(setIdx) {
+  gcCurrentSet = setIdx;
+  gcQuestions = gcData.slice(setIdx * 4, setIdx * 4 + 4);
+  gcCurrentQ = 0;
+  gcAnswers = [-1, -1, -1, -1];
+  gcAnswered = [false, false, false, false];
+  gcScore = 0;
+  showScreen('grammar-exercise');
+  renderGrammarQuestion();
+}
+
+function renderGrammarQuestion() {
+  var q = gcQuestions[gcCurrentQ];
+  var answered = gcAnswered[gcCurrentQ];
+  var selectedIdx = gcAnswers[gcCurrentQ];
+  var letters = ['A','B','C','D'];
+
+  // Build nav dots
+  var navDots = '';
+  for (var di = 0; di < gcQuestions.length; di++) {
+    var dotCls = 'gc-dot';
+    if (di === gcCurrentQ) dotCls += ' gc-dot-current';
+    else if (gcAnswered[di]) dotCls += (gcAnswers[di] === gcQuestions[di].correct ? ' gc-dot-correct' : ' gc-dot-wrong');
+    navDots += '<span class="' + dotCls + '" onclick="jumpGrammarQ(' + di + ')" title="שאלה ' + (di+1) + '"></span>';
+  }
+
+  // Build options
+  var optsHtml = '';
+  for (var i = 0; i < q.opts.length; i++) {
+    var cls = 'opt';
+    if (answered) {
+      if (i === q.correct) cls += ' correct-ans';
+      else if (i === selectedIdx) cls += ' wrong-ans';
+    } else if (i === selectedIdx) {
+      cls += ' selected';
+    }
+    var blocked = answered ? 'style="pointer-events:none"' : '';
+    optsHtml += '<div class="' + cls + '" id="gc-opt-' + i + '" onclick="selectGrammarOpt(' + i + ')" ' + blocked + '>'
+      + '<div class="opt-badge">' + letters[i] + '</div>'
+      + '<div class="opt-text">' + makeWordsClickable(q.opts[i]) + '</div>'
+      + '</div>';
+  }
+
+  // Explanation
+  var explainHtml = '';
+  if (answered) {
+    var isCorrect = (selectedIdx === q.correct);
+    var expCls = isCorrect ? 'correct-exp' : 'wrong-exp';
+    var expTitle = isCorrect ? '✓ נכון!' : '✗ לא נכון';
+    explainHtml = '<div class="explain-card ' + expCls + '"><div class="explain-title">' + expTitle + '</div>' + q.explanation + '</div>';
+  }
+
+  // Next / Results button
+  var isLast = (gcCurrentQ === gcQuestions.length - 1);
+  var nextBtnHtml = answered
+    ? '<button class="next-btn" onclick="' + (isLast ? 'showGrammarResults()' : 'nextGrammarQ()') + '">'
+      + (isLast ? 'ראה תוצאות ←' : 'שאלה הבאה ←') + '</button>'
+    : '';
+
+  var setNum = gcCurrentSet + 1;
+  var body =
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:8px">'
+    + '<div style="font-size:14px;color:var(--gray-600)">סט ' + setNum + ' · שאלה ' + (gcCurrentQ+1) + ' מתוך ' + gcQuestions.length + '</div>'
+    + '<div style="display:flex;gap:6px;align-items:center">' + navDots + '</div>'
+    + '</div>'
+    + '<div class="q-card">'
+    + '<div class="q-number" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'
+    + 'Grammar in Context'
+    + '<button class="listen-btn" onclick="speakGrammarQ()" id="gc-listen-btn"><span class="listen-icon">&#9654;</span> האזן לשאלה</button>'
+    + '</div>'
+    + '<div class="q-text" id="gc-q-text">' + makeWordsClickable(q.text) + '</div>'
+    + '<div class="options">' + optsHtml + '</div>'
+    + '</div>'
+    + explainHtml
+    + nextBtnHtml;
+
+  document.getElementById('grammar-exercise-body').innerHTML = body;
+}
+
+function selectGrammarOpt(idx) {
+  if (gcAnswered[gcCurrentQ]) return;
+  gcAnswers[gcCurrentQ] = idx;
+  gcAnswered[gcCurrentQ] = true;
+  if (idx === gcQuestions[gcCurrentQ].correct) gcScore++;
+  renderGrammarQuestion();
+}
+
+function nextGrammarQ() {
+  if (gcCurrentQ < gcQuestions.length - 1) {
+    gcCurrentQ++;
+    renderGrammarQuestion();
+  }
+}
+
+function jumpGrammarQ(i) {
+  gcCurrentQ = i;
+  renderGrammarQuestion();
+}
+
+function speakGrammarQ() {
+  var q = gcQuestions[gcCurrentQ];
+  var plainText = q.text.replace(/<[^>]+>/g,' ').replace(/____/g,'blank').replace(/\s+/g,' ').trim();
+
+  if (window.speechSynthesis.speaking) {
+    window.speechSynthesis.cancel();
+    var btnNow = document.getElementById('gc-listen-btn');
+    if (btnNow && btnNow.classList.contains('playing')) {
+      btnNow.classList.remove('playing');
+      btnNow.innerHTML = '<span class="listen-icon">&#9654;</span> האזן לשאלה';
+      return;
+    }
+  }
+
+  var utt = new SpeechSynthesisUtterance(plainText);
+  utt.lang = 'en-US';
+  utt.rate = 0.9;
+
+  var btn = document.getElementById('gc-listen-btn');
+  if (btn) { btn.classList.add('playing'); btn.innerHTML = '<span class="listen-icon">◼</span> עצור'; }
+
+  utt.onend = function() {
+    var b = document.getElementById('gc-listen-btn');
+    if (b) { b.classList.remove('playing'); b.innerHTML = '<span class="listen-icon">&#9654;</span> האזן לשאלה'; }
+  };
+  utt.onerror = function() {
+    var b = document.getElementById('gc-listen-btn');
+    if (b) { b.classList.remove('playing'); b.innerHTML = '<span class="listen-icon">&#9654;</span> האזן לשאלה'; }
+  };
+  window.speechSynthesis.speak(utt);
+}
+
+function showGrammarResults() {
+  var pct = Math.round((gcScore / gcQuestions.length) * 100);
+  var setNum = gcCurrentSet + 1;
+  var emoji = pct >= 75 ? '🌟' : pct >= 50 ? '👍' : '💪';
+  var scoreColor = pct >= 75 ? '#059669' : pct >= 50 ? '#d97706' : '#dc2626';
+
+  // Save score to Supabase (non-blocking)
+  if (currentUser) { saveGrammarScore(gcScore, gcQuestions.length, setNum); }
+
+  var reviewHtml = '';
+  for (var i = 0; i < gcQuestions.length; i++) {
+    var q = gcQuestions[i];
+    var isCorrect = (gcAnswers[i] === q.correct);
+    var icon = isCorrect ? '✓' : '✗';
+    var bg = isCorrect ? '#d1fae5' : '#fee2e2';
+    var plainQ = q.text.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();
+    reviewHtml +=
+      '<div style="background:' + bg + ';border-radius:12px;padding:1rem 1.25rem;margin-bottom:12px;direction:rtl">'
+      + '<div style="font-weight:600;margin-bottom:4px">' + icon + ' שאלה ' + (i+1) + '</div>'
+      + '<div style="font-size:14px;color:#475569;margin-bottom:4px">' + plainQ + '</div>'
+      + '<div style="font-size:13px">תשובה נכונה: <strong>' + q.opts[q.correct] + '</strong></div>'
+      + (gcAnswers[i] !== q.correct && gcAnswers[i] >= 0
+        ? '<div style="font-size:13px;color:#991b1b">בחרת: ' + q.opts[gcAnswers[i]] + '</div>'
+        : '')
+      + '</div>';
+  }
+
+  document.getElementById('grammar-exercise-body').innerHTML =
+    '<div style="text-align:center;padding:2rem 0">'
+    + '<div style="font-size:3.5rem;margin-bottom:0.5rem">' + emoji + '</div>'
+    + '<div style="font-family:\'DM Serif Display\',serif;font-size:26px;color:var(--text);margin-bottom:8px">Grammar in Context — סט ' + setNum + '</div>'
+    + '<div style="font-size:18px;color:var(--gray-600);margin-bottom:4px">' + gcScore + ' / ' + gcQuestions.length + ' נכון</div>'
+    + '<div style="font-size:36px;font-weight:700;color:' + scoreColor + '">' + pct + '%</div>'
+    + '<div style="font-size:13px;color:var(--gray-500);margin-top:6px">פרקים ניסיוניים — בונוס לציון, ללא קנס על שגיאה</div>'
+    + '</div>'
+    + '<div style="margin-bottom:1.5rem">' + reviewHtml + '</div>'
+    + '<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;padding-bottom:2rem">'
+    + '<button onclick="startGrammarSet(' + gcCurrentSet + ')" style="font-family:inherit;padding:12px 28px;border-radius:12px;border:none;background:#1a56db;color:#fff;font-size:15px;font-weight:600;cursor:pointer">נסה שוב</button>'
+    + '<button onclick="showScreen(\'grammar-in-context-picker\')" style="font-family:inherit;padding:12px 28px;border-radius:12px;border:1.5px solid var(--gray-300);background:#fff;color:var(--text);font-size:15px;cursor:pointer">חזרה לסטים</button>'
+    + '</div>';
+}
+
+async function saveGrammarScore(score, total, setNum) {
+  try {
+    await supabase.from('grammar_scores').insert({
+      user_id: currentUser.id,
+      set_number: setNum,
+      score: score,
+      total_questions: total,
+      completed_at: new Date().toISOString()
+    });
+  } catch(e) { console.warn('Grammar score save failed:', e); }
+}
 
 /* ── Welcome Modal ── */
 function showWelcomeModal() {
