@@ -241,6 +241,27 @@ body{font-family:'Heebo',sans-serif;background:var(--gray-50);color:var(--text);
 #seg-listen-btn:hover{background:#1d4ed8}
 .q-text,.passage-text,.opt-text{-webkit-user-select:text;user-select:text}
 .q-text ::selection,.passage-text ::selection,.opt-text ::selection{background:rgba(245,158,11,0.4)}
+/* ── LISTENING TEXT CONTINUATION ──────────────────────────── */
+.ltc-audio-wrap{background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:16px;padding:1.5rem;margin-bottom:1.5rem;text-align:center}
+.ltc-play-btn{width:64px;height:64px;border-radius:50%;border:none;background:#1a56db;color:#fff;font-size:22px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(26,86,219,0.3);transition:transform 0.15s,box-shadow 0.15s;font-family:inherit}
+.ltc-play-btn:hover{transform:scale(1.07);box-shadow:0 6px 22px rgba(26,86,219,0.4)}
+.ltc-play-btn:active{transform:scale(0.97)}
+.ltc-listen-btn{display:inline-flex;align-items:center;gap:8px;padding:14px 32px;border-radius:50px;background:#1a56db;color:#fff;font-size:17px;font-weight:600;text-decoration:none;box-shadow:0 4px 16px rgba(26,86,219,0.3);transition:transform 0.15s,box-shadow 0.15s}
+.ltc-listen-btn:hover{transform:scale(1.04);box-shadow:0 6px 22px rgba(26,86,219,0.4)}
+.ltc-progress-wrap{margin-top:1rem;background:#e2e8f0;border-radius:999px;height:6px;cursor:pointer;position:relative}
+.ltc-progress-bar{background:#1a56db;height:6px;border-radius:999px;transition:width 0.1s linear;pointer-events:none}
+.ltc-time{font-size:12px;color:#94a3b8;margin-top:6px;font-variant-numeric:tabular-nums;font-family:monospace}
+.ltc-stop-badge{display:inline-block;background:#dc2626;color:#fff;font-size:11px;font-weight:700;padding:2px 10px;border-radius:999px;margin-top:12px;letter-spacing:0.5px}
+.ltc-option{width:100%;text-align:left;padding:14px 18px;border-radius:12px;border:1.5px solid #e2e8f0;background:#fff;font-family:inherit;font-size:15px;cursor:pointer;margin-bottom:10px;transition:border-color 0.15s,background 0.15s;display:flex;align-items:center;gap:12px;direction:ltr;line-height:1.4}
+.ltc-option:hover:not([disabled]){border-color:#93c5fd;background:#eff6ff}
+.ltc-option[disabled]{cursor:default}
+.ltc-option-letter{min-width:28px;height:28px;border-radius:50%;background:#f1f5f9;color:#475569;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background 0.15s,color 0.15s}
+.ltc-option.ltc-selected{border-color:#1a56db;background:#eff6ff}
+.ltc-option.ltc-selected .ltc-option-letter{background:#1a56db;color:#fff}
+.ltc-option.ltc-correct{border-color:#059669;background:#d1fae5}
+.ltc-option.ltc-correct .ltc-option-letter{background:#059669;color:#fff}
+.ltc-option.ltc-wrong{border-color:#dc2626;background:#fee2e2}
+.ltc-option.ltc-wrong .ltc-option-letter{background:#dc2626;color:#fff}
 </style>
 <script>
 (function(){
@@ -641,13 +662,13 @@ body{font-family:'Heebo',sans-serif;background:var(--gray-50);color:var(--text);
         <div style="font-size:15px;font-weight:600;margin-bottom:6px">Word Formation</div>
         <div style="font-size:13px;color:var(--gray-600);line-height:1.6">גזור את המילה הנכונה ממילת הבסיס · הקלדה · 5 סטים</div>
       </div>
-      <div class="exp-type-card coming-soon">
+      <div class="exp-type-card" onclick="showScreen('listening-picker')" style="cursor:pointer">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
-          <span style="font-size:12px;font-weight:600;padding:3px 10px;background:#f1f5f9;color:#64748b;border-radius:999px">בקרוב</span>
+          <span style="font-size:12px;font-weight:600;padding:3px 10px;background:#eff6ff;color:#1d4ed8;border-radius:999px">3 סטים · 12 שאלות</span>
           <span style="font-size:22px">🎧</span>
         </div>
         <div style="font-size:15px;font-weight:600;margin-bottom:6px">Listening — Text Continuation</div>
-        <div style="font-size:13px;color:var(--gray-600);line-height:1.6">השלמת משפט עם שמיעה · 4 קטעים קצרים</div>
+        <div style="font-size:13px;color:var(--gray-600);line-height:1.6">השלמת משפט עם שמיעה · 4 קטעים קצרים לסט</div>
       </div>
       <div class="exp-type-card coming-soon">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
@@ -826,6 +847,67 @@ body{font-family:'Heebo',sans-serif;background:var(--gray-50);color:var(--text);
     <button onclick="showScreen('word-formation-picker')" style="font-family:inherit;font-size:13px;background:transparent;border:0.5px solid rgba(255,255,255,0.3);color:rgba(255,255,255,0.8);padding:6px 14px;border-radius:999px;cursor:pointer">← חזרה לסטים</button>
   </header>
   <div style="max-width:680px;margin:0 auto;padding:2rem 1.5rem" id="wf-exercise-body">
+  </div>
+</div>
+
+<!-- LISTENING — SET PICKER -->
+<div id="listening-picker" class="screen">
+  <header class="home-header">
+    <div class="logo">Amir<span>NET</span> Pro</div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <button onclick="signOut()" style="font-family:var(--font-sans);font-size:12px;background:transparent;border:1px solid rgba(255,255,255,0.25);color:rgba(255,255,255,0.6);padding:5px 12px;border-radius:999px;cursor:pointer;">יציאה</button>
+    </div>
+    <button onclick="showScreen('experimental-picker')" style="font-family:inherit;font-size:13px;background:transparent;border:0.5px solid rgba(255,255,255,0.3);color:rgba(255,255,255,0.8);padding:6px 14px;border-radius:999px;cursor:pointer">← חזרה</button>
+  </header>
+  <div style="max-width:700px;margin:0 auto;padding:3rem 2rem">
+    <div style="text-align:center;margin-bottom:2.5rem">
+      <div style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:4px 12px;background:#eff6ff;color:#1d4ed8;border-radius:999px;margin-bottom:0.75rem">🧪 פרק ניסיוני · AMIRNET</div>
+      <div style="font-family:'DM Serif Display',serif;font-size:26px;color:var(--text);margin-bottom:1rem">Listening — Text Continuation</div>
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:1.25rem 1.5rem;text-align:right;line-height:1.9;font-size:14.5px;color:#334155">
+        בכל שאלה תשמע קטע אקדמי קצר (כ-20 שניות) שנפסק באמצע משפט.<br>
+        בחר את <strong>ההמשך הנכון</strong> של המשפט מתוך ארבעת האפשרויות.<br>
+        הקשב היטב — תוכל להשמיע כל קטע שוב לפי הצורך. אין קנס על שגיאה.
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
+      <div class="mode-card" onclick="startLTCSet(0)" style="text-align:right;cursor:pointer">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
+          <span style="font-size:12px;font-weight:700;padding:3px 10px;background:#e2e8f0;color:#475569;border-radius:999px">סט 1</span>
+          <span style="font-size:22px">🧠</span>
+        </div>
+        <div style="font-size:15px;font-weight:500;margin-bottom:6px">Psychology &amp; Science</div>
+        <div style="font-size:13px;color:var(--gray-600);line-height:1.6">4 קטעים · פסיכולוגיה, ביולוגיה, בלשנות, היסטוריה</div>
+      </div>
+      <div class="mode-card" onclick="startLTCSet(1)" style="text-align:right;cursor:pointer">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
+          <span style="font-size:12px;font-weight:700;padding:3px 10px;background:#e2e8f0;color:#475569;border-radius:999px">סט 2</span>
+          <span style="font-size:22px">🌿</span>
+        </div>
+        <div style="font-size:15px;font-weight:500;margin-bottom:6px">Environment &amp; Health</div>
+        <div style="font-size:13px;color:var(--gray-600);line-height:1.6">4 קטעים · סביבה, מדעי המוח, כלכלה, רפואה</div>
+      </div>
+      <div class="mode-card" onclick="startLTCSet(2)" style="text-align:right;cursor:pointer">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
+          <span style="font-size:12px;font-weight:700;padding:3px 10px;background:#e2e8f0;color:#475569;border-radius:999px">סט 3</span>
+          <span style="font-size:22px">🌍</span>
+        </div>
+        <div style="font-size:15px;font-weight:500;margin-bottom:6px">Society &amp; Education</div>
+        <div style="font-size:13px;color:var(--gray-600);line-height:1.6">4 קטעים · פסיכולוגיה חברתית, אנתרופולוגיה, פלצבו, חינוך</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- LISTENING — EXERCISE -->
+<div id="listening-exercise" class="screen">
+  <header class="home-header">
+    <div class="logo">Amir<span>NET</span> Pro</div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <button onclick="signOut()" style="font-family:var(--font-sans);font-size:12px;background:transparent;border:1px solid rgba(255,255,255,0.25);color:rgba(255,255,255,0.6);padding:5px 12px;border-radius:999px;cursor:pointer;">יציאה</button>
+    </div>
+    <button onclick="showScreen('listening-picker')" style="font-family:inherit;font-size:13px;background:transparent;border:0.5px solid rgba(255,255,255,0.3);color:rgba(255,255,255,0.8);padding:6px 14px;border-radius:999px;cursor:pointer">← חזרה לסטים</button>
+  </header>
+  <div style="max-width:680px;margin:0 auto;padding:2rem 1.5rem" id="ltc-exercise-body">
   </div>
 </div>
 
@@ -5666,6 +5748,383 @@ function dismissWelcomeModal(goToLessons) {
   try { localStorage.setItem(key, '1'); } catch(e) {}
   document.getElementById('welcome-modal-overlay').style.display = 'none';
   if (goToLessons) window.location.href = 'amirnet-lessons.html';
+}
+
+// ─────────────────────────────────────────────────────────────
+// LISTENING TEXT CONTINUATION (LTC)
+// ─────────────────────────────────────────────────────────────
+
+const ltcData = [
+  // SET 1 — clips 1–4
+  {
+    audioId: '1A0dve6sbZTvlm2kKyzmrUs5ghoJr7K0m',
+    topic: 'Psychology — Cognitive Dissonance',
+    options: ['resist any challenge to it','seek out opposing viewpoints','accept conflicting information','revise their original position'],
+    correctIndex: 0,
+    hebrew: 'הטקסט מסביר שאנשים מחזקים את אמונותיהם כשהן מאוימות — לכן "התנגדות לכל אתגר" היא ההמשך הלוגי.'
+  },
+  {
+    audioId: '16sxz_0-otLl5DqBx-BeLJuv35Gf5_j0h',
+    topic: 'Biology — Antibiotic Resistance',
+    options: ['detect in blood samples','eliminate with standard treatments','classify by species','transmit between patients'],
+    correctIndex: 1,
+    hebrew: 'הטקסט מתאר עמידות לאנטיביוטיקה — בקטריה שורדת ומתחזקת, ולכן "קשה יותר לחיסולה בטיפולים סטנדרטיים."'
+  },
+  {
+    audioId: '1RxXyH-CXcuSUSi5gdwxAQ7REKZPTeUtX',
+    topic: 'Linguistics — Chomsky',
+    options: ['shaped entirely by cultural context','acquired gradually through social interaction','a fundamental and distinctly human biological trait','dependent on the grammatical structure of one\'s native language'],
+    correctIndex: 2,
+    hebrew: 'כל הטקסט מוביל לטענה שהשפה אינה נרכשת — היא מולדת ביולוגית. "תכונה ביולוגית אנושית יסודית" הוא ההמשך הישיר.'
+  },
+  {
+    audioId: '1oFaZm7-OM5lzQ2rDXS-t0k_Q_VvI7vCd',
+    topic: 'History — Industrial Revolution',
+    options: ['agricultural output and farming methods','scientific research institutions','public education systems','military recruitment practices'],
+    correctIndex: 0,
+    hebrew: '"שדות שננטשו" ו"תפוקה שירדה חדות" הם רמזים ברורים לשינויים חקלאיים — "תפוקה חקלאית ושיטות גידול" הוא ההמשך הנכון.'
+  },
+  // SET 2 — clips 5–8
+  {
+    audioId: '1DQtU0N3Zn2hlVnubvcVCgByQzLkNfqc-',
+    topic: 'Environmental Science — Coral Bleaching',
+    options: ['starve and die','adapt to the warmer conditions','attract new species of algae','enter a temporary dormant state'],
+    correctIndex: 0,
+    hebrew: 'הטקסט מסביר שהאלמוגים מאבדים את מקור המזון שלהם — "לרעוב וגווע" הוא ההמשך הישיר.'
+  },
+  {
+    audioId: '1NtK9d8Lpdud9HbE5j2wiX-u53BkLolnc',
+    topic: 'Neuroscience — Sleep',
+    options: ['response to physical exhaustion','cycle driven by hormonal changes','phase of cognitive processing and memory formation','shutdown of sensory systems'],
+    correctIndex: 2,
+    hebrew: 'הטקסט מתאר את השינה כתהליך פעיל של עיבוד מידע — "שלב של עיבוד קוגניטיבי וגיבוש זיכרון" הוא המשך ישיר.'
+  },
+  {
+    audioId: '1OCvrR9sBYcfZNm7Mu-bUnZ5f_oLMfOYt',
+    topic: 'Economics — Income Inequality',
+    options: ['achieve a higher standard of living than their parents','pursue careers in the public sector','rely on government assistance programs','remain in their birth country'],
+    correctIndex: 0,
+    hebrew: 'הטקסט עוסק בניידות חברתית — ילדים ממשפחות עניות נותרים עניים. "להשיג רמת חיים גבוהה מהוריהם" הוא ההמשך הנכון.'
+  },
+  {
+    audioId: '1IDaagqTfVKbp0ghfKGhbByAbmE3URC4h',
+    topic: 'Medicine — Chronic Stress',
+    options: ['immune system','sense of balance','color and sound perception','physical muscles'],
+    correctIndex: 0,
+    hebrew: 'הרמז המפורש — "נצטננים יותר לעיתים קרובות ומתאוששים לאט יותר מזיהומים" — מצביע ישירות על מערכת החיסון.'
+  },
+  // SET 3 — clips 9–12
+  {
+    audioId: '1zhj2JOvG7aK4s1QoMHERlIkreC-h8aqu',
+    topic: 'Medicine — Placebo Effect',
+    options: ['ethics of clinical research methods','role of the mind in physical healing','accuracy of self-reported symptoms','reliability of pharmaceutical testing'],
+    correctIndex: 1,
+    hebrew: 'אנשים מחלימים בלי טיפול אמיתי — הטקסט שואל שאלות על הקשר בין מוח לגוף. "תפקיד המוח בריפוי פיזי" הוא ההמשך.'
+  },
+  {
+    audioId: '1DHbQhXEaY_BdIdC-ZpoRjg3jxg5uM-iI',
+    topic: 'Social Psychology — Asch Conformity',
+    options: ['misunderstand simple instructions','feel anxious in group settings','perform poorly on visual tasks','override their own perception in order to fit in'],
+    correctIndex: 3,
+    hebrew: '"הלכו עם הקבוצה תוך התעלמות מראיות חזותיות ברורות" — הרמז המפורש מצביע על "לעקוף את תפיסתם כדי להשתלב".'
+  },
+  {
+    audioId: '1Ta7QPKkjDy5JAAGAKMkmwHhR4kUvWchH',
+    topic: 'Anthropology — Cultural Diffusion',
+    options: ['adopted and adapted from entirely different cultures','preserved through ancient oral traditions','independently rediscovered across civilizations','documented only in written historical records'],
+    correctIndex: 0,
+    hebrew: 'הטקסט מתאר כיצד פרקטיקות "נסעו" בין תרבויות — "אומצו ועובדו מתרבויות שונות לגמרי" הוא ההמשך הנכון.'
+  },
+  {
+    audioId: '162rOZTGxaro0bkEZMh3sueg_crqVwFbv',
+    topic: 'Educational Psychology — Dweck / Growth Mindset',
+    options: ['collaborate with peers on group tasks','seek approval from their teachers','memorize material for examinations','take on difficult challenges and persist through setbacks'],
+    correctIndex: 3,
+    hebrew: '"גמישות נוכח כישלון" הוא הרמז — "לקחת על עצמם אתגרים קשים ולהתמיד דרך מכשולים" משלים את תיאור ה-growth mindset.'
+  }
+];
+
+// LTC state
+var ltcCurrentSet = 0;
+var ltcQuestions = [];
+var ltcCurrentQ = 0;
+var ltcSelected = [];
+var ltcChecked = [];
+var ltcCorrect = [];
+var ltcScore = 0;
+var ltcAudioEl = null;
+var ltcCurrentFallbackUrl = '';
+
+function startLTCSet(setIdx) {
+  ltcCurrentSet = setIdx;
+  ltcQuestions = ltcData.slice(setIdx * 4, setIdx * 4 + 4);
+  ltcCurrentQ = 0;
+  ltcSelected = [-1,-1,-1,-1];
+  ltcChecked = [false,false,false,false];
+  ltcCorrect = [false,false,false,false];
+  ltcScore = 0;
+  if (ltcAudioEl) { try { ltcAudioEl.pause(); } catch(e){} ltcAudioEl = null; }
+  showScreen('listening-exercise');
+  renderLTCQuestion();
+}
+
+function renderLTCQuestion() {
+  var q = ltcQuestions[ltcCurrentQ];
+  var checked = ltcChecked[ltcCurrentQ];
+  var selIdx = ltcSelected[ltcCurrentQ];
+  var setNum = ltcCurrentSet + 1;
+
+  if (ltcAudioEl) { try { ltcAudioEl.pause(); } catch(e){} }
+
+  // Nav dots
+  var letters = ['A','B','C','D'];
+  var navDots = '';
+  for (var di = 0; di < ltcQuestions.length; di++) {
+    var dotCls = 'gc-dot';
+    if (di === ltcCurrentQ) dotCls += ' gc-dot-current';
+    else if (ltcChecked[di]) dotCls += (ltcCorrect[di] ? ' gc-dot-correct' : ' gc-dot-wrong');
+    navDots += '<span class="' + dotCls + '" onclick="jumpLTCQ(' + di + ')" title="שאלה ' + (di+1) + '"></span>';
+  }
+
+  var audioPreviewUrl = 'https://drive.google.com/file/d/' + q.audioId + '/preview';
+
+  // Option buttons
+  var optionsHtml = '';
+  for (var oi = 0; oi < q.options.length; oi++) {
+    var cls = 'ltc-option';
+    var suffix = '';
+    if (checked) {
+      if (oi === q.correctIndex) { cls += ' ltc-correct'; suffix = ' ✓'; }
+      else if (oi === selIdx && selIdx !== q.correctIndex) { cls += ' ltc-wrong'; suffix = ' ✗'; }
+    } else {
+      if (oi === selIdx) cls += ' ltc-selected';
+    }
+    var disabled = checked ? 'disabled' : '';
+    optionsHtml += '<button class="' + cls + '" onclick="selectLTCAnswer(' + oi + ')" ' + disabled + '>'
+      + '<span class="ltc-option-letter">' + letters[oi] + '</span>'
+      + '<span>' + q.options[oi] + suffix + '</span>'
+      + '</button>';
+  }
+
+  // Check button
+  var actionBtn = '';
+  if (!checked) {
+    if (selIdx >= 0) {
+      actionBtn = '<button id="ltc-check-btn" class="wf-check-btn" onclick="checkLTCAnswer()" style="margin-top:4px">בדוק תשובה ✓</button>';
+    } else {
+      actionBtn = '<button id="ltc-check-btn" class="wf-check-btn" onclick="checkLTCAnswer()" style="margin-top:4px;opacity:0.45;cursor:not-allowed" disabled>בחר תשובה תחילה</button>';
+    }
+  }
+
+  // Explanation + next button (shown after checking)
+  var explainHtml = '';
+  if (checked) {
+    var isLast = (ltcCurrentQ === ltcQuestions.length - 1);
+    var isCorrect = ltcCorrect[ltcCurrentQ];
+    var expCls = isCorrect ? 'correct-exp' : 'wrong-exp';
+    var expTitle = isCorrect
+      ? '✓ נכון!'
+      : '✗ לא נכון — התשובה הנכונה: <strong>' + letters[q.correctIndex] + '. ' + q.options[q.correctIndex] + '</strong>';
+    explainHtml =
+      '<div class="explain-card ' + expCls + '">'
+      + '<div class="explain-title">' + expTitle + '</div>'
+      + '<div style="direction:rtl;text-align:right;font-size:14px;line-height:1.8;margin-top:8px;color:#334155">' + q.hebrew + '</div>'
+      + '</div>'
+      + '<button class="next-btn" onclick="' + (isLast ? 'showLTCResults()' : 'nextLTCQ()') + '">'
+      + (isLast ? 'ראה תוצאות ←' : 'שאלה הבאה ←')
+      + '</button>';
+  }
+
+  document.getElementById('ltc-exercise-body').innerHTML =
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:8px">'
+    + '<div style="font-size:14px;color:var(--gray-600)">סט ' + setNum + ' · שאלה ' + (ltcCurrentQ+1) + ' מתוך ' + ltcQuestions.length + '</div>'
+    + '<div style="display:flex;gap:6px;align-items:center">' + navDots + '</div>'
+    + '</div>'
+    + '<div class="q-card">'
+    + '<div class="q-number">🎧 Listening — Text Continuation</div>'
+    + '<div style="font-size:13px;color:var(--gray-500);margin-bottom:1.25rem;direction:ltr">' + q.topic + '</div>'
+    // Audio player — Drive iframe embed (compact height, pop-out blocked)
+    + '<div class="ltc-audio-wrap">'
+    + '<div style="position:relative;height:210px;overflow:hidden;border-radius:10px;background:#000">'
+    + '<iframe src="' + audioPreviewUrl + '" allow="autoplay" allowfullscreen style="position:absolute;top:0;left:0;width:100%;height:100%;border:none"></iframe>'
+    + '<div style="position:absolute;top:0;right:0;width:60px;height:50px;z-index:10;background:transparent;cursor:default"></div>'
+    + '</div>'
+    + '<div class="ltc-stop-badge" style="margin-top:12px">✋ [STOP] — השלם את המשפט</div>'
+    + '</div>'
+    // Options
+    + '<div style="margin-top:1.25rem">' + optionsHtml + '</div>'
+    + actionBtn
+    + '</div>'
+    + explainHtml;
+
+}
+
+function ltcAudioFallback() {
+  var wrap = document.getElementById('ltc-audio-wrap');
+  if (!wrap) return;
+  wrap.innerHTML =
+    '<a href="' + ltcCurrentFallbackUrl + '" target="_blank" rel="noopener" class="ltc-listen-btn">🎧 האזן לקטע</a>'
+    + '<div style="font-size:13px;color:#64748b;margin-top:0.85rem">הקישור נפתח בחלון חדש · ניתן להאזין שוב</div>'
+    + '<div class="ltc-stop-badge" style="margin-top:12px">✋ [STOP] — השלם את המשפט</div>';
+}
+
+function ltcBindAudio() {
+  ltcAudioEl = document.getElementById('ltc-audio');
+  if (!ltcAudioEl) return;
+
+  ltcAudioEl.addEventListener('timeupdate', function() {
+    var el = document.getElementById('ltc-audio');
+    if (!el) return;
+    var pct = el.duration ? (el.currentTime / el.duration * 100) : 0;
+    var bar = document.getElementById('ltc-progress-bar');
+    var timeEl = document.getElementById('ltc-time');
+    if (bar) bar.style.width = pct + '%';
+    if (timeEl) timeEl.textContent = ltcFmtTime(el.currentTime) + ' / ' + (isNaN(el.duration) ? '--:--' : ltcFmtTime(el.duration));
+  });
+
+  ltcAudioEl.addEventListener('ended', function() {
+    var btn = document.getElementById('ltc-play-btn');
+    if (btn) btn.textContent = '▶';
+  });
+  ltcAudioEl.addEventListener('pause', function() {
+    var btn = document.getElementById('ltc-play-btn');
+    if (btn) btn.textContent = '▶';
+  });
+  ltcAudioEl.addEventListener('play', function() {
+    var btn = document.getElementById('ltc-play-btn');
+    if (btn) btn.textContent = '⏸';
+  });
+  ltcAudioEl.addEventListener('error', function() {
+    var wrap = document.getElementById('ltc-audio-wrap');
+    if (!wrap || wrap.querySelector('.ltc-audio-err')) return;
+    var d = document.createElement('div');
+    d.className = 'ltc-audio-err';
+    d.style.cssText = 'color:#dc2626;font-size:13px;margin-top:8px;direction:rtl';
+    d.textContent = '⚠️ שגיאה בטעינת הקובץ. ודא שהקובץ שותף לציבור ב-Drive.';
+    wrap.appendChild(d);
+  });
+}
+
+function toggleLTCAudio() {
+  var el = document.getElementById('ltc-audio');
+  if (!el) return;
+  if (el.paused) {
+    el.play().catch(function(e){ console.warn('LTC audio play failed:', e); });
+  } else {
+    el.pause();
+  }
+}
+
+function seekLTCAudio(e) {
+  var el = document.getElementById('ltc-audio');
+  var wrap = document.getElementById('ltc-progress-wrap');
+  if (!el || !wrap || isNaN(el.duration)) return;
+  var rect = wrap.getBoundingClientRect();
+  var pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+  el.currentTime = pct * el.duration;
+}
+
+function ltcFmtTime(s) {
+  var m = Math.floor(s / 60);
+  var sec = Math.floor(s % 60);
+  return m + ':' + (sec < 10 ? '0' : '') + sec;
+}
+
+function selectLTCAnswer(optIdx) {
+  if (ltcChecked[ltcCurrentQ]) return;
+  ltcSelected[ltcCurrentQ] = optIdx;
+  // Update button states without full re-render
+  document.querySelectorAll('.ltc-option').forEach(function(btn, i) {
+    btn.classList.remove('ltc-selected');
+    if (i === optIdx) btn.classList.add('ltc-selected');
+  });
+  // Enable check button
+  var checkBtn = document.getElementById('ltc-check-btn');
+  if (checkBtn) {
+    checkBtn.disabled = false;
+    checkBtn.style.opacity = '';
+    checkBtn.style.cursor = '';
+    checkBtn.textContent = 'בדוק תשובה ✓';
+  }
+}
+
+function checkLTCAnswer() {
+  if (ltcChecked[ltcCurrentQ]) return;
+  var selIdx = ltcSelected[ltcCurrentQ];
+  if (selIdx < 0) return;
+  ltcChecked[ltcCurrentQ] = true;
+  var q = ltcQuestions[ltcCurrentQ];
+  ltcCorrect[ltcCurrentQ] = (selIdx === q.correctIndex);
+  if (ltcCorrect[ltcCurrentQ]) ltcScore++;
+  var el = document.getElementById('ltc-audio');
+  if (el) try { el.pause(); } catch(e){}
+  renderLTCQuestion();
+}
+
+function nextLTCQ() {
+  if (ltcCurrentQ < ltcQuestions.length - 1) {
+    ltcCurrentQ++;
+    renderLTCQuestion();
+  }
+}
+
+function jumpLTCQ(i) {
+  ltcCurrentQ = i;
+  renderLTCQuestion();
+}
+
+function showLTCResults() {
+  var el = document.getElementById('ltc-audio');
+  if (el) try { el.pause(); } catch(e){}
+  ltcAudioEl = null;
+
+  var pct = Math.round((ltcScore / ltcQuestions.length) * 100);
+  var setNum = ltcCurrentSet + 1;
+  var emoji = pct >= 75 ? '🌟' : pct >= 50 ? '👍' : '💪';
+  var scoreColor = pct >= 75 ? '#059669' : pct >= 50 ? '#d97706' : '#dc2626';
+
+  if (currentUser) { saveLTCScore(ltcScore, ltcQuestions.length, setNum); }
+
+  var letters = ['A','B','C','D'];
+  var reviewHtml = '';
+  for (var i = 0; i < ltcQuestions.length; i++) {
+    var q = ltcQuestions[i];
+    var ok = ltcCorrect[i];
+    var bg = ok ? '#d1fae5' : '#fee2e2';
+    reviewHtml +=
+      '<div style="background:' + bg + ';border-radius:12px;padding:1rem 1.25rem;margin-bottom:12px">'
+      + '<div style="font-weight:600;margin-bottom:4px;direction:ltr">' + (ok ? '✓' : '✗') + ' שאלה ' + (i+1) + ' · ' + q.topic + '</div>'
+      + '<div style="font-size:13px;direction:ltr;margin-bottom:4px">תשובה נכונה: <strong>' + letters[q.correctIndex] + '. ' + q.options[q.correctIndex] + '</strong></div>'
+      + (!ok && ltcSelected[i] >= 0 ? '<div style="font-size:13px;color:#991b1b;direction:ltr">בחרת: ' + letters[ltcSelected[i]] + '. ' + q.options[ltcSelected[i]] + '</div>' : '')
+      + '<div style="font-size:13px;color:#475569;margin-top:8px;direction:rtl;text-align:right;border-top:1px solid rgba(0,0,0,0.07);padding-top:6px">' + q.hebrew + '</div>'
+      + '</div>';
+  }
+
+  document.getElementById('ltc-exercise-body').innerHTML =
+    '<div style="text-align:center;padding:2rem 0">'
+    + '<div style="font-size:3.5rem;margin-bottom:0.5rem">' + emoji + '</div>'
+    + '<div style="font-family:\'DM Serif Display\',serif;font-size:26px;color:var(--text);margin-bottom:8px">Listening · סט ' + setNum + '</div>'
+    + '<div style="font-size:18px;color:var(--gray-600);margin-bottom:4px">' + ltcScore + ' / ' + ltcQuestions.length + ' נכון</div>'
+    + '<div style="font-size:36px;font-weight:700;color:' + scoreColor + '">' + pct + '%</div>'
+    + '<div style="font-size:13px;color:var(--gray-500);margin-top:6px">פרקים ניסיוניים — בונוס לציון, ללא קנס על שגיאה</div>'
+    + '</div>'
+    + '<div style="margin-bottom:1.5rem">' + reviewHtml + '</div>'
+    + '<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;padding-bottom:2rem">'
+    + '<button onclick="startLTCSet(' + ltcCurrentSet + ')" style="font-family:inherit;padding:12px 28px;border-radius:12px;border:none;background:#1a56db;color:#fff;font-size:15px;font-weight:600;cursor:pointer">נסה שוב</button>'
+    + '<button onclick="showScreen(\'listening-picker\')" style="font-family:inherit;padding:12px 28px;border-radius:12px;border:1.5px solid var(--gray-300);background:#fff;color:var(--text);font-size:15px;cursor:pointer">חזרה לסטים</button>'
+    + '</div>';
+}
+
+async function saveLTCScore(score, total, setNum) {
+  try {
+    await sb.from('listening_scores').insert({
+      user_id: currentUser.id,
+      set_number: setNum,
+      score: score,
+      total_questions: total,
+      completed_at: new Date().toISOString()
+    });
+  } catch(e) { console.warn('LTC score save failed:', e); }
 }
 </script>
 
