@@ -868,8 +868,16 @@ body{font-family:'Heebo',sans-serif;background:var(--gray-50);color:var(--text);
         בחר את <strong>ההמשך הנכון</strong> של המשפט מתוך ארבעת האפשרויות.<br>
         הקשב היטב — תוכל להשמיע כל קטע שוב לפי הצורך. אין קנס על שגיאה.
       </div>
+      <a href="https://www.nite.org.il/other-tests/amirnet/practice-test/listening-text-continuation/" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#1a56db;text-decoration:none;padding:7px 16px;border:1px solid #bfdbfe;border-radius:999px;background:#eff6ff;transition:background .15s;margin-top:1.25rem" onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#eff6ff'">
+        🔗 ראה שאלות לדוגמה באתר מאל״ו הרשמי
+      </a>
+      <!-- Mode toggle -->
+      <div style="display:flex;align-items:center;justify-content:center;gap:4px;margin-top:1.5rem;background:#f1f5f9;border-radius:999px;padding:4px;width:fit-content;margin-left:auto;margin-right:auto">
+        <button id="ltc-mode-free" onclick="setLTCMode(false)" style="font-family:inherit;font-size:13px;padding:7px 20px;border:none;border-radius:999px;cursor:pointer;background:#1a56db;color:#fff;font-weight:700;transition:all .15s">תרגול חופשי</button>
+        <button id="ltc-mode-sim"  onclick="setLTCMode(true)"  style="font-family:inherit;font-size:13px;padding:7px 20px;border:none;border-radius:999px;cursor:pointer;background:transparent;color:#64748b;font-weight:500;transition:all .15s">🕐 סימולציה (4 דק׳)</button>
+      </div>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-top:2rem">
       <div class="mode-card" onclick="startLTCSet(0)" style="text-align:right;cursor:pointer">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
           <span style="font-size:12px;font-weight:700;padding:3px 10px;background:#e2e8f0;color:#475569;border-radius:999px">סט 1</span>
@@ -905,7 +913,7 @@ body{font-family:'Heebo',sans-serif;background:var(--gray-50);color:var(--text);
     <div style="display:flex;align-items:center;gap:12px">
       <button onclick="signOut()" style="font-family:var(--font-sans);font-size:12px;background:transparent;border:1px solid rgba(255,255,255,0.25);color:rgba(255,255,255,0.6);padding:5px 12px;border-radius:999px;cursor:pointer;">יציאה</button>
     </div>
-    <button onclick="showScreen('listening-picker')" style="font-family:inherit;font-size:13px;background:transparent;border:0.5px solid rgba(255,255,255,0.3);color:rgba(255,255,255,0.8);padding:6px 14px;border-radius:999px;cursor:pointer">← חזרה לסטים</button>
+    <button onclick="stopLTCTimer();showScreen('listening-picker')" style="font-family:inherit;font-size:13px;background:transparent;border:0.5px solid rgba(255,255,255,0.3);color:rgba(255,255,255,0.8);padding:6px 14px;border-radius:999px;cursor:pointer">← חזרה לסטים</button>
   </header>
   <div style="max-width:680px;margin:0 auto;padding:2rem 1.5rem" id="ltc-exercise-body">
   </div>
@@ -5854,6 +5862,10 @@ var ltcCorrect = [];
 var ltcScore = 0;
 var ltcAudioEl = null;
 var ltcCurrentFallbackUrl = '';
+var ltcTimerMode = false;
+var ltcTimerSeconds = 0;
+var ltcTimerInterval = null;
+var LTC_TIMER_TOTAL = 240; // 4 minutes (official AMIRNET time per section)
 
 function startLTCSet(setIdx) {
   ltcCurrentSet = setIdx;
@@ -5865,6 +5877,7 @@ function startLTCSet(setIdx) {
   ltcScore = 0;
   if (ltcAudioEl) { try { ltcAudioEl.pause(); } catch(e){} ltcAudioEl = null; }
   showScreen('listening-exercise');
+  if (ltcTimerMode) { startLTCTimer(); } else { stopLTCTimer(); }
   renderLTCQuestion();
 }
 
@@ -5887,6 +5900,18 @@ function renderLTCQuestion() {
   }
 
   var audioPreviewUrl = 'https://drive.google.com/file/d/' + q.audioId + '/preview';
+
+  // Timer pill (simulation mode only)
+  var timerPillHtml = '';
+  if (ltcTimerMode) {
+    var tMin = Math.floor(ltcTimerSeconds / 60);
+    var tSec = ltcTimerSeconds % 60;
+    var tStr = tMin + ':' + (tSec < 10 ? '0' : '') + tSec;
+    var tWarn = ltcTimerSeconds <= 60;
+    timerPillHtml = '<span id="ltc-timer-pill" style="font-size:13px;font-weight:700;padding:5px 14px;border-radius:999px;border:1.5px solid '
+      + (tWarn ? '#fca5a5' : '#bfdbfe') + ';background:' + (tWarn ? '#fee2e2' : '#eff6ff')
+      + ';color:' + (tWarn ? '#dc2626' : '#1a56db') + '">⏱ ' + tStr + '</span>';
+  }
 
   // Option buttons
   var optionsHtml = '';
@@ -5938,6 +5963,7 @@ function renderLTCQuestion() {
   document.getElementById('ltc-exercise-body').innerHTML =
     '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:8px">'
     + '<div style="font-size:14px;color:var(--gray-600)">סט ' + setNum + ' · שאלה ' + (ltcCurrentQ+1) + ' מתוך ' + ltcQuestions.length + '</div>'
+    + timerPillHtml
     + '<div style="display:flex;gap:6px;align-items:center">' + navDots + '</div>'
     + '</div>'
     + '<div class="q-card">'
@@ -6030,6 +6056,50 @@ function ltcFmtTime(s) {
   return m + ':' + (sec < 10 ? '0' : '') + sec;
 }
 
+// ─── LTC Timer ──────────────────────────────────────────────
+function setLTCMode(sim) {
+  ltcTimerMode = sim;
+  var freeBtn = document.getElementById('ltc-mode-free');
+  var simBtn  = document.getElementById('ltc-mode-sim');
+  if (!freeBtn || !simBtn) return;
+  freeBtn.style.background  = sim ? 'transparent' : '#1a56db';
+  freeBtn.style.color       = sim ? '#64748b' : '#fff';
+  freeBtn.style.fontWeight  = sim ? '500' : '700';
+  simBtn.style.background   = sim ? '#1a56db' : 'transparent';
+  simBtn.style.color        = sim ? '#fff' : '#64748b';
+  simBtn.style.fontWeight   = sim ? '700' : '500';
+}
+
+function startLTCTimer() {
+  stopLTCTimer();
+  ltcTimerSeconds = LTC_TIMER_TOTAL;
+  ltcTimerInterval = setInterval(function() {
+    ltcTimerSeconds--;
+    updateLTCTimerDisplay();
+    if (ltcTimerSeconds <= 0) {
+      stopLTCTimer();
+      showLTCResults();
+    }
+  }, 1000);
+}
+
+function stopLTCTimer() {
+  if (ltcTimerInterval) { clearInterval(ltcTimerInterval); ltcTimerInterval = null; }
+}
+
+function updateLTCTimerDisplay() {
+  var el = document.getElementById('ltc-timer-pill');
+  if (!el) return;
+  var min  = Math.floor(ltcTimerSeconds / 60);
+  var sec  = ltcTimerSeconds % 60;
+  var warn = ltcTimerSeconds <= 60;
+  el.textContent   = '⏱ ' + min + ':' + (sec < 10 ? '0' : '') + sec;
+  el.style.color       = warn ? '#dc2626' : '#1a56db';
+  el.style.borderColor = warn ? '#fca5a5' : '#bfdbfe';
+  el.style.background  = warn ? '#fee2e2' : '#eff6ff';
+}
+// ─────────────────────────────────────────────────────────────
+
 function selectLTCAnswer(optIdx) {
   if (ltcChecked[ltcCurrentQ]) return;
   ltcSelected[ltcCurrentQ] = optIdx;
@@ -6074,6 +6144,7 @@ function jumpLTCQ(i) {
 }
 
 function showLTCResults() {
+  stopLTCTimer();
   var el = document.getElementById('ltc-audio');
   if (el) try { el.pause(); } catch(e){}
   ltcAudioEl = null;
