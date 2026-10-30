@@ -5406,7 +5406,7 @@ function showWFResults() {
 
 async function saveWFScore(score, total, setNum) {
   try {
-    await supabase.from('word_formation_scores').insert({
+    await sb.from('word_formation_scores').insert({
       user_id: currentUser.id,
       set_number: setNum,
       score: score,
@@ -5755,7 +5755,7 @@ function showGrammarResults() {
 
 async function saveGrammarScore(score, total, setNum) {
   try {
-    await supabase.from('grammar_scores').insert({
+    await sb.from('grammar_scores').insert({
       user_id: currentUser.id,
       set_number: setNum,
       score: score,
@@ -6228,9 +6228,9 @@ async function showMyResults() {
   el.innerHTML = '<div style="color:rgba(255,255,255,0.5);padding:2rem 0">טוען...</div>';
 
   var results = await Promise.all([
-    supabase.from('scores').select('*').eq('user_id', currentUser.id).order('completed_at', {ascending:false}),
-    supabase.from('word_formation_scores').select('*').eq('user_id', currentUser.id).order('completed_at', {ascending:false}),
-    supabase.from('grammar_scores').select('*').eq('user_id', currentUser.id).order('completed_at', {ascending:false}),
+    sb.from('scores').select('*').eq('user_id', currentUser.id).order('completed_at', {ascending:false}),
+    sb.from('word_formation_scores').select('*').eq('user_id', currentUser.id).order('completed_at', {ascending:false}),
+    sb.from('grammar_scores').select('*').eq('user_id', currentUser.id).order('completed_at', {ascending:false}),
     sb.from('listening_scores').select('*').eq('user_id', currentUser.id).order('completed_at', {ascending:false}),
   ]);
 
