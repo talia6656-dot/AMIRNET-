@@ -694,8 +694,12 @@ async function loadDashboard() {
   await loadCurrentCode();
   // Load all profiles
   const { data: profiles } = await sb.from('profiles').select('*').order('created_at', { ascending: false });
-  // Load all scores
+  // Load all scores (reading comp)
   const { data: scores } = await sb.from('scores').select('*');
+  // Load exercise scores
+  const { data: wfScoresAll }  = await sb.from('word_formation_scores').select('*');
+  const { data: gcScoresAll }  = await sb.from('grammar_scores').select('*');
+  const { data: ltcScoresAll } = await sb.from('listening_scores').select('*');
   // Load all feedback
   const { data: feedbacks } = await sb.from('feedback').select('*');
   // Load all answer details
@@ -706,13 +710,23 @@ async function loadDashboard() {
   window._vocabProgress = vocabProgress || [];
 
   studentsData = (profiles || []).map(p => {
-    const studentScores = (scores || []).filter(s => s.user_id === p.id);
+    const studentScores   = (scores || []).filter(s => s.user_id === p.id);
+    const studentWF       = (wfScoresAll  || []).filter(s => s.user_id === p.id);
+    const studentGC       = (gcScoresAll  || []).filter(s => s.user_id === p.id);
+    const studentLTC      = (ltcScoresAll || []).filter(s => s.user_id === p.id);
     const studentFeedback = (feedbacks || []).find(f => f.user_id === p.id);
     const avgScore = studentScores.length
       ? Math.round(studentScores.reduce((a,b) => a + Math.round(b.score/b.total_questions*100), 0) / studentScores.length)
       : null;
-    const lastActive = studentScores.length
-      ? new Date(Math.max(...studentScores.map(s => new Date(s.completed_at)))).toLocaleDateString('he-IL')
+    // Last active across ALL exercise types
+    const allDates = [
+      ...studentScores.map(s => new Date(s.completed_at)),
+      ...studentWF.map(s => new Date(s.completed_at)),
+      ...studentGC.map(s => new Date(s.completed_at)),
+      ...studentLTC.map(s => new Date(s.completed_at)),
+    ];
+    const lastActive = allDates.length
+      ? new Date(Math.max(...allDates)).toLocaleDateString('he-IL')
       : null;
     const studentVocab = (window._vocabProgress || []).filter(v => v.user_id === p.id);
     const vocabKnown = studentVocab.filter(v => v.status === 'known').length;
@@ -721,20 +735,24 @@ async function loadDashboard() {
     const vocabPct = Math.round((vocabKnown / 992) * 100);
     const createdDate = new Date(p.created_at);
     // Use subscription_renewed_at only when teacher explicitly renewed (NULL = not yet renewed)
-    // After running SQL reset: UPDATE profiles SET subscription_renewed_at = NULL WHERE role = 'student'
     const renewedDate = p.subscription_renewed_at ? new Date(p.subscription_renewed_at) : null;
     const baseDate = renewedDate || createdDate;
     const renewDue = new Date(baseDate); renewDue.setDate(renewDue.getDate() + 30);
     const daysLeft = Math.ceil((renewDue - new Date()) / 86400000);
-    return { ...p, scores: studentScores, feedback: studentFeedback, avgScore, lastActive, studentVocab, vocabKnown, vocabFamiliar, vocabUnknown, vocabPct, createdDate, renewDue, daysLeft };
+    return { ...p, scores: studentScores, wfScores: studentWF, gcScores: studentGC, ltcScores: studentLTC, feedback: studentFeedback, avgScore, lastActive, studentVocab, vocabKnown, vocabFamiliar, vocabUnknown, vocabPct, createdDate, renewDue, daysLeft };
   });
 
-  // Stats
-  const totalSets = (scores || []).length;
+  // Stats — count all exercise attempts
+  const totalSets = (scores || []).length + (wfScoresAll || []).length + (gcScoresAll || []).length + (ltcScoresAll || []).length;
   const allAvgs = studentsData.filter(s => s.avgScore !== null).map(s => s.avgScore);
   const overallAvg = allAvgs.length ? Math.round(allAvgs.reduce((a,b)=>a+b,0)/allAvgs.length) : null;
   const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate()-7);
-  const activeThisWeek = studentsData.filter(s => s.scores.some(sc => new Date(sc.completed_at) > weekAgo)).length;
+  const activeThisWeek = studentsData.filter(s =>
+    s.scores.some(sc => new Date(sc.completed_at) > weekAgo) ||
+    s.wfScores.some(sc => new Date(sc.completed_at) > weekAgo) ||
+    s.gcScores.some(sc => new Date(sc.completed_at) > weekAgo) ||
+    s.ltcScores.some(sc => new Date(sc.completed_at) > weekAgo)
+  ).length;
 
   document.getElementById('stat-students').textContent = studentsData.length || '0';
   document.getElementById('stat-sets').textContent = totalSets || '0';
@@ -808,7 +826,7 @@ function renderStudents() {
     return `<div class="student-row" onclick="openModal('${s.id}')" style="${isFrozen?'opacity:0.75':''}">
       <div class="student-name">${msgDot}${s.first_name} ${s.last_name} ${statusBadge}</div>
       <div style="font-size:12px">${s.email}<br><span style="color:var(--gray-400);font-size:11px">נרשם: ${regDate}</span></div>
-      <div class="sets-done">${s.scores.length} סטים</div>
+      <div class="sets-done">${s.scores.length + (s.wfScores||[]).length + (s.gcScores||[]).length + (s.ltcScores||[]).length} סטים</div>
       <div class="avg-score ${scoreClass}">${scoreText}</div>
       <div style="font-size:12px">
         <div style="font-weight:700;color:${daysColor}">${s.daysLeft > 0 ? s.daysLeft + ' ימים' : 'פג תוקף!'}</div>
@@ -1015,8 +1033,42 @@ return `<div class="score-item" onclick="toggleAnswers(this)">
           <div class="answers-breakdown">${answersHtml}</div>
         </div>`;
       }).join('')
-    : '<div style="font-size:13px;color:var(--gray-400);padding:8px">התלמיד טרם השלים סטים.</div>';
-  document.getElementById('modal-scores').innerHTML = scoresHtml;
+    : '';
+
+  // ── WF scores (simple: no answer_details for these) ──
+  function buildSimpleScores(list, label, emoji) {
+    if (!list || !list.length) return '';
+    var rows = list.slice().sort((a,b) => new Date(b.completed_at)-new Date(a.completed_at)).map(function(sc) {
+      var pct = Math.round(sc.score/sc.total_questions*100);
+      var bg  = pct>=75?'#d1fae5':pct>=50?'#fef9c3':'#fee2e2';
+      var fg  = pct>=75?'#065f46':pct>=50?'#92400e':'#991b1b';
+      var dt  = new Date(sc.completed_at).toLocaleDateString('he-IL');
+      return '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--gray-50);border:1px solid var(--gray-200);border-radius:8px;margin-bottom:6px">'
+        + '<div style="display:flex;align-items:center;gap:10px">'
+        + '<span style="width:30px;height:30px;border-radius:50%;background:var(--blue);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center">' + sc.set_number + '</span>'
+        + '<span style="font-size:13px;color:var(--gray-600);font-weight:500">סט ' + sc.set_number + '</span>'
+        + '<span style="font-size:11px;color:var(--gray-400)">' + dt + '</span>'
+        + '</div>'
+        + '<span style="font-size:16px;font-weight:800;padding:3px 12px;border-radius:999px;background:'+bg+';color:'+fg+'">' + pct + '%</span>'
+        + '</div>';
+    }).join('');
+    return '<div style="margin-bottom:1.25rem">'
+      + '<div style="font-size:13px;font-weight:700;color:var(--gray-600);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--gray-200)">' + emoji + ' ' + label + '</div>'
+      + rows + '</div>';
+  }
+
+  var wfHtml  = buildSimpleScores(s.wfScores,  'Word Formation',     '📝');
+  var gcHtml  = buildSimpleScores(s.gcScores,  'Grammar in Context', '📐');
+  var ltcHtml = buildSimpleScores(s.ltcScores, 'Listening (LTC)',    '🎧');
+
+  var rcSection = scoresHtml
+    ? '<div style="margin-bottom:1.25rem"><div style="font-size:13px;font-weight:700;color:var(--gray-600);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--gray-200)">📖 הבנת הנקרא</div>' + scoresHtml + '</div>'
+    : '';
+
+  var allEmpty = !scoresHtml && !wfHtml && !gcHtml && !ltcHtml;
+  document.getElementById('modal-scores').innerHTML = allEmpty
+    ? '<div style="font-size:13px;color:var(--gray-400);padding:8px">התלמיד טרם השלים תרגילים.</div>'
+    : (rcSection + wfHtml + gcHtml + ltcHtml);
 
   // Render vocab panel
   const studentVocab = (window._vocabProgress || []).filter(v => v.user_id === userId);

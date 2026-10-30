@@ -295,7 +295,9 @@ body{font-family:'Heebo',sans-serif;background:var(--gray-50);color:var(--text);
     <div class="logo">Amir<span>NET</span> Pro</div>
     <div style="display:flex;align-items:center;gap:12px">
       <span id="user-name-display" style="font-size:13px;color:rgba(255,255,255,0.7);font-family:var(--font-sans)"></span>
-      <a id="teacher-dash-btn" href="amirnet-teacher.html" style="display:none;align-items:center;gap:6px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);color:#f59e0b;padding:6px 14px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;margin-left:8px">לוח מורה ←</a><button onclick="signOut()" style="font-family:var(--font-sans);font-size:12px;background:transparent;border:1px solid rgba(255,255,255,0.25);color:rgba(255,255,255,0.6);padding:5px 12px;border-radius:999px;cursor:pointer;">יציאה</button>
+      <a id="teacher-dash-btn" href="amirnet-teacher.html" style="display:none;align-items:center;gap:6px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);color:#f59e0b;padding:6px 14px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;margin-left:8px">לוח מורה ←</a>
+      <button id="my-results-btn" onclick="showMyResults()" style="display:none;font-family:var(--font-sans);font-size:12px;background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.3);color:#a5b4fc;padding:5px 12px;border-radius:999px;cursor:pointer;">📊 הביצועים שלי</button>
+      <button onclick="signOut()" style="font-family:var(--font-sans);font-size:12px;background:transparent;border:1px solid rgba(255,255,255,0.25);color:rgba(255,255,255,0.6);padding:5px 12px;border-radius:999px;cursor:pointer;">יציאה</button>
     </div>
     <span class="header-badge">מבוסס על מבנה הבחינה הרשמי</span>
   </header>
@@ -401,6 +403,21 @@ body{font-family:'Heebo',sans-serif;background:var(--gray-50);color:var(--text);
     <p style="font-size:12px;color:var(--gray-400);margin-top:1rem;text-align:center">* החלוקה לטרום-בסיסי א' וב' עשויה להשתנות בין מוסדות אקדמיים</p>
   </section>
   <footer class="footer"><p>AmirNET Pro — אתר תרגול לא-רשמי. הבחינה הרשמית מנוהלת על ידי <a href="https://www.nite.org.il" target="_blank" style="color:var(--accent);">NITE</a>.</p></footer>
+</div>
+
+<!-- MY RESULTS -->
+<div id="my-results-screen" class="screen">
+  <header class="home-header">
+    <div class="logo">Amir<span>NET</span> Pro</div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <button onclick="showScreen('home')" style="font-family:var(--font-sans);font-size:13px;background:transparent;border:0.5px solid rgba(255,255,255,0.3);color:rgba(255,255,255,0.8);padding:6px 14px;border-radius:999px;cursor:pointer">← חזרה</button>
+    </div>
+  </header>
+  <div style="max-width:720px;margin:0 auto;padding:2rem 1.5rem;direction:rtl">
+    <div style="font-family:'DM Serif Display',serif;font-size:24px;color:#fff;margin-bottom:0.25rem">הביצועים שלי</div>
+    <div style="font-size:14px;color:rgba(255,255,255,0.5);margin-bottom:2rem">היסטוריית תרגול לפי סוג תרגיל</div>
+    <div id="my-results-body" style="font-size:14px;color:rgba(255,255,255,0.6)">טוען...</div>
+  </div>
 </div>
 
 <!-- SET PICKER -->
@@ -4165,6 +4182,9 @@ async function initAuth() {
       if (nameEl && profile) {
         nameEl.textContent = profile.first_name + ' ' + profile.last_name;
       }
+      // Show "My Results" button for all logged-in users
+      var myResBtn = document.getElementById('my-results-btn');
+      if (myResBtn) myResBtn.style.display = 'inline-block';
     } else {
       // No valid session — send to login page
       document.body.style.visibility = 'visible';
@@ -6196,6 +6216,92 @@ async function saveLTCScore(score, total, setNum) {
       completed_at: new Date().toISOString()
     });
   } catch(e) { console.warn('LTC score save failed:', e); }
+}
+
+// ─────────────────────────────────────────────────────────────
+// MY RESULTS — student-facing score history
+// ─────────────────────────────────────────────────────────────
+async function showMyResults() {
+  showScreen('my-results-screen');
+  if (!currentUser) return;
+  var el = document.getElementById('my-results-body');
+  el.innerHTML = '<div style="color:rgba(255,255,255,0.5);padding:2rem 0">טוען...</div>';
+
+  var results = await Promise.all([
+    supabase.from('scores').select('*').eq('user_id', currentUser.id).order('completed_at', {ascending:false}),
+    supabase.from('word_formation_scores').select('*').eq('user_id', currentUser.id).order('completed_at', {ascending:false}),
+    supabase.from('grammar_scores').select('*').eq('user_id', currentUser.id).order('completed_at', {ascending:false}),
+    sb.from('listening_scores').select('*').eq('user_id', currentUser.id).order('completed_at', {ascending:false}),
+  ]);
+
+  var rcList  = results[0].data || [];
+  var wfList  = results[1].data || [];
+  var gcList  = results[2].data || [];
+  var ltcList = results[3].data || [];
+
+  function buildSection(list, title, emoji, labelFn) {
+    if (!list.length) return '<div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:1.25rem 1.5rem;margin-bottom:1.25rem">'
+      + '<div style="font-size:14px;font-weight:700;color:rgba(255,255,255,0.7);margin-bottom:0.5rem">' + emoji + ' ' + title + '</div>'
+      + '<div style="font-size:13px;color:rgba(255,255,255,0.35)">טרם השלמת תרגילים בסוג זה.</div></div>';
+
+    var totalAttempts = list.length;
+    var avgPct = Math.round(list.reduce(function(a,b){return a + Math.round(b.score/b.total_questions*100);},0) / totalAttempts);
+    var bestPct = Math.max.apply(null, list.map(function(s){return Math.round(s.score/s.total_questions*100);}));
+
+    var rows = list.map(function(sc) {
+      var pct = Math.round(sc.score/sc.total_questions*100);
+      var bg  = pct>=75?'rgba(5,150,105,0.2)':pct>=50?'rgba(245,158,11,0.2)':'rgba(220,38,38,0.2)';
+      var clr = pct>=75?'#34d399':pct>=50?'#fbbf24':'#f87171';
+      var lbl = labelFn ? labelFn(sc) : ('סט ' + sc.set_number);
+      var dt  = new Date(sc.completed_at).toLocaleDateString('he-IL');
+      return '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06)">'
+        + '<div>'
+        + '<div style="font-size:14px;font-weight:600;color:rgba(255,255,255,0.85)">' + lbl + '</div>'
+        + '<div style="font-size:12px;color:rgba(255,255,255,0.35);margin-top:2px">' + dt + ' &nbsp;·&nbsp; ' + sc.score + '/' + sc.total_questions + ' נכונות</div>'
+        + '</div>'
+        + '<span style="font-size:18px;font-weight:800;padding:4px 14px;border-radius:999px;background:'+bg+';color:'+clr+'">' + pct + '%</span>'
+        + '</div>';
+    }).join('');
+
+    return '<div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:1.25rem 1.5rem;margin-bottom:1.25rem">'
+      + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">'
+      + '<div style="font-size:14px;font-weight:700;color:rgba(255,255,255,0.9)">' + emoji + ' ' + title + '</div>'
+      + '<div style="display:flex;gap:10px">'
+      + '<span style="font-size:11px;background:rgba(255,255,255,0.07);border-radius:999px;padding:3px 10px;color:rgba(255,255,255,0.5)">' + totalAttempts + ' ניסיונות</span>'
+      + '<span style="font-size:11px;background:rgba(255,255,255,0.07);border-radius:999px;padding:3px 10px;color:rgba(255,255,255,0.5)">ממוצע ' + avgPct + '%</span>'
+      + '<span style="font-size:11px;background:rgba(255,255,255,0.07);border-radius:999px;padding:3px 10px;color:rgba(255,255,255,0.5)">שיא ' + bestPct + '%</span>'
+      + '</div>'
+      + '</div>'
+      + rows
+      + '</div>';
+  }
+
+  var totalAll = rcList.length + wfList.length + gcList.length + ltcList.length;
+  var summaryHtml = totalAll === 0
+    ? '<div style="text-align:center;padding:2rem 0;color:rgba(255,255,255,0.4)">עוד לא השלמת אף תרגיל. בחר תרגיל מהמסך הראשי ותתחיל!</div>'
+    : '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:1.75rem">'
+      + '<div style="background:rgba(255,255,255,0.07);border-radius:12px;padding:1rem 1.25rem;flex:1;min-width:120px;text-align:center">'
+      + '<div style="font-size:26px;font-weight:800;color:#fff">' + totalAll + '</div>'
+      + '<div style="font-size:12px;color:rgba(255,255,255,0.4);margin-top:2px">סה"כ תרגילים</div></div>'
+      + '<div style="background:rgba(255,255,255,0.07);border-radius:12px;padding:1rem 1.25rem;flex:1;min-width:120px;text-align:center">'
+      + '<div style="font-size:26px;font-weight:800;color:#34d399">' + rcList.length + '</div>'
+      + '<div style="font-size:12px;color:rgba(255,255,255,0.4);margin-top:2px">הבנת הנקרא</div></div>'
+      + '<div style="background:rgba(255,255,255,0.07);border-radius:12px;padding:1rem 1.25rem;flex:1;min-width:120px;text-align:center">'
+      + '<div style="font-size:26px;font-weight:800;color:#a5b4fc">' + wfList.length + '</div>'
+      + '<div style="font-size:12px;color:rgba(255,255,255,0.4);margin-top:2px">Word Formation</div></div>'
+      + '<div style="background:rgba(255,255,255,0.07);border-radius:12px;padding:1rem 1.25rem;flex:1;min-width:120px;text-align:center">'
+      + '<div style="font-size:26px;font-weight:800;color:#fbbf24">' + gcList.length + '</div>'
+      + '<div style="font-size:12px;color:rgba(255,255,255,0.4);margin-top:2px">Grammar</div></div>'
+      + '<div style="background:rgba(255,255,255,0.07);border-radius:12px;padding:1rem 1.25rem;flex:1;min-width:120px;text-align:center">'
+      + '<div style="font-size:26px;font-weight:800;color:#f87171">' + ltcList.length + '</div>'
+      + '<div style="font-size:12px;color:rgba(255,255,255,0.4);margin-top:2px">Listening (LTC)</div></div>'
+      + '</div>';
+
+  el.innerHTML = summaryHtml
+    + buildSection(rcList,  'הבנת הנקרא (RC)',      '📖')
+    + buildSection(wfList,  'Word Formation',         '📝')
+    + buildSection(gcList,  'Grammar in Context',     '📐')
+    + buildSection(ltcList, 'Listening (LTC)',        '🎧');
 }
 </script>
 
