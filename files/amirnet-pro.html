@@ -281,6 +281,8 @@ body{font-family:'Heebo',sans-serif;background:var(--gray-50);color:var(--text);
 </script>
 </head>
 <body>
+<!-- Floating home button — visible on all screens except home -->
+<button id="home-fab" onclick="goHome()" style="display:none;position:fixed;top:16px;left:16px;z-index:9999;background:rgba(255,255,255,0.15);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.25);color:#fff;font-family:inherit;font-size:13px;font-weight:600;padding:7px 16px;border-radius:999px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.2);transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,0.25)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">🏠 ראשי</button>
 <!-- ANNOUNCEMENT STRIPE -->
 <div id="announcement-stripe" style="display:none;background:linear-gradient(90deg,#f59e0b,#fbbf24);padding:10px 1.5rem;text-align:center;position:relative;z-index:200;">
   <span id="announcement-text" style="font-family:'Heebo',sans-serif;font-size:14px;font-weight:600;color:#1a0a00;"></span>
@@ -4310,7 +4312,7 @@ function getPassageText(passageId) {
 function secQuestions(si){const id=getSections()[si].id;return getActiveQuestions().filter(q=>q.sec===id)}
 function globalQIndex(si,qi){let o=0;const S=getSections();for(let i=0;i<si;i++)o+=S[i].qCount;return o+qi}
 
-function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active')}
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');var fab=document.getElementById('home-fab');if(fab)fab.style.display=(id==='home'?'none':'block');}
 function goHome(){clearInterval(timerInterval);showScreen('home')}
 
 async function checkTeacherRole() {
@@ -5420,8 +5422,7 @@ async function saveWFScore(score, total, setNum) {
         correct_answer: q.answers[0],
         student_answer: wfUserAnswers[i] || '',
         is_correct: !!(wfCorrect[i]),
-        exercise_type: 'wf',
-        completed_at: ts
+        exercise_type: 'wf'
       };
     });
     await sb.from('answer_details').insert(rows);
@@ -5792,8 +5793,7 @@ async function saveGrammarScore(score, total, setNum) {
         correct_answer: q.opts[q.correct],
         student_answer: gcAnswers[i] >= 0 ? q.opts[gcAnswers[i]] : '',
         is_correct: gcAnswers[i] === q.correct,
-        exercise_type: 'gc',
-        completed_at: ts
+        exercise_type: 'gc'
       };
     });
     await sb.from('answer_details').insert(rows);
@@ -6260,8 +6260,7 @@ async function saveLTCScore(score, total, setNum) {
         correct_answer: q.options[q.correctIndex],
         student_answer: ltcSelected[i] >= 0 ? q.options[ltcSelected[i]] : '',
         is_correct: !!(ltcCorrect[i]),
-        exercise_type: 'ltc',
-        completed_at: ts
+        exercise_type: 'ltc'
       };
     });
     await sb.from('answer_details').insert(rows);
