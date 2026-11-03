@@ -195,17 +195,19 @@ async function loadAll(){
 }
 function renderOverview(){
   document.getElementById('ov-sets').textContent=(allScores.length+allWFScores.length+allGCScores.length+allLTCScores.length)||'0';
-  const avgs=allScores.map(s=>Math.round(s.score/s.total_questions*100));
+  const allForAvg=[...allScores,...allWFScores,...allGCScores,...allLTCScores];
+  const avgs=allForAvg.map(s=>Math.round(s.score/s.total_questions*100));
   const avg=avgs.length?Math.round(avgs.reduce((a,b)=>a+b,0)/avgs.length):null;
   document.getElementById('ov-avg').textContent=avg!==null?avg+'%':'—';
   document.getElementById('ov-words').textContent=vocabData.filter(v=>v.status==='known').length||'0';
-  document.getElementById('ov-streak').textContent=new Set(allScores.map(s=>s.completed_at?s.completed_at.slice(0,10):null).filter(Boolean)).size||'0';
+  document.getElementById('ov-streak').textContent=new Set(allForAvg.map(s=>s.completed_at?s.completed_at.slice(0,10):null).filter(Boolean)).size||'0';
   renderChart();renderSectionBars();renderFeedback();renderRecommendations();
 }
 function renderChart(){
   const wrap=document.getElementById('chart-wrap');
-  if(allScores.length<2)return;
-  const scores=allScores.map(s=>Math.round(s.score/s.total_questions*100));
+  const all=[...allScores,...allWFScores,...allGCScores,...allLTCScores].filter(s=>s.completed_at).sort((a,b)=>new Date(a.completed_at)-new Date(b.completed_at));
+  if(all.length<2)return;
+  const scores=all.map(s=>Math.round(s.score/s.total_questions*100));
   const W=400,H=140,P=20,minS=Math.max(0,Math.min(...scores)-10),maxS=Math.min(100,Math.max(...scores)+10);
   const x=i=>P+(i/(scores.length-1))*(W-P*2),y=s=>H-P-((s-minS)/(maxS-minS))*(H-P*2);
   const pts=scores.map((s,i)=>x(i)+','+y(s)).join(' ');
@@ -213,13 +215,20 @@ function renderChart(){
 }
 function pct(arr){return arr.length?Math.round(arr.filter(a=>a.is_correct).length/arr.length*100):null;}
 function isReadingQ(a){return !!(a.passage_text||(Q_PASSAGE_MAP&&Q_PASSAGE_MAP[a.question_text]));}
+function avgPct(arr){return arr.length?Math.round(arr.reduce((s,r)=>s+Math.round(r.score/r.total_questions*100),0)/arr.length):null;}
 function renderSectionBars(){
   const el=document.getElementById('section-bars');
-  if(!allAnswers.length){el.innerHTML='<div class="empty-state">עדיין אין נתונים</div>';return;}
   const reading=allAnswers.filter(isReadingQ),rest=allAnswers.filter(a=>!isReadingQ(a));
   let comps=[],rests=[];
   rest.forEach(a=>{try{const o=a.options_json?JSON.parse(a.options_json):null;if(o&&o[0]&&o[0].length<30)comps.push(a);else rests.push(a);}catch(e){comps.push(a);}});
-  const secs=[{n:'השלמת משפטים',p:pct(comps),c:'#1a56db'},{n:'ניסוח מחדש',p:pct(rests),c:'#7c3aed'},{n:'הבנת הנקרא',p:pct(reading),c:'#059669'}].filter(s=>s.p!==null);
+  const secs=[
+    {n:'השלמת משפטים',p:pct(comps),c:'#1a56db'},
+    {n:'ניסוח מחדש',p:pct(rests),c:'#7c3aed'},
+    {n:'הבנת הנקרא',p:pct(reading),c:'#059669'},
+    {n:'📝 Word Formation',p:avgPct(allWFScores),c:'#f59e0b'},
+    {n:'📐 Grammar in Context',p:avgPct(allGCScores),c:'#ec4899'},
+    {n:'🎧 Listening (LTC)',p:avgPct(allLTCScores),c:'#06b6d4'}
+  ].filter(s=>s.p!==null);
   if(!secs.length){el.innerHTML='<div class="empty-state">עדיין אין נתונים</div>';return;}
   el.innerHTML=secs.map(s=>{const c=s.p>=75?'#059669':s.p>=50?'#d97706':'#dc2626';return '<div class="section-bar"><div class="sb-label"><span style="color:#334155;font-weight:500">'+s.n+'</span><span style="font-weight:700;color:'+c+'">'+s.p+'%</span></div><div class="sb-track"><div class="sb-fill" style="width:'+s.p+'%;background:'+s.c+'"></div></div></div>';}).join('');
 }
@@ -257,9 +266,19 @@ function buildSimpleSection(list,title,emoji){
   var rows=list.map(function(sc){
     var p=Math.round(sc.score/sc.total_questions*100);
     var c=p>=75?'#059669':p>=50?'#d97706':'#dc2626';
-    var bg=p>=75?'#d1fae5':p>=50?'#fef3c7':'#fee2e2';
+    var bg=p>=75?'#a7f3d0':p>=50?'#fde68a':'#fecaca';
+    var tc=p>=75?'#065f46':p>=50?'#78350f':'#7f1d1d';
     var date=sc.completed_at?new Date(sc.completed_at).toLocaleDateString('he-IL'):'';
-    return '<div class="history-set"><div class="history-set-header" style="cursor:default"><div class="hs-left"><div class="hs-badge">'+sc.set_number+'</div><div><div class="hs-name">'+emoji+' סט '+sc.set_number+'</div><div class="hs-date">'+date+'</div></div></div><div class="hs-score" style="color:'+c+'">'+p+'%</div></div></div>';
+    var wrong=sc.total_questions-sc.score;
+    var body='<div class="hs-body">'
+      +'<div style="background:'+bg+';border-radius:12px;padding:16px 18px;margin-top:10px;text-align:center">'
+      +'<div style="font-size:3rem;font-weight:900;color:'+tc+';line-height:1.1">'+p+'%</div>'
+      +'<div style="display:flex;justify-content:center;gap:14px;margin-top:10px;font-size:13px;flex-wrap:wrap">'
+      +'<span style="background:rgba(255,255,255,0.75);color:#166534;padding:4px 12px;border-radius:20px;font-weight:600">✓ נכון: '+sc.score+'</span>'
+      +'<span style="background:rgba(255,255,255,0.75);color:#991b1b;padding:4px 12px;border-radius:20px;font-weight:600">✗ שגוי: '+wrong+'</span>'
+      +'<span style="background:rgba(255,255,255,0.75);color:#475569;padding:4px 12px;border-radius:20px;font-weight:600">סה״כ: '+sc.total_questions+'</span>'
+      +'</div></div></div>';
+    return '<div class="history-set"><div class="history-set-header" onclick="this.nextElementSibling.classList.toggle(\'open\')"><div class="hs-left"><div class="hs-badge">'+sc.set_number+'</div><div><div class="hs-name">'+emoji+' סט '+sc.set_number+'</div><div class="hs-date">'+date+'</div></div></div><div class="hs-score" style="color:'+c+'">'+p+'%</div></div>'+body+'</div>';
   }).join('');
   return '<div style="margin-top:24px"><div style="font-size:14px;font-weight:700;color:#334155;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid #e2e8f0">'+emoji+' '+title+'</div>'+rows+'</div>';
 }
