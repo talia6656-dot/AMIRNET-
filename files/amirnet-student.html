@@ -161,7 +161,6 @@ const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const LESSONS=[{id:'intro',title:'מבוא לבחינת AMIRNET',meta:'מבנה הבחינה · סוגי השאלות · אסטרטגיית פתרון'},{id:'tour',title:'סיור באתר — כל הפיצ׳רים',meta:'הסבר על כל חלקי האתר · איך לתרגל · איך להתכונן'}];
 let currentUser=null,allScores=[],allAnswers=[],feedbackData=null,vocabData=[],watchedData=[];
 let allWFScores=[],allGCScores=[],allLTCScores=[];
-let allWFAnswers=[],allGCAnswers=[],allLTCAnswers=[];
 let _vocabKnown=[],_vocabFamiliar=[],_vocabUnknown=[];
 async function init(){
   if(window.location.hostname==='amirnetpro.netlify.app'){
@@ -192,12 +191,6 @@ async function loadAll(){
   allGCScores=gcScores||[];
   const{data:ltcScores}=await sb.from('listening_scores').select('*').eq('user_id',uid).order('completed_at',{ascending:false});
   allLTCScores=ltcScores||[];
-  const{data:wfAns}=await sb.from('answer_details').select('*').eq('user_id',uid).eq('exercise_type','wf');
-  allWFAnswers=wfAns||[];
-  const{data:gcAns}=await sb.from('answer_details').select('*').eq('user_id',uid).eq('exercise_type','gc');
-  allGCAnswers=gcAns||[];
-  const{data:ltcAns}=await sb.from('answer_details').select('*').eq('user_id',uid).eq('exercise_type','ltc');
-  allLTCAnswers=ltcAns||[];
   renderOverview();renderHistory();renderVocab();renderLessons();
 }
 function renderOverview(){
@@ -268,7 +261,7 @@ function renderRecommendations(){
   if(!recs.length)recs.push({i:'👍',t:'good',m:'המשך לתרגל — כל סט שאתה עושה משפר את הסיכויים שלך!'});
   el.innerHTML=recs.map(r=>'<div class="rec-item"><span class="rec-icon '+r.t+'">'+r.i+'</span><span>'+r.m+'</span></div>').join('');
 }
-function buildSimpleSection(list,title,emoji,answerList){
+function buildSimpleSection(list,title,emoji){
   if(!list.length)return '';
   var rows=list.map(function(sc){
     var p=Math.round(sc.score/sc.total_questions*100);
@@ -277,11 +270,13 @@ function buildSimpleSection(list,title,emoji,answerList){
     var tc=p>=75?'#065f46':p>=50?'#78350f':'#7f1d1d';
     var date=sc.completed_at?new Date(sc.completed_at).toLocaleDateString('he-IL'):'';
     var wrong=sc.total_questions-sc.score;
-    var setAns=(answerList||[]).filter(function(a){return String(a.set_number)===String(sc.set_number);});
+    var setAns=[];
+    if(sc.answers_json){try{setAns=JSON.parse(sc.answers_json);}catch(e){}}
     var detailHtml='';
     if(setAns.length){
       detailHtml=setAns.map(function(a,qi){
-        var opts=[];try{opts=JSON.parse(a.options_json||'[]');}catch(e){}
+        var opts=Array.isArray(a.options_json)?a.options_json:[];
+        try{if(!opts.length&&typeof a.options_json==='string')opts=JSON.parse(a.options_json);}catch(e){}
         var cardCls=a.is_correct?'correct-card':'wrong-card';
         var statusCls=a.is_correct?'correct':'wrong';
         var statusLabel=a.is_correct?'נכון ✓':'שגוי ✗';
@@ -313,7 +308,7 @@ function buildSimpleSection(list,title,emoji,answerList){
       +'<span style="background:rgba(255,255,255,0.75);color:#991b1b;padding:4px 12px;border-radius:20px;font-weight:600">✗ שגוי: '+wrong+'</span>'
       +'<span style="background:rgba(255,255,255,0.75);color:#475569;padding:4px 12px;border-radius:20px;font-weight:600">סה״כ: '+sc.total_questions+'</span>'
       +'</div></div>'
-      +(detailHtml?'<div style="margin-top:12px">'+detailHtml+'</div>':'<div style="font-size:12px;color:#94a3b8;text-align:center;margin-top:10px">פירוט שאלות יופיע עבור סטים שיושלמו מעכשיו</div>')
+      +(detailHtml?'<div style="margin-top:12px">'+detailHtml+'</div>':'')
       +'</div>';
     return '<div class="history-set"><div class="history-set-header" onclick="this.nextElementSibling.classList.toggle(\'open\')"><div class="hs-left"><div class="hs-badge">'+sc.set_number+'</div><div><div class="hs-name">'+emoji+' סט '+sc.set_number+'</div><div class="hs-date">'+date+'</div></div></div><div class="hs-score" style="color:'+c+'">'+p+'%</div></div>'+body+'</div>';
   }).join('');
@@ -364,9 +359,9 @@ function renderHistory(){
     return '<div class="history-set"><div class="history-set-header" onclick="this.nextElementSibling.classList.toggle(\'open\')"><div class="hs-left"><div class="hs-badge">'+badge+'</div><div><div class="hs-name">'+label+'</div><div class="hs-date">'+date+'</div></div></div><div class="hs-score" style="color:'+c+'">'+amirGrade+'</div></div><div class="hs-body">'+gradeHtml+buildAnswers(ans)+'</div></div>';
   }).join('');}
   el.innerHTML=rcSection
-    +buildSimpleSection(allWFScores,'Word Formation','📝',allWFAnswers)
-    +buildSimpleSection(allGCScores,'Grammar in Context','📐',allGCAnswers)
-    +buildSimpleSection(allLTCScores,'Listening (LTC)','🎧',allLTCAnswers);
+    +buildSimpleSection(allWFScores,'Word Formation','📝')
+    +buildSimpleSection(allGCScores,'Grammar in Context','📐')
+    +buildSimpleSection(allLTCScores,'Listening (LTC)','🎧');
 }
 function buildAnswers(answers){
   if(!answers.length)return '<div class="empty-state">אין פירוט שאלות לסט זה</div>';

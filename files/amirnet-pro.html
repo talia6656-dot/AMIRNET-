@@ -5408,24 +5408,21 @@ function showWFResults() {
 
 async function saveWFScore(score, total, setNum) {
   try {
+    var answers = wfQuestions.map(function(q, i) {
+      return {
+        question_text: q.sentence,
+        options_json: [],
+        correct_answer: q.answers[0],
+        student_answer: wfUserAnswers[i] || '',
+        is_correct: !!(wfCorrect[i])
+      };
+    });
     await sb.from('word_formation_scores').insert({
       user_id: currentUser.id, set_number: setNum,
       score: score, total_questions: total,
-      completed_at: new Date().toISOString()
+      completed_at: new Date().toISOString(),
+      answers_json: JSON.stringify(answers)
     });
-    var ts = new Date().toISOString();
-    var rows = wfQuestions.map(function(q, i) {
-      return {
-        user_id: currentUser.id, set_number: setNum,
-        question_text: q.sentence,
-        options_json: '[]',
-        correct_answer: q.answers[0],
-        student_answer: wfUserAnswers[i] || '',
-        is_correct: !!(wfCorrect[i]),
-        exercise_type: 'wf'
-      };
-    });
-    await sb.from('answer_details').insert(rows);
   } catch(e) { console.warn('WF score save failed:', e); }
 }
 
@@ -5779,24 +5776,21 @@ function showGrammarResults() {
 
 async function saveGrammarScore(score, total, setNum) {
   try {
+    var answers = gcQuestions.map(function(q, i) {
+      return {
+        question_text: q.text.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim(),
+        options_json: q.opts,
+        correct_answer: q.opts[q.correct],
+        student_answer: gcAnswers[i] >= 0 ? q.opts[gcAnswers[i]] : '',
+        is_correct: gcAnswers[i] === q.correct
+      };
+    });
     await sb.from('grammar_scores').insert({
       user_id: currentUser.id, set_number: setNum,
       score: score, total_questions: total,
-      completed_at: new Date().toISOString()
+      completed_at: new Date().toISOString(),
+      answers_json: JSON.stringify(answers)
     });
-    var ts = new Date().toISOString();
-    var rows = gcQuestions.map(function(q, i) {
-      return {
-        user_id: currentUser.id, set_number: setNum,
-        question_text: q.text.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim(),
-        options_json: JSON.stringify(q.opts),
-        correct_answer: q.opts[q.correct],
-        student_answer: gcAnswers[i] >= 0 ? q.opts[gcAnswers[i]] : '',
-        is_correct: gcAnswers[i] === q.correct,
-        exercise_type: 'gc'
-      };
-    });
-    await sb.from('answer_details').insert(rows);
   } catch(e) { console.warn('Grammar score save failed:', e); }
 }
 
@@ -6246,24 +6240,21 @@ function showLTCResults() {
 
 async function saveLTCScore(score, total, setNum) {
   try {
+    var answers = ltcQuestions.map(function(q, i) {
+      return {
+        question_text: q.topic,
+        options_json: q.options,
+        correct_answer: q.options[q.correctIndex],
+        student_answer: ltcSelected[i] >= 0 ? q.options[ltcSelected[i]] : '',
+        is_correct: !!(ltcCorrect[i])
+      };
+    });
     await sb.from('listening_scores').insert({
       user_id: currentUser.id, set_number: setNum,
       score: score, total_questions: total,
-      completed_at: new Date().toISOString()
+      completed_at: new Date().toISOString(),
+      answers_json: JSON.stringify(answers)
     });
-    var ts = new Date().toISOString();
-    var rows = ltcQuestions.map(function(q, i) {
-      return {
-        user_id: currentUser.id, set_number: setNum,
-        question_text: q.topic,
-        options_json: JSON.stringify(q.options),
-        correct_answer: q.options[q.correctIndex],
-        student_answer: ltcSelected[i] >= 0 ? q.options[ltcSelected[i]] : '',
-        is_correct: !!(ltcCorrect[i]),
-        exercise_type: 'ltc'
-      };
-    });
-    await sb.from('answer_details').insert(rows);
   } catch(e) { console.warn('LTC score save failed:', e); }
 }
 
