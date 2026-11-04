@@ -107,7 +107,15 @@ body{font-family:'Heebo',sans-serif;background:var(--gray-50);color:var(--text);
 .btn-watch.done{background:var(--green);cursor:default;}
 .loading-state{text-align:center;padding:3rem;color:var(--gray-400);font-size:14px;}
 .empty-state{text-align:center;padding:2rem;color:var(--gray-400);font-size:13px;}
-@media(max-width:640px){.stats-row{grid-template-columns:repeat(2,1fr);}.grid-2{grid-template-columns:1fr;}.vocab-cats{grid-template-columns:repeat(2,1fr);}}
+.hist-tabs-bar{display:flex;gap:4px;margin-bottom:16px;background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius);padding:6px;}
+.hist-tab{flex:1;padding:9px 8px;font-family:'Heebo',sans-serif;font-size:13px;font-weight:500;color:var(--gray-600);background:none;border:none;border-radius:8px;cursor:pointer;transition:background .15s,color .15s;}
+.hist-tab.active{background:var(--blue);color:#fff;font-weight:700;}
+.hist-tab:hover:not(.active){background:var(--gray-100);}
+.htab-badge{display:inline-flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.3);border-radius:999px;min-width:18px;height:18px;padding:0 5px;font-size:11px;font-weight:700;line-height:1;}
+.hist-tab:not(.active) .htab-badge{background:var(--blue);color:#fff;}
+.hist-panel{display:none;}
+.hist-panel.active{display:block;}
+@media(max-width:640px){.stats-row{grid-template-columns:repeat(2,1fr);}.grid-2{grid-template-columns:1fr;}.vocab-cats{grid-template-columns:repeat(2,1fr);}.hist-tab{font-size:11px;padding:7px 4px;}}
 </style>
 </head>
 <body>
@@ -314,54 +322,67 @@ function buildSimpleSection(list,title,emoji){
   }).join('');
   return '<div style="margin-top:24px"><div style="font-size:14px;font-weight:700;color:#334155;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid #e2e8f0">'+emoji+' '+title+'</div>'+rows+'</div>';
 }
+function getLvl(g){
+  if(g>=134)return{n:'פטור (Exempt)',s:'ציון מעולה! פטור מכל קורסי האנגלית.',bg:'#a7f3d0',tc:'#065f46'};
+  if(g>=120)return{n:'Advanced II',s:'ציון טוב מאוד. נדרש קורס אחד.',bg:'#bfdbfe',tc:'#1e3a8a'};
+  if(g>=100)return{n:'Advanced I',s:'נדרשים שני קורסי אנגלית.',bg:'#fde68a',tc:'#78350f'};
+  if(g>=85) return{n:'בסיסי (Basic)',s:'נדרשים 3 קורסי רמה.',bg:'#fecaca',tc:'#7f1d1d'};
+  if(g>=70) return{n:"טרום בסיסי ב'",s:'נדרשים 4 קורסי רמה.',bg:'#fde8d8',tc:'#7c2d12'};
+  return{n:"טרום בסיסי א'",s:'נדרשים 5 קורסי רמה.',bg:'#f3e8ff',tc:'#581c87'};
+}
+function buildRCItem(sc){
+  const p=Math.round(sc.score/sc.total_questions*100);
+  const c=p>=75?'#059669':p>=50?'#d97706':'#dc2626';
+  const date=sc.completed_at?new Date(sc.completed_at).toLocaleDateString('he-IL'):'';
+  const lbl=sc.set_number>=101?'מבחן מדומה '+(sc.set_number-100):'סט '+sc.set_number;
+  const bdg=sc.set_number>=101?'M'+(sc.set_number-100):sc.set_number;
+  const ans=allAnswers.filter(a=>String(a.set_number)===String(sc.set_number));
+  const correctCount=ans.filter(a=>a.is_correct).length;
+  const wrongCount=ans.filter(a=>!a.is_correct&&a.student_answer!==-1).length;
+  const skipCount=ans.filter(a=>a.student_answer===-1).length;
+  const amirGrade=Math.min(150,Math.max(50,Math.round(50+sc.score/sc.total_questions*100)));
+  const lvl=getLvl(amirGrade);
+  const gradeHtml='<div style="background:'+lvl.bg+';border-radius:14px;padding:22px 24px;margin-bottom:18px;text-align:center;direction:rtl">'
+    +'<div style="font-size:13px;font-weight:600;color:#64748b;margin-bottom:4px">ציון אמי"ר משוער</div>'
+    +'<div style="font-size:4rem;font-weight:900;color:'+lvl.tc+';line-height:1.1">'+amirGrade+'</div>'
+    +'<div style="font-size:16px;font-weight:700;color:'+lvl.tc+';margin-top:6px">'+lvl.n+'</div>'
+    +'<div style="font-size:13px;color:#475569;margin-top:4px">'+lvl.s+'</div>'
+    +'<div style="display:flex;justify-content:center;gap:16px;margin-top:14px;font-size:13px;flex-wrap:wrap">'
+    +'<span style="background:rgba(255,255,255,0.7);color:#166534;padding:4px 12px;border-radius:20px;font-weight:600">✓ נכון: '+correctCount+'</span>'
+    +'<span style="background:rgba(255,255,255,0.7);color:#991b1b;padding:4px 12px;border-radius:20px;font-weight:600">✗ שגוי: '+wrongCount+'</span>'
+    +(skipCount?'<span style="background:rgba(255,255,255,0.7);color:#475569;padding:4px 12px;border-radius:20px;font-weight:600">— דולג: '+skipCount+'</span>':'')
+    +'<span style="background:rgba(255,255,255,0.7);color:#475569;padding:4px 12px;border-radius:20px;font-weight:600">'+p+'% נכון</span>'
+    +'</div></div>';
+  return '<div class="history-set"><div class="history-set-header" onclick="this.nextElementSibling.classList.toggle(\'open\')"><div class="hs-left"><div class="hs-badge">'+bdg+'</div><div><div class="hs-name">'+lbl+'</div><div class="hs-date">'+date+'</div></div></div><div class="hs-score" style="color:'+c+'">'+amirGrade+'</div></div><div class="hs-body">'+gradeHtml+buildAnswers(ans)+'</div></div>';
+}
+function showHistTab(name,btn){
+  document.querySelectorAll('.hist-tab').forEach(function(t){t.classList.remove('active');});
+  document.querySelectorAll('.hist-panel').forEach(function(p){p.classList.remove('active');});
+  btn.classList.add('active');
+  document.getElementById('htab-'+name).classList.add('active');
+}
 function renderHistory(){
   const el=document.getElementById('history-body');
   const totalAll=allScores.length+allWFScores.length+allGCScores.length+allLTCScores.length;
   if(!totalAll){el.innerHTML='<div class="empty-state">עדיין לא השלמת סטים. התחל לתרגל!</div>';return;}
-  const sets=[...new Set(allAnswers.map(a=>String(a.set_number)))];
-  const info=allAnswers.length===0
-    ?'<div style="font-size:12px;color:#dc2626;background:#fee2e2;border-radius:8px;padding:8px 12px;margin-bottom:12px">⚠️ לא נטענו פירוטי תשובות</div>'
-    :'<div style="font-size:12px;color:#059669;background:#d1fae5;border-radius:8px;padding:8px 12px;margin-bottom:12px">✓ נטענו '+allAnswers.length+' תשובות</div>';
-  var rcSection='';
-  if(allScores.length){
-  var rcLabel='<div style="font-size:14px;font-weight:700;color:#334155;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid #e2e8f0">📖 הבנת הנקרא (RC)</div>';
-  rcSection=rcLabel+info+[...allScores].reverse().map(sc=>{
-    const p=Math.round(sc.score/sc.total_questions*100);
-    const c=p>=75?'#059669':p>=50?'#d97706':'#dc2626';
-    const date=sc.completed_at?new Date(sc.completed_at).toLocaleDateString('he-IL'):'';
-    const label=sc.set_number>=101?'מבחן מדומה '+(sc.set_number-100):'סט '+sc.set_number;
-    const badge=sc.set_number>=101?'M'+(sc.set_number-100):sc.set_number;
-    const ans=allAnswers.filter(a=>String(a.set_number)===String(sc.set_number));
-    const correctCount=ans.filter(a=>a.is_correct).length;
-    const wrongCount=ans.filter(a=>!a.is_correct&&a.student_answer!==-1).length;
-    const skipCount=ans.filter(a=>a.student_answer===-1).length;
-    const amirGrade=Math.min(150,Math.max(50,Math.round(50+sc.score/sc.total_questions*100)));
-    function getLvl(g){
-      if(g>=134)return{n:'פטור (Exempt)',s:'ציון מעולה! פטור מכל קורסי האנגלית.',bg:'#a7f3d0',tc:'#065f46'};
-      if(g>=120)return{n:'Advanced II',s:'ציון טוב מאוד. נדרש קורס אחד.',bg:'#bfdbfe',tc:'#1e3a8a'};
-      if(g>=100)return{n:'Advanced I',s:'נדרשים שני קורסי אנגלית.',bg:'#fde68a',tc:'#78350f'};
-      if(g>=85) return{n:'בסיסי (Basic)',s:'נדרשים 3 קורסי רמה.',bg:'#fecaca',tc:'#7f1d1d'};
-      if(g>=70) return{n:"טרום בסיסי ב'",s:'נדרשים 4 קורסי רמה.',bg:'#fde8d8',tc:'#7c2d12'};
-      return{n:"טרום בסיסי א'",s:'נדרשים 5 קורסי רמה.',bg:'#f3e8ff',tc:'#581c87'};
-    }
-    const lvl=getLvl(amirGrade);
-    const gradeHtml='<div style="background:'+lvl.bg+';border-radius:14px;padding:22px 24px;margin-bottom:18px;text-align:center;direction:rtl">'
-      +'<div style="font-size:13px;font-weight:600;color:#64748b;margin-bottom:4px">ציון אמי"ר משוער</div>'
-      +'<div style="font-size:4rem;font-weight:900;color:'+lvl.tc+';line-height:1.1">'+amirGrade+'</div>'
-      +'<div style="font-size:16px;font-weight:700;color:'+lvl.tc+';margin-top:6px">'+lvl.n+'</div>'
-      +'<div style="font-size:13px;color:#475569;margin-top:4px">'+lvl.s+'</div>'
-      +'<div style="display:flex;justify-content:center;gap:16px;margin-top:14px;font-size:13px;flex-wrap:wrap">'
-      +'<span style="background:rgba(255,255,255,0.7);color:#166534;padding:4px 12px;border-radius:20px;font-weight:600">✓ נכון: '+correctCount+'</span>'
-      +'<span style="background:rgba(255,255,255,0.7);color:#991b1b;padding:4px 12px;border-radius:20px;font-weight:600">✗ שגוי: '+wrongCount+'</span>'
-      +(skipCount?'<span style="background:rgba(255,255,255,0.7);color:#475569;padding:4px 12px;border-radius:20px;font-weight:600">— דולג: '+skipCount+'</span>':'')
-      +'<span style="background:rgba(255,255,255,0.7);color:#475569;padding:4px 12px;border-radius:20px;font-weight:600">'+p+'% נכון</span>'
-      +'</div></div>';
-    return '<div class="history-set"><div class="history-set-header" onclick="this.nextElementSibling.classList.toggle(\'open\')"><div class="hs-left"><div class="hs-badge">'+badge+'</div><div><div class="hs-name">'+label+'</div><div class="hs-date">'+date+'</div></div></div><div class="hs-score" style="color:'+c+'">'+amirGrade+'</div></div><div class="hs-body">'+gradeHtml+buildAnswers(ans)+'</div></div>';
-  }).join('');}
-  el.innerHTML=rcSection
-    +buildSimpleSection(allWFScores,'Word Formation','📝')
-    +buildSimpleSection(allGCScores,'Grammar in Context','📐')
-    +buildSimpleSection(allLTCScores,'Listening (LTC)','🎧');
+  const rcEx=[...allScores].filter(sc=>sc.set_number<101).reverse();
+  const rcMk=[...allScores].filter(sc=>sc.set_number>=101).reverse();
+  const extraCount=allWFScores.length+allGCScores.length+allLTCScores.length;
+  function nb(n){return n?'<span class="htab-badge">'+n+'</span>':'';}
+  const rcHtml=rcEx.length?rcEx.map(buildRCItem).join(''):'<div class="empty-state">עדיין אין תרגולי קריאה.</div>';
+  const mockHtml=rcMk.length?rcMk.map(buildRCItem).join(''):'<div class="empty-state">עדיין אין מבחנים מדומים.</div>';
+  const extraHtml=extraCount
+    ?buildSimpleSection(allWFScores,'Word Formation','📝')+buildSimpleSection(allGCScores,'Grammar in Context','📐')+buildSimpleSection(allLTCScores,'Listening (LTC)','🎧')
+    :'<div class="empty-state">עדיין אין תרגילים נוספים.</div>';
+  el.innerHTML=
+    '<div class="hist-tabs-bar">'
+    +'<button class="hist-tab active" onclick="showHistTab(\'rc\',this)">📖 תרגולי קריאה '+nb(rcEx.length)+'</button>'
+    +'<button class="hist-tab" onclick="showHistTab(\'mock\',this)">🎯 מבחנים מדומים '+nb(rcMk.length)+'</button>'
+    +'<button class="hist-tab" onclick="showHistTab(\'extra\',this)">⚡ תרגילים נוספים '+nb(extraCount)+'</button>'
+    +'</div>'
+    +'<div id="htab-rc" class="hist-panel active">'+rcHtml+'</div>'
+    +'<div id="htab-mock" class="hist-panel">'+mockHtml+'</div>'
+    +'<div id="htab-extra" class="hist-panel">'+extraHtml+'</div>';
 }
 function buildAnswers(answers){
   if(!answers.length)return '<div class="empty-state">אין פירוט שאלות לסט זה</div>';
